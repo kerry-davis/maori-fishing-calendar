@@ -323,6 +323,7 @@ function minutesToTime(minutes) {
 }
 
 function getMoonTransitTimes(date, lat, lng) {
+    // This is a brute-force method to find transit times.
     var rc = { "transits": [] };
     var sign = 1, i, j;
     for (i = 0; i <= 25; i++) {
