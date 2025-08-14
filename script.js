@@ -268,6 +268,13 @@ const biteQualityColors = {
     poor: "#ef4444"
 };
 
+const qualityDistribution = {
+    "Excellent": ["excellent", "average", "fair", "fair"],
+    "Good": ["fair", "good", "poor", "poor"],
+    "Average": ["average", "average", "poor", "poor"],
+    "Poor": ["poor", "poor", "poor", "poor"]
+};
+
 let userLocation = null;
 
 let currentDate = new Date();
@@ -403,29 +410,31 @@ function calculateBiteTimes(date, lat, lon) {
 
     const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
     const moonTransits = getMoonTransitTimes(date, lat, lon).transits;
+    const dayQuality = lunarPhases[getMoonPhaseData(date).phaseIndex].quality;
+    const qualities = qualityDistribution[dayQuality] || qualityDistribution["Poor"];
 
-    const formatBite = (start, end) => ({
+    const formatBite = (start, end, quality) => ({
         start: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         end: end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        quality: 'good'
+        quality: quality
     });
 
-    const majorBites = moonTransits.map(transit => {
-        const start = new Date(transit.time.getTime() - 1 * 60 * 60 * 1000);
+    const majorBites = moonTransits.map((transit, index) => {
+        const start = new Date(transit.time.getTime() - 1 * 60 * 60 * 1000); // 2 hour window
         const end = new Date(transit.time.getTime() + 1 * 60 * 60 * 1000);
-        return formatBite(start, end);
+        return formatBite(start, end, qualities[index]);
     });
 
     const minorBites = [];
     if (moonTimes.rise) {
-        const start = new Date(moonTimes.rise.getTime() - 1.5 * 60 * 60 * 1000);
-        const end = new Date(moonTimes.rise.getTime() + 1.5 * 60 * 60 * 1000);
-        minorBites.push(formatBite(start, end));
+        const start = new Date(moonTimes.rise.getTime() - 0.5 * 60 * 60 * 1000); // 1 hour window
+        const end = new Date(moonTimes.rise.getTime() + 0.5 * 60 * 60 * 1000);
+        minorBites.push(formatBite(start, end, qualities[2]));
     }
     if (moonTimes.set) {
-        const start = new Date(moonTimes.set.getTime() - 1.5 * 60 * 60 * 1000);
-        const end = new Date(moonTimes.set.getTime() + 1.5 * 60 * 60 * 1000);
-        minorBites.push(formatBite(start, end));
+        const start = new Date(moonTimes.set.getTime() - 0.5 * 60 * 60 * 1000); // 1 hour window
+        const end = new Date(moonTimes.set.getTime() + 0.5 * 60 * 60 * 1000);
+        minorBites.push(formatBite(start, end, qualities[3]));
     }
 
     return {
