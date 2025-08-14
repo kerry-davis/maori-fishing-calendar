@@ -445,6 +445,8 @@ const biteQualityColors = {
     poor: "#ef4444"
 };
 
+let userLocation = null;
+
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
@@ -546,7 +548,27 @@ function setupTheme() {
     updateIcon(isDark);
 }
 
+function loadLocation() {
+    const savedLocation = localStorage.getItem('userLocation');
+    if (savedLocation) {
+        userLocation = JSON.parse(savedLocation);
+    }
+}
+
+function setLocationAndFetchBiteTimes(lat, lon) {
+    userLocation = { lat, lon };
+    localStorage.setItem('userLocation', JSON.stringify(userLocation));
+
+    const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
+    const biteTimes = calculateBiteTimes(date, lat, lon);
+    majorBites.innerHTML = '';
+    biteTimes.major.forEach(biteTime => majorBites.appendChild(createBiteTimeElement(biteTime)));
+    minorBites.innerHTML = '';
+    biteTimes.minor.forEach(biteTime => minorBites.appendChild(createBiteTimeElement(biteTime)));
+};
+
 function initCalendar() {
+    loadLocation();
     renderCalendar();
     updateCurrentMoonInfo();
     setupEventListeners();
@@ -575,15 +597,6 @@ function setupEventListeners() {
     const useLocationBtn = document.getElementById('use-location-btn');
     const locationInput = document.getElementById('location-input');
 
-    const updateBiteTimesForLocation = (lat, lon) => {
-        const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
-        const biteTimes = calculateBiteTimes(date, lat, lon);
-        majorBites.innerHTML = '';
-        biteTimes.major.forEach(biteTime => majorBites.appendChild(createBiteTimeElement(biteTime)));
-        minorBites.innerHTML = '';
-        biteTimes.minor.forEach(biteTime => minorBites.appendChild(createBiteTimeElement(biteTime)));
-    };
-
     if (useLocationBtn) {
         useLocationBtn.addEventListener('click', () => {
             if ('geolocation' in navigator) {
@@ -592,7 +605,7 @@ function setupEventListeners() {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
                         locationInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                        updateBiteTimesForLocation(lat, lon);
+                        setLocationAndFetchBiteTimes(lat, lon);
                     },
                     (error) => {
                         console.error("Error getting location:", error);
@@ -613,7 +626,7 @@ function setupEventListeners() {
                 const lat = parseFloat(parts[0]);
                 const lon = parseFloat(parts[1]);
                 if (!isNaN(lat) && !isNaN(lon)) {
-                    updateBiteTimesForLocation(lat, lon);
+                    setLocationAndFetchBiteTimes(lat, lon);
                 }
             }
         });
@@ -657,12 +670,16 @@ function showModal(day, month, year) {
     modalMoonIllumination.textContent = `Illumination: ${(moonData.illumination * 100).toFixed(1)}%`;
     modalDescription.textContent = lunarPhase.description;
 
-    // Clear old bite times
-    majorBites.innerHTML = 'Enter a location to see bite times.';
-    minorBites.innerHTML = '';
     const locationInput = document.getElementById('location-input');
-    if (locationInput) {
-        locationInput.value = '';
+    if (userLocation) {
+        locationInput.value = `${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}`;
+        setLocationAndFetchBiteTimes(userLocation.lat, userLocation.lon);
+    } else {
+        majorBites.innerHTML = 'Enter a location to see bite times.';
+        minorBites.innerHTML = '';
+        if (locationInput) {
+            locationInput.value = '';
+        }
     }
 
     updateNavigationButtons();
