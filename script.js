@@ -228,36 +228,36 @@ var SunCalc = (function() {
 })();
 
 const lunarPhases = [
-    { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing." },
-    { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing." },
-    { name: "Hoata", quality: "Excellent", description: "A very good day for eeling and crayfishing." },
-    { name: "Oue", quality: "Good", description: "A good day for planting and fishing." },
-    { name: "Okoro", quality: "Good", description: "Another good day for planting and fishing." },
-    { name: "Tamatea-a-hotu", quality: "Average", description: "A day for planting. Fishing is average." },
-    { name: "Tamatea-a-ngana", quality: "Good", description: "A good day for fishing, but the weather can be unpredictable." },
-    { name: "Tamatea-whakapau", quality: "Poor", description: "Not a good day for fishing." },
-    { name: "Huna", quality: "Poor", description: "Means 'to hide'. Not a good day for fishing." },
-    { name: "Ari", quality: "Poor", description: "A disagreeable day. Unproductive." },
-    { name: "Hotu", quality: "Excellent", description: "The moon is bright and nearing full. A very good time for night fishing." },
-    { name: "Mawharu", quality: "Good", description: "A most favourable day for planting food and a good day for fishing." },
-    { name: "Atua", quality: "Poor", description: "Not a good day for planting or fishing." },
-    { name: "Ohua", quality: "Excellent", description: "The moon is nearly full. One of the best nights for fishing." },
-    { name: "Oanui", quality: "Good", description: "The day of the full moon. Good for fishing." },
-    { name: "Oturu", quality: "Good", description: "A good day for fishing and a very good day for eeling." },
-    { name: "Rakau-nui", quality: "Good", description: "A very good day for fishing." },
-    { name: "Rakau-matohi", quality: "Good", description: "A fine day for fishing." },
-    { name: "Takirau", quality: "Average", description: "Fine weather in the morning. Fishing is average." },
-    { name: "Oike", quality: "Average", description: "The afternoon is favourable for fishing." },
-    { name: "Korekore-te-whiwhia", quality: "Poor", description: "A bad day for fishing." },
-    { name: "Korekore-te-rawea", quality: "Poor", description: "Another bad day for fishing." },
-    { name: "Korekore-whakapau", quality: "Average", description: "A fairly good day." },
-    { name: "Tangaroa-a-mua", quality: "Good", description: "A good day for fishing." },
-    { name: "Tangaroa-a-roto", quality: "Good", description: "Another good day for fishing." },
-    { name: "Tangaroa-kiokio", quality: "Excellent", description: "An excellent day for fishing." },
-    { name: "Otane", quality: "Good", description: "A good day, and a good night for eeling." },
-    { name: "Orongonui", quality: "Good", description: "A desirable day for fishing." },
-    { name: "Mauri", quality: "Average", description: "The morning is fine. Fishing is average." },
-    { name: "Mutuwhenua", quality: "Poor", description: "An exceedingly bad day for fishing." }
+    { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing.", biteQualities: ["poor", "average", "poor", "poor"] },
+    { name: "Hoata", quality: "Excellent", description: "A very good day for eeling and crayfishing.", biteQualities: ["good", "excellent", "good", "average"] },
+    { name: "Oue", quality: "Good", description: "A good day for planting and fishing.", biteQualities: ["average", "good", "average", "poor"] },
+    { name: "Okoro", quality: "Good", description: "Another good day for planting and fishing.", biteQualities: ["average", "good", "fair", "poor"] },
+    { name: "Tamatea-a-hotu", quality: "Average", description: "A day for planting. Fishing is average.", biteQualities: ["fair", "average", "fair", "poor"] },
+    { name: "Tamatea-a-ngana", quality: "Good", description: "A good day for fishing, but the weather can be unpredictable.", biteQualities: ["good", "fair", "good", "fair"] },
+    { name: "Tamatea-whakapau", quality: "Poor", description: "Not a good day for fishing.", biteQualities: ["poor", "fair", "poor", "fair"] },
+    { name: "Huna", quality: "Poor", description: "Means 'to hide'. Not a good day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Ari", quality: "Poor", description: "A disagreeable day. Unproductive.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Hotu", quality: "Excellent", description: "The moon is bright and nearing full. A very good time for night fishing.", biteQualities: ["excellent", "average", "fair", "fair"] },
+    { name: "Mawharu", quality: "Good", description: "A most favourable day for planting food and a good day for fishing.", biteQualities: ["good", "good", "fair", "fair"] },
+    { name: "Atua", quality: "Poor", description: "Not a good day for planting or fishing.", biteQualities: ["fair", "poor", "poor", "poor"] },
+    { name: "Ohua", quality: "Excellent", description: "The moon is nearly full. One of the best nights for fishing.", biteQualities: ["excellent", "good", "good", "fair"] },
+    { name: "Oanui", quality: "Good", description: "The day of the full moon. Good for fishing.", biteQualities: ["average", "excellent", "good", "fair"] },
+    { name: "Oturu", quality: "Good", description: "A good day for fishing and a very good day for eeling.", biteQualities: ["fair", "good", "poor", "poor"] },
+    { name: "Rakau-nui", quality: "Good", description: "A very good day for fishing.", biteQualities: ["fair", "good", "poor", "poor"] },
+    { name: "Rakau-matohi", quality: "Good", description: "A fine day for fishing.", biteQualities: ["good", "fair", "poor", "poor"] },
+    { name: "Takirau", quality: "Average", description: "Fine weather in the morning. Fishing is average.", biteQualities: ["excellent", "average", "fair", "fair"] },
+    { name: "Oike", quality: "Average", description: "The afternoon is favourable for fishing.", biteQualities: ["average", "average", "fair", "fair"] },
+    { name: "Korekore-te-whiwhia", quality: "Good", description: "A bad day for fishing.", biteQualities: ["good", "good", "average", "average"] },
+    { name: "Korekore-te-rawea", quality: "Poor", description: "Another bad day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Korekore-whakapau", quality: "Poor", description: "A fairly good day.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Tangaroa-a-mua", quality: "Excellent", description: "A good day for fishing.", biteQualities: ["excellent", "good", "good", "fair"] },
+    { name: "Tangaroa-a-roto", quality: "Excellent", description: "Another good day for fishing.", biteQualities: ["excellent", "excellent", "good", "good"] },
+    { name: "Tangaroa-kiokio", quality: "Excellent", description: "An excellent day for fishing.", biteQualities: ["excellent", "excellent", "excellent", "good"] },
+    { name: "Otane", quality: "Good", description: "A good day, and a good night for eeling.", biteQualities: ["good", "fair", "fair", "poor"] },
+    { name: "Orongonui", quality: "Good", description: "A desirable day for fishing.", biteQualities: ["good", "good", "fair", "fair"] },
+    { name: "Mauri", quality: "Average", description: "The morning is fine. Fishing is average.", biteQualities: ["fair", "average", "poor", "poor"] },
+    { name: "Mutuwhenua", quality: "Poor", description: "An exceedingly bad day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] }
 ];
 
 const biteQualityColors = {
@@ -266,13 +266,6 @@ const biteQualityColors = {
     average: "#f59e0b",
     fair: "#8b5cf6",
     poor: "#ef4444"
-};
-
-const qualityDistribution = {
-    "Excellent": ["excellent", "average", "fair", "fair"],
-    "Good": ["fair", "good", "poor", "poor"],
-    "Average": ["average", "average", "poor", "poor"],
-    "Poor": ["poor", "poor", "poor", "poor"]
 };
 
 let userLocation = null;
@@ -330,7 +323,6 @@ function minutesToTime(minutes) {
 }
 
 function getMoonTransitTimes(date, lat, lng) {
-    // This is a brute-force method to find transit times.
     var rc = { "transits": [] };
     var sign = 1, i, j;
     for (i = 0; i <= 25; i++) {
@@ -410,8 +402,8 @@ function calculateBiteTimes(date, lat, lon) {
 
     const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
     const moonTransits = getMoonTransitTimes(date, lat, lon).transits;
-    const dayQuality = lunarPhases[getMoonPhaseData(date).phaseIndex].quality;
-    const qualities = qualityDistribution[dayQuality] || qualityDistribution["Poor"];
+    const lunarDay = lunarPhases[getMoonPhaseData(date).phaseIndex];
+    const qualities = lunarDay.biteQualities;
 
     const formatBite = (start, end, quality) => ({
         start: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
