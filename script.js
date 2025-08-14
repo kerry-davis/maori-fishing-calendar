@@ -150,10 +150,50 @@ const lunarPhases = [
             };
         }
 
+        function setupTheme() {
+            const themeToggleBtn = document.getElementById('theme-toggle-btn');
+            if (!themeToggleBtn) return;
+            const themeToggleIcon = themeToggleBtn.querySelector('i');
+
+            const updateIcon = (isDark) => {
+                if (isDark) {
+                    themeToggleIcon.classList.remove('fa-sun');
+                    themeToggleIcon.classList.add('fa-moon');
+                } else {
+                    themeToggleIcon.classList.remove('fa-moon');
+                    themeToggleIcon.classList.add('fa-sun');
+                }
+            };
+
+            const toggleTheme = () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                localStorage.setItem('theme', isDark ? 'dark' : 'light');
+                updateIcon(isDark);
+            };
+
+            themeToggleBtn.addEventListener('click', toggleTheme);
+
+            // Initial theme setup
+            const savedTheme = localStorage.getItem('theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let isDark = false;
+            if (savedTheme) {
+                isDark = savedTheme === 'dark';
+            } else {
+                isDark = prefersDark;
+            }
+
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            }
+            updateIcon(isDark);
+        }
+
         function initCalendar() {
             renderCalendar();
             updateCurrentMoonInfo();
             setupEventListeners();
+            setupTheme();
         }
 
         function setupEventListeners() {
@@ -274,7 +314,7 @@ const lunarPhases = [
 
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayElement = document.createElement('div');
-                dayElement.className = 'calendar-day border rounded flex flex-col items-center';
+                dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center';
 
                 const dayNumber = document.createElement('div');
                 dayNumber.className = 'day-number';
