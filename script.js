@@ -227,8 +227,6 @@ var SunCalc = (function() {
     };
 })();
 
-
-
 const lunarPhases = [
     { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing." },
     { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing." },
@@ -402,7 +400,7 @@ function calculateBiteTimes(date, lat, lon) {
         return { major: [], minor: [] };
     }
 
-    const sunTimes = SunCalc.getTimes(date, lat, lon);
+    const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
     const moonTransits = getMoonTransitTimes(date, lat, lon).transits;
 
     const formatBite = (start, end) => ({
@@ -412,20 +410,20 @@ function calculateBiteTimes(date, lat, lon) {
     });
 
     const majorBites = moonTransits.map(transit => {
-        const start = new Date(transit.time.getTime() - 60 * 60 * 1000);
-        const end = new Date(transit.time.getTime() + 60 * 60 * 1000);
+        const start = new Date(transit.time.getTime() - 1 * 60 * 60 * 1000);
+        const end = new Date(transit.time.getTime() + 1 * 60 * 60 * 1000);
         return formatBite(start, end);
     });
 
     const minorBites = [];
-    if (sunTimes.sunrise) {
-        const start = sunTimes.sunrise;
-        const end = new Date(sunTimes.sunrise.getTime() + 3 * 60 * 60 * 1000);
+    if (moonTimes.rise) {
+        const start = new Date(moonTimes.rise.getTime() - 1.5 * 60 * 60 * 1000);
+        const end = new Date(moonTimes.rise.getTime() + 1.5 * 60 * 60 * 1000);
         minorBites.push(formatBite(start, end));
     }
-    if (sunTimes.sunset) {
-        const start = sunTimes.sunset;
-        const end = new Date(sunTimes.sunset.getTime() + 3 * 60 * 60 * 1000);
+    if (moonTimes.set) {
+        const start = new Date(moonTimes.set.getTime() - 1.5 * 60 * 60 * 1000);
+        const end = new Date(moonTimes.set.getTime() + 1.5 * 60 * 60 * 1000);
         minorBites.push(formatBite(start, end));
     }
 
