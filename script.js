@@ -525,8 +525,18 @@ function setupEventListeners() {
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        locationInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                        setLocationAndFetchBiteTimes(lat, lon);
+
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                locationInput.value = data.display_name;
+                                setLocationAndFetchBiteTimes(lat, lon);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching location name:', error);
+                                locationInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                                setLocationAndFetchBiteTimes(lat, lon);
+                            });
                     },
                     (error) => {
                         console.error("Error getting location:", error);
@@ -539,19 +549,52 @@ function setupEventListeners() {
         });
     }
 
+    let debounceTimer;
+    const autocompleteResults = document.getElementById('autocomplete-results');
+
     if(locationInput) {
-        locationInput.addEventListener('change', () => {
-            // Basic lat,lon parsing
-            const parts = locationInput.value.split(',');
-            if (parts.length === 2) {
-                const lat = parseFloat(parts[0]);
-                const lon = parseFloat(parts[1]);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    setLocationAndFetchBiteTimes(lat, lon);
-                }
+        locationInput.addEventListener('keyup', () => {
+            clearTimeout(debounceTimer);
+            const query = locationInput.value;
+
+            if (query.length < 3) {
+                autocompleteResults.innerHTML = '';
+                autocompleteResults.classList.add('hidden');
+                return;
             }
+
+            debounceTimer = setTimeout(() => {
+                fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5`)
+                    .then(response => response.json())
+                    .then(data => {
+                        autocompleteResults.innerHTML = '';
+                        if (data.length > 0) {
+                            autocompleteResults.classList.remove('hidden');
+                            data.forEach(item => {
+                                const resultItem = document.createElement('div');
+                                resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
+                                resultItem.textContent = item.display_name;
+                                resultItem.addEventListener('click', () => {
+                                    locationInput.value = item.display_name;
+                                    autocompleteResults.classList.add('hidden');
+                                    setLocationAndFetchBiteTimes(parseFloat(item.lat), parseFloat(item.lon));
+                                });
+                                autocompleteResults.appendChild(resultItem);
+                            });
+                        } else {
+                            autocompleteResults.classList.add('hidden');
+                        }
+                    })
+                    .catch(error => console.error('Error fetching autocomplete:', error));
+            }, 500); // 500ms debounce
         });
     }
+
+    document.addEventListener('click', (e) => {
+        if (e.target.id !== 'location-input') {
+            autocompleteResults.classList.add('hidden');
+        }
+    });
 }
 
 function updateCurrentMoonInfo() {
