@@ -476,8 +476,8 @@ function loadLocation() {
     }
 }
 
-function setLocationAndFetchBiteTimes(lat, lon) {
-    userLocation = { lat, lon };
+function setLocationAndFetchBiteTimes(lat, lon, name) {
+    userLocation = { lat, lon, name };
     localStorage.setItem('userLocation', JSON.stringify(userLocation));
 
     const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
@@ -529,13 +529,15 @@ function setupEventListeners() {
                         fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
                             .then(response => response.json())
                             .then(data => {
-                                locationInput.value = data.display_name;
-                                setLocationAndFetchBiteTimes(lat, lon);
+                                const name = data.display_name;
+                                locationInput.value = name;
+                                setLocationAndFetchBiteTimes(lat, lon, name);
                             })
                             .catch(error => {
                                 console.error('Error fetching location name:', error);
-                                locationInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                                setLocationAndFetchBiteTimes(lat, lon);
+                                const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                                locationInput.value = name;
+                                setLocationAndFetchBiteTimes(lat, lon, name);
                             });
                     },
                     (error) => {
@@ -575,9 +577,12 @@ function setupEventListeners() {
                                 resultItem.className = 'p-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer';
                                 resultItem.textContent = item.display_name;
                                 resultItem.addEventListener('click', () => {
-                                    locationInput.value = item.display_name;
+                                    const name = item.display_name;
+                                    const lat = parseFloat(item.lat);
+                                    const lon = parseFloat(item.lon);
+                                    locationInput.value = name;
                                     autocompleteResults.classList.add('hidden');
-                                    setLocationAndFetchBiteTimes(parseFloat(item.lat), parseFloat(item.lon));
+                                    setLocationAndFetchBiteTimes(lat, lon, name);
                                 });
                                 autocompleteResults.appendChild(resultItem);
                             });
@@ -637,9 +642,9 @@ function showModal(day, month, year) {
     modalDescription.textContent = lunarPhase.description;
 
     const locationInput = document.getElementById('location-input');
-    if (userLocation) {
-        locationInput.value = `${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}`;
-        setLocationAndFetchBiteTimes(userLocation.lat, userLocation.lon);
+    if (userLocation && userLocation.name) {
+        locationInput.value = userLocation.name;
+        setLocationAndFetchBiteTimes(userLocation.lat, userLocation.lon, userLocation.name);
     } else {
         majorBites.innerHTML = 'Enter a location to see bite times.';
         minorBites.innerHTML = '';
