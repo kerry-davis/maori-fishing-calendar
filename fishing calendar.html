@@ -174,6 +174,27 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Catch Log Section -->
+                <div class="border-t dark:border-gray-700 pt-4 mt-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Catch Log</h4>
+                    <div id="catch-log-list" class="space-y-2 mb-4">
+                        <!-- Logged catches will be displayed here -->
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
+                        <h5 class="font-medium mb-2 dark:text-gray-200">Log a New Catch</h5>
+                        <div class="grid grid-cols-2 gap-2 text-sm">
+                            <input type="text" id="log-fish" placeholder="Fish Species" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="log-weight" placeholder="Weight (e.g., 5kg)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="log-length" placeholder="Length (e.g., 70cm)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="log-lure" placeholder="Lure/Bait" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="log-rod" placeholder="Rod" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="log-reel" placeholder="Reel" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <textarea id="log-notes" placeholder="Notes..." rows="2" class="col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
+                        </div>
+                        <button id="save-catch-btn" class="mt-2 w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">Save Catch</button>
+                    </div>
+                </div>
                 
                 <div class="mt-6 flex justify-between items-center">
                     <button id="modalCloseBtn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">
