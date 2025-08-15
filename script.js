@@ -302,6 +302,7 @@ const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
 ];
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function getMoonPhaseData(date) {
     const moonIllumination = SunCalc.getMoonIllumination(date);
@@ -581,7 +582,9 @@ function showModal(day, month, year) {
     const dateObj = new Date(year, month, day);
     const moonData = getMoonPhaseData(dateObj);
     const lunarPhase = lunarPhases[moonData.phaseIndex];
-    const dateStr = `${day} ${monthNames[month]} ${year}`;
+    const dayName = dayNames[dateObj.getDay()];
+    const monthName = monthNames[month].substring(0, 3);
+    const dateStr = `${dayName} ${day} ${monthName}`;
     modalTitle.textContent = lunarPhase.name;
     modalDate.textContent = dateStr;
     modalQuality.textContent = lunarPhase.quality;
@@ -618,11 +621,9 @@ function showNextDay() {
 }
 
 function updateNavigationButtons() {
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const modalDate = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
-    modalPrevDay.disabled = modalDate <= firstDayOfMonth;
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    modalNextDay.disabled = modalDate >= lastDayOfMonth;
+    // No longer disabling buttons to allow infinite scroll
+    modalPrevDay.disabled = false;
+    modalNextDay.disabled = false;
 }
 
 function hideModal() {
