@@ -830,6 +830,7 @@ function createBiteTimeElement(biteTime) {
 }
 
 function showModal(day, month, year) {
+    clearTripForm(); // Reset the form every time the modal is shown or day is changed
     modalCurrentDay = day;
     modalCurrentMonth = month;
     modalCurrentYear = year;
