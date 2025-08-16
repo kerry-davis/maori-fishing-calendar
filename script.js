@@ -490,7 +490,7 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
     biteTimes.minor.forEach(biteTime => minorBites.appendChild(createBiteTimeElement(biteTime)));
 };
 
-function initDB() {
+function initDB(callback) {
     const request = indexedDB.open("fishingLog", 1);
 
     request.onupgradeneeded = function(event) {
@@ -504,6 +504,7 @@ function initDB() {
     request.onsuccess = function(event) {
         db = event.target.result;
         console.log("Database initialized successfully.");
+        if (callback) callback();
     };
 
     request.onerror = function(event) {
@@ -671,12 +672,13 @@ function editCatch(id) {
 }
 
 function initCalendar() {
-    initDB();
     loadLocation();
-    renderCalendar();
-    updateCurrentMoonInfo();
     setupEventListeners();
     setupTheme();
+    initDB(() => {
+        renderCalendar();
+        updateCurrentMoonInfo();
+    });
 }
 
 function setupEventListeners() {
@@ -1083,3 +1085,13 @@ function getLoggedDaysForMonth(startDate, endDate) {
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').then(registration => {
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    }, err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
