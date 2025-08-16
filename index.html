@@ -181,26 +181,27 @@
                     </div>
                 </div>
 
-                <!-- Catch Log Section -->
+                <!-- Trip Log Section -->
                 <div class="border-t dark:border-gray-700 pt-4 mt-4">
-                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Catch Log</h4>
-                    <div id="catch-log-list" class="space-y-2 mb-4">
-                        <!-- Logged catches will be displayed here -->
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Trip Log</h4>
+                    <div id="trip-log-list" class="space-y-4 mb-4">
+                        <!-- Logged trips will be displayed here -->
                     </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded-lg">
-                        <h5 class="font-medium mb-2 dark:text-gray-200">Log a New Catch</h5>
-                        <div class="grid grid-cols-2 gap-2 text-sm">
-                            <input type="text" id="log-fish" placeholder="Fish Species" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="log-weight" placeholder="Weight (e.g., 5kg)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="log-length" placeholder="Length (e.g., 70cm)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="log-lure" placeholder="Lure/Bait" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="log-rod" placeholder="Rod" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="log-reel" placeholder="Reel" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <textarea id="log-notes" placeholder="Notes..." rows="2" class="col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                        <h5 class="font-medium mb-3 dark:text-gray-200" id="trip-form-title">Log a New Trip</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <input type="text" id="trip-water" placeholder="Water Body (e.g., Lake Taupo)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <input type="text" id="trip-location" placeholder="Specific Location (e.g., Stump Bay)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <input type="number" id="trip-hours" placeholder="Hours Fished" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="number" id="trip-total-fish" placeholder="Total Fish Caught" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="trip-companions" placeholder="Fished with" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
                         </div>
-                        <button id="save-catch-btn" class="mt-2 w-full px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">Save Catch</button>
-                                        <button id="cancel-edit-btn" class="w-full px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition mt-2 hidden">Cancel Edit</button>
-                        <div id="save-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Catch saved!</div>
+                        <div class="flex space-x-2 mt-4">
+                            <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">Save Trip</button>
+                            <button id="cancel-edit-trip-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition hidden">Cancel Edit</button>
+                        </div>
+                        <div id="save-trip-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Trip saved!</div>
                     </div>
                 </div>
 
@@ -220,26 +221,43 @@
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+
+    <!-- Weather Log Modal -->
+    <div id="weatherModal" class="modal fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
             <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Settings</h3>
-                    <button id="closeSettingsModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="weather-modal-title">Add Weather Log</h3>
+                <div class="space-y-3 text-sm">
+                    <select id="weather-time-of-day" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <option value="">Select Time of Day</option>
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                    </select>
+                    <select id="weather-sky" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <option value="">Select Sky Conditions</option>
+                        <option value="Sunny">Sunny</option>
+                        <option value="Part Cloud">Part Cloud</option>
+                        <option value="Overcast">Overcast</option>
+                        <option value="Rain">Rain</option>
+                    </select>
+                    <select id="weather-wind-condition" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <option value="">Select Wind Conditions</option>
+                        <option value="Calm">Calm</option>
+                        <option value="Light Winds">Light Winds</option>
+                        <option value="Mod Winds">Mod Winds</option>
+                        <option value="Strong Winds">Strong Winds</option>
+                    </select>
+                    <input type="text" id="weather-wind-direction" placeholder="Wind Direction" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    <input type="number" id="weather-water-temp" placeholder="Water Temp" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    <input type="number" id="weather-air-temp" placeholder="Air Temp" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 </div>
-                <div class="border-t dark:border-gray-700 pt-4">
-                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Data Management</h4>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Export your catch log as a JSON file to back it up or transfer to another device. You can then import this file on another device to restore your data.</p>
-                    <div class="space-y-3">
-                        <button id="export-data-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Export Data</button>
-                        <div>
-                            <label for="import-file-input" class="w-full text-center block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer">Import Data</label>
-                            <input type="file" id="import-file-input" class="hidden" accept=".json">
-                        </div>
-                    </div>
+                <div class="flex space-x-2 mt-4">
+                    <button id="save-weather-btn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Save Weather</button>
+                    <button id="close-weather-modal-btn" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">Cancel</button>
                 </div>
             </div>
         </div>
     </div>
+
 </body>
 </html>

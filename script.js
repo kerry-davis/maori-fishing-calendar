@@ -270,7 +270,10 @@ const biteQualityColors = {
 
 let db;
 let userLocation = null;
-let currentCatchId = null;
+let currentTripId = null;
+let currentEditingTripId = null; // For weather modal
+let currentEditingWeatherId = null;
+
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -491,13 +494,33 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
 };
 
 function initDB(callback) {
-    const request = indexedDB.open("fishingLog", 1);
+    const request = indexedDB.open("fishingLog", 2); // Bump version to 2
 
     request.onupgradeneeded = function(event) {
         const db = event.target.result;
-        if (!db.objectStoreNames.contains('catch_logs')) {
-            const objectStore = db.createObjectStore("catch_logs", { keyPath: "id", autoIncrement:true });
-            objectStore.createIndex("date", "date", { unique: false });
+        console.log("Upgrading database schema...");
+
+        // Delete old store if it exists
+        if (db.objectStoreNames.contains('catch_logs')) {
+            db.deleteObjectStore('catch_logs');
+            console.log("Old 'catch_logs' object store deleted.");
+        }
+
+        // Create new stores
+        if (!db.objectStoreNames.contains('trips')) {
+            const tripsStore = db.createObjectStore("trips", { keyPath: "id", autoIncrement: true });
+            tripsStore.createIndex("date", "date", { unique: false });
+            console.log("'trips' object store created.");
+        }
+        if (!db.objectStoreNames.contains('weather_logs')) {
+            const weatherStore = db.createObjectStore("weather_logs", { keyPath: "id", autoIncrement: true });
+            weatherStore.createIndex("tripId", "tripId", { unique: false });
+            console.log("'weather_logs' object store created.");
+        }
+        if (!db.objectStoreNames.contains('fish_caught')) {
+            const fishStore = db.createObjectStore("fish_caught", { keyPath: "id", autoIncrement: true });
+            fishStore.createIndex("tripId", "tripId", { unique: false });
+            console.log("'fish_caught' object store created.");
         }
     };
 
@@ -512,162 +535,139 @@ function initDB(callback) {
     };
 }
 
-function clearCatchForm() {
-    document.getElementById('log-fish').value = '';
-    document.getElementById('log-weight').value = '';
-    document.getElementById('log-length').value = '';
-    document.getElementById('log-lure').value = '';
-    document.getElementById('log-rod').value = '';
-    document.getElementById('log-reel').value = '';
-    document.getElementById('log-notes').value = '';
-    currentCatchId = null;
-    document.getElementById('save-catch-btn').textContent = 'Save Catch';
-    document.getElementById('cancel-edit-btn').classList.add('hidden');
+function clearTripForm() {
+    document.getElementById('trip-water').value = '';
+    document.getElementById('trip-location').value = '';
+    document.getElementById('trip-hours').value = '';
+    document.getElementById('trip-total-fish').value = '';
+    document.getElementById('trip-companions').value = '';
+    document.getElementById('trip-best-times').value = '';
+    currentTripId = null;
+    document.getElementById('trip-form-title').textContent = 'Log a New Trip';
+    document.getElementById('save-trip-btn').textContent = 'Save Trip';
+    document.getElementById('cancel-edit-trip-btn').classList.add('hidden');
 }
 
-function saveCatch() {
-    console.log("Attempting to save catch...");
-    const transaction = db.transaction(["catch_logs"], "readwrite");
-    const objectStore = transaction.objectStore("catch_logs");
-
-    const catchData = {
-        date: `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`,
-        fish: document.getElementById('log-fish').value,
-        weight: document.getElementById('log-weight').value,
-        length: document.getElementById('log-length').value,
-        lure: document.getElementById('log-lure').value,
-        rod: document.getElementById('log-rod').value,
-        reel: document.getElementById('log-reel').value,
-        notes: document.getElementById('log-notes').value,
+function saveTrip() {
+    const date = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
+    const tripData = {
+        date: date,
+        water: document.getElementById('trip-water').value,
+        location: document.getElementById('trip-location').value,
+        hours: document.getElementById('trip-hours').value,
+        totalFish: document.getElementById('trip-total-fish').value,
+        companions: document.getElementById('trip-companions').value,
+        notes: document.getElementById('trip-best-times').value,
     };
 
+    const transaction = db.transaction(["trips"], "readwrite");
+    const objectStore = transaction.objectStore("trips");
     let request;
-    if (currentCatchId) {
-        console.log(`Updating catch with id: ${currentCatchId}`);
-        catchData.id = currentCatchId;
-        request = objectStore.put(catchData);
+
+    if (currentTripId) {
+        tripData.id = currentTripId;
+        request = objectStore.put(tripData);
     } else {
-        console.log("Adding new catch.");
-        request = objectStore.add(catchData);
+        request = objectStore.add(tripData);
     }
 
     request.onsuccess = () => {
-        console.log("Catch saved/updated successfully.");
-        clearCatchForm();
-        displayCatches(catchData.date);
-        renderCalendar(); // Re-render calendar to show new log indicators
-        const successMsg = document.getElementById('save-success-msg');
-        successMsg.textContent = 'Catch Saved!';
+        console.log("Trip saved successfully.");
+        clearTripForm();
+        displayTrips(date);
+        renderCalendar();
+        const successMsg = document.getElementById('save-trip-success-msg');
         successMsg.classList.remove('hidden');
         setTimeout(() => {
             successMsg.classList.add('hidden');
         }, 2000);
     };
+
     request.onerror = (event) => {
-        console.error("Error saving/updating catch:", event.target.error);
+        console.error("Error saving trip:", event.target.error);
     };
 }
 
-function displayCatches(date) {
-    console.log(`Fetching catches for date: ${date}`);
-    const transaction = db.transaction(["catch_logs"], "readonly");
-    const objectStore = transaction.objectStore("catch_logs");
+function displayTrips(date) {
+    const transaction = db.transaction(["trips"], "readonly");
+    const objectStore = transaction.objectStore("trips");
     const index = objectStore.index("date");
     const request = index.getAll(date);
 
     request.onsuccess = () => {
-        const catchLogList = document.getElementById('catch-log-list');
-        catchLogList.innerHTML = '';
-        const catches = request.result;
-        console.log(`Found ${catches.length} catches.`);
-        if (catches.length > 0) {
-            catches.forEach(c => {
-                const catchEl = document.createElement('div');
-                catchEl.className = 'p-2 bg-white dark:bg-gray-800 rounded shadow text-sm space-y-1';
+        const tripLogList = document.getElementById('trip-log-list');
+        tripLogList.innerHTML = '';
+        const trips = request.result;
 
-                let fishInfo = `<strong>Fish:</strong> ${c.fish || ''}`;
-                const details = [c.weight, c.length].filter(Boolean).join(', ');
-                if (details) {
-                    fishInfo += ` (${details})`;
-                }
-                const fishP = document.createElement('p');
-                fishP.innerHTML = fishInfo;
-                catchEl.appendChild(fishP);
+        if (trips.length > 0) {
+            trips.forEach(trip => {
+                const tripEl = document.createElement('div');
+                tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
 
-                const tackleParts = [c.lure, c.rod, c.reel].filter(Boolean);
-                if (tackleParts.length > 0) {
-                    const tackleP = document.createElement('p');
-                    tackleP.innerHTML = `<strong>Tackle:</strong> ${tackleParts.join(', ')}`;
-                    catchEl.appendChild(tackleP);
-                }
+                let content = `<div class="font-bold text-base mb-2">${trip.water || 'Unnamed Trip'} - ${trip.location || ''}</div>`;
+                if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
+                if(trip.totalFish) content += `<p><strong>Total Fish Caught:</strong> ${trip.totalFish}</p>`;
+                if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
+                if(trip.notes) content += `<p><strong>Notes:</strong> ${trip.notes}</p>`;
 
-                if (c.notes) {
-                    const notesP = document.createElement('p');
-                    notesP.innerHTML = `<strong>Notes:</strong> ${c.notes}`;
-                    catchEl.appendChild(notesP);
-                }
-
-                const buttonsDiv = document.createElement('div');
-                buttonsDiv.className = 'mt-2';
-                buttonsDiv.innerHTML = `
-                    <button onclick="editCatch(${c.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                    <button onclick="deleteCatch(${c.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                content += `
+                    <div class="border-t dark:border-gray-700 mt-3 pt-3">
+                        <h6 class="font-semibold mb-2">Weather Conditions</h6>
+                        <div id="weather-list-${trip.id}" class="space-y-2">
+                            <!-- Weather logs will be displayed here -->
+                            <p class="text-xs text-gray-500">No weather logs for this trip yet.</p>
+                        </div>
+                        <button onclick="openWeatherModal(${trip.id})" class="mt-2 text-xs px-2 py-1 bg-blue-500 text-white rounded">Add Weather</button>
+                    </div>
+                    <div class="mt-3 border-t dark:border-gray-700 pt-3">
+                        <button onclick="editTrip(${trip.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
+                        <button onclick="deleteTrip(${trip.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
+                    </div>
                 `;
-                catchEl.appendChild(buttonsDiv);
-
-                catchLogList.appendChild(catchEl);
+                tripEl.innerHTML = content;
+                tripLogList.appendChild(tripEl);
+                displayWeatherForTrip(trip.id);
             });
         } else {
-            catchLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No catches logged for this day.</p>';
+            tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
         }
     };
 }
 
-function deleteCatch(id) {
-    console.log(`Deleting catch with id: ${id}`);
-    const transaction = db.transaction(["catch_logs"], "readwrite");
-    const objectStore = transaction.objectStore("catch_logs");
-
-    // First, get the date of the item being deleted to refresh the correct modal view
-    const getRequest = objectStore.get(id);
-    getRequest.onsuccess = () => {
-        const dateToDelete = getRequest.result.date;
-
-        const deleteRequest = objectStore.delete(id);
-        deleteRequest.onsuccess = () => {
-            console.log("Catch deleted successfully.");
-            displayCatches(dateToDelete);
-            renderCalendar(); // Re-render calendar to update log indicators
-        };
-    };
-}
-
-function editCatch(id) {
-    console.log(`Editing catch with id: ${id}`);
-    const transaction = db.transaction(["catch_logs"], "readonly");
-    const objectStore = transaction.objectStore("catch_logs");
+function editTrip(id) {
+    const transaction = db.transaction(["trips"], "readonly");
+    const objectStore = transaction.objectStore("trips");
     const request = objectStore.get(id);
 
     request.onsuccess = () => {
-        const catchData = request.result;
-        if (catchData) {
-            document.getElementById('log-fish').value = catchData.fish;
-            document.getElementById('log-weight').value = catchData.weight;
-            document.getElementById('log-length').value = catchData.length;
-            document.getElementById('log-lure').value = catchData.lure;
-            document.getElementById('log-rod').value = catchData.rod;
-            document.getElementById('log-reel').value = catchData.reel;
-            document.getElementById('log-notes').value = catchData.notes;
+        const trip = request.result;
+        document.getElementById('trip-water').value = trip.water;
+        document.getElementById('trip-location').value = trip.location;
+        document.getElementById('trip-hours').value = trip.hours;
+        document.getElementById('trip-total-fish').value = trip.totalFish;
+        document.getElementById('trip-companions').value = trip.companions;
+        document.getElementById('trip-best-times').value = trip.notes;
 
-            currentCatchId = id;
-            document.getElementById('save-catch-btn').textContent = 'Update Catch';
-            document.getElementById('cancel-edit-btn').classList.remove('hidden');
-        } else {
-            console.error(`Catch with id ${id} not found.`);
-        }
+        currentTripId = id;
+        document.getElementById('trip-form-title').textContent = 'Editing Trip';
+        document.getElementById('save-trip-btn').textContent = 'Update Trip';
+        document.getElementById('cancel-edit-trip-btn').classList.remove('hidden');
     };
-    request.onerror = (event) => {
-        console.error("Error fetching catch for edit:", event.target.error);
+}
+
+function deleteTrip(id) {
+    const transaction = db.transaction(["trips"], "readwrite");
+    const objectStore = transaction.objectStore("trips");
+
+    const getRequest = objectStore.get(id);
+    getRequest.onsuccess = () => {
+        const dateToDelete = getRequest.result.date;
+        const deleteRequest = objectStore.delete(id);
+        deleteRequest.onsuccess = () => {
+            console.log("Trip deleted successfully.");
+            displayTrips(dateToDelete);
+            renderCalendar();
+        };
     };
 }
 
@@ -727,7 +727,19 @@ function setupEventListeners() {
     const useLocationBtn = document.getElementById('use-location-btn');
     const locationInput = document.getElementById('location-input');
     const searchLocationBtn = document.getElementById('search-location-btn');
-    const saveCatchBtn = document.getElementById('save-catch-btn');
+
+    const saveTripBtn = document.getElementById('save-trip-btn');
+    if (saveTripBtn) {
+        saveTripBtn.addEventListener('click', saveTrip);
+    }
+
+    const cancelEditTripBtn = document.getElementById('cancel-edit-trip-btn');
+    if (cancelEditTripBtn) {
+        cancelEditTripBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            clearTripForm();
+        });
+    }
 
     const handleManualLocationSearch = () => {
         const query = locationInput.value;
@@ -800,18 +812,6 @@ function setupEventListeners() {
         });
     }
 
-    if (saveCatchBtn) {
-        saveCatchBtn.addEventListener('click', saveCatch);
-    }
-
-    const cancelEditBtn = document.getElementById('cancel-edit-btn');
-    if (cancelEditBtn) {
-        cancelEditBtn.addEventListener('click', (e) => {
-            e.preventDefault(); // Prevent form submission if it's in a form
-            clearCatchForm();
-        });
-    }
-
     const exportBtn = document.getElementById('export-data-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportData);
@@ -820,6 +820,16 @@ function setupEventListeners() {
     const importInput = document.getElementById('import-file-input');
     if (importInput) {
         importInput.addEventListener('change', importData);
+    }
+
+    const saveWeatherBtn = document.getElementById('save-weather-btn');
+    if (saveWeatherBtn) {
+        saveWeatherBtn.addEventListener('click', saveWeather);
+    }
+
+    const closeWeatherModalBtn = document.getElementById('close-weather-modal-btn');
+    if (closeWeatherModalBtn) {
+        closeWeatherModalBtn.addEventListener('click', closeWeatherModal);
     }
 }
 
@@ -845,6 +855,8 @@ function createBiteTimeElement(biteTime) {
 }
 
 function showModal(day, month, year) {
+    clearTripForm(); // Reset the form every time the modal is shown or day is changed
+
     modalCurrentDay = day;
     modalCurrentMonth = month;
     modalCurrentYear = year;
@@ -875,7 +887,8 @@ function showModal(day, month, year) {
     }
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    displayCatches(dateStrForDisplay);
+    displayTrips(dateStrForDisplay);
+
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -964,8 +977,8 @@ async function renderCalendar() {
 
 function exportData() {
     console.log("Exporting data...");
-    const transaction = db.transaction(["catch_logs"], "readonly");
-    const objectStore = transaction.objectStore("catch_logs");
+    const transaction = db.transaction(["trips"], "readonly");
+    const objectStore = transaction.objectStore("trips");
     const request = objectStore.getAll();
 
     request.onsuccess = () => {
@@ -1004,8 +1017,9 @@ function importData(event) {
             const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite all existing catch log data.`);
             if (confirmed) {
                 console.log("Import confirmed. Clearing old data...");
-                const transaction = db.transaction(["catch_logs"], "readwrite");
-                const objectStore = transaction.objectStore("catch_logs");
+                const transaction = db.transaction(["trips"], "readwrite");
+                const objectStore = transaction.objectStore("trips");
+
                 const clearRequest = objectStore.clear();
 
                 clearRequest.onsuccess = () => {
@@ -1049,6 +1063,130 @@ function importData(event) {
     reader.readAsText(file);
 }
 
+function openWeatherModal(tripId, weatherId = null) {
+    const weatherModal = document.getElementById('weatherModal');
+    const modalTitle = document.getElementById('weather-modal-title');
+    currentEditingTripId = tripId;
+    currentEditingWeatherId = weatherId;
+
+    if (weatherId) {
+        modalTitle.textContent = 'Edit Weather Log';
+        const transaction = db.transaction(['weather_logs'], 'readonly');
+        const store = transaction.objectStore('weather_logs');
+        const request = store.get(weatherId);
+        request.onsuccess = () => {
+            const data = request.result;
+            document.getElementById('weather-time-of-day').value = data.timeOfDay;
+            document.getElementById('weather-sky').value = data.sky;
+            document.getElementById('weather-wind-condition').value = data.windCondition;
+            document.getElementById('weather-wind-direction').value = data.windDirection;
+            document.getElementById('weather-water-temp').value = data.waterTemp;
+            document.getElementById('weather-air-temp').value = data.airTemp;
+        };
+    } else {
+        modalTitle.textContent = 'Add Weather Log';
+        // Clear form fields
+        document.getElementById('weather-time-of-day').value = '';
+        document.getElementById('weather-sky').value = '';
+        document.getElementById('weather-wind-condition').value = '';
+        document.getElementById('weather-wind-direction').value = '';
+        document.getElementById('weather-water-temp').value = '';
+        document.getElementById('weather-air-temp').value = '';
+    }
+
+    weatherModal.classList.remove('hidden');
+}
+
+function closeWeatherModal() {
+    document.getElementById('weatherModal').classList.add('hidden');
+    currentEditingTripId = null;
+    currentEditingWeatherId = null;
+}
+
+function saveWeather() {
+    if (!currentEditingTripId) return;
+
+    const weatherData = {
+        tripId: currentEditingTripId,
+        timeOfDay: document.getElementById('weather-time-of-day').value,
+        sky: document.getElementById('weather-sky').value,
+        windCondition: document.getElementById('weather-wind-condition').value,
+        windDirection: document.getElementById('weather-wind-direction').value,
+        waterTemp: document.getElementById('weather-water-temp').value,
+        airTemp: document.getElementById('weather-air-temp').value,
+    };
+
+    const transaction = db.transaction(['weather_logs'], 'readwrite');
+    const store = transaction.objectStore('weather_logs');
+    let request;
+
+    if (currentEditingWeatherId) {
+        weatherData.id = currentEditingWeatherId;
+        request = store.put(weatherData);
+    } else {
+        request = store.add(weatherData);
+    }
+
+    request.onsuccess = () => {
+        console.log('Weather data saved successfully');
+        displayWeatherForTrip(currentEditingTripId);
+        closeWeatherModal();
+    };
+    request.onerror = (event) => {
+        console.error('Error saving weather data:', event.target.error);
+    };
+}
+
+function displayWeatherForTrip(tripId) {
+    const listEl = document.getElementById(`weather-list-${tripId}`);
+    if (!listEl) return;
+
+    const transaction = db.transaction(['weather_logs'], 'readonly');
+    const store = transaction.objectStore('weather_logs');
+    const index = store.index('tripId');
+    const request = index.getAll(tripId);
+
+    request.onsuccess = () => {
+        const weatherLogs = request.result;
+        listEl.innerHTML = ''; // Clear previous entries
+        if (weatherLogs.length > 0) {
+            weatherLogs.forEach(log => {
+                const weatherEl = document.createElement('div');
+                weatherEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                let content = `<div class="font-semibold">${log.timeOfDay}</div>`;
+                if(log.sky) content += `<div>Sky: ${log.sky}</div>`;
+                if(log.windCondition) content += `<div>Wind: ${log.windCondition} ${log.windDirection || ''}</div>`;
+                if(log.waterTemp) content += `<div>Water Temp: ${log.waterTemp}</div>`;
+                if(log.airTemp) content += `<div>Air Temp: ${log.airTemp}</div>`;
+
+                content += `
+                    <div class="mt-2">
+                        <button onclick="openWeatherModal(${tripId}, ${log.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                        <button onclick="deleteWeather(${log.id}, ${tripId})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                    </div>
+                `;
+                weatherEl.innerHTML = content;
+                listEl.appendChild(weatherEl);
+            });
+        } else {
+            listEl.innerHTML = '<p class="text-xs text-gray-500">No weather logs for this trip yet.</p>';
+        }
+    };
+}
+
+function deleteWeather(weatherId, tripId) {
+    const transaction = db.transaction(['weather_logs'], 'readwrite');
+    const store = transaction.objectStore('weather_logs');
+    const request = store.delete(weatherId);
+    request.onsuccess = () => {
+        console.log('Weather log deleted successfully');
+        displayWeatherForTrip(tripId);
+    };
+    request.onerror = (event) => {
+        console.error('Error deleting weather log:', event.target.error);
+    };
+}
+
 function getLoggedDaysForMonth(startDate, endDate) {
     return new Promise((resolve, reject) => {
         if (!db) {
@@ -1056,8 +1194,9 @@ function getLoggedDaysForMonth(startDate, endDate) {
             resolve(new Set());
             return;
         }
-        const transaction = db.transaction(["catch_logs"], "readonly");
-        const objectStore = transaction.objectStore("catch_logs");
+        const transaction = db.transaction(["trips"], "readonly");
+        const objectStore = transaction.objectStore("trips");
+
         const index = objectStore.index("date");
 
         const start = startDate.toISOString().slice(0, 10);
