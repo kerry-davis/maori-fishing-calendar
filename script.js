@@ -530,7 +530,7 @@ function saveCatch() {
     const objectStore = transaction.objectStore("catch_logs");
 
     const catchData = {
-        date: new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay).toISOString().slice(0, 10),
+        date: `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`,
         fish: document.getElementById('log-fish').value,
         weight: document.getElementById('log-weight').value,
         length: document.getElementById('log-length').value,
@@ -553,7 +553,8 @@ function saveCatch() {
     request.onsuccess = () => {
         console.log("Catch saved/updated successfully.");
         clearCatchForm();
-        displayCatches();
+        displayCatches(catchData.date);
+        renderCalendar(); // Re-render calendar to show new log indicators
         const successMsg = document.getElementById('save-success-msg');
         successMsg.textContent = 'Catch Saved!';
         successMsg.classList.remove('hidden');
@@ -566,8 +567,7 @@ function saveCatch() {
     };
 }
 
-function displayCatches() {
-    const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay).toISOString().slice(0, 10);
+function displayCatches(date) {
     console.log(`Fetching catches for date: ${date}`);
     const transaction = db.transaction(["catch_logs"], "readonly");
     const objectStore = transaction.objectStore("catch_logs");
@@ -626,10 +626,18 @@ function deleteCatch(id) {
     console.log(`Deleting catch with id: ${id}`);
     const transaction = db.transaction(["catch_logs"], "readwrite");
     const objectStore = transaction.objectStore("catch_logs");
-    const request = objectStore.delete(id);
-    request.onsuccess = () => {
-        console.log("Catch deleted successfully.");
-        displayCatches();
+
+    // First, get the date of the item being deleted to refresh the correct modal view
+    const getRequest = objectStore.get(id);
+    getRequest.onsuccess = () => {
+        const dateToDelete = getRequest.result.date;
+
+        const deleteRequest = objectStore.delete(id);
+        deleteRequest.onsuccess = () => {
+            console.log("Catch deleted successfully.");
+            displayCatches(dateToDelete);
+            renderCalendar(); // Re-render calendar to update log indicators
+        };
     };
 }
 
@@ -864,7 +872,8 @@ function showModal(day, month, year) {
         }
     }
 
-    displayCatches();
+    const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    displayCatches(dateStrForDisplay);
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -894,37 +903,58 @@ function hideModal() {
     modalCurrentYear = null;
 }
 
-function renderCalendar() {
+async function renderCalendar() {
     currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
     calendarDays.innerHTML = '';
-    let firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    firstDay = (firstDay === 0) ? 6 : firstDay - 1;
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+    const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth);
+
+    let firstDay = firstDayOfMonth.getDay();
+    firstDay = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Monday start
+    const daysInMonth = lastDayOfMonth.getDate();
+
     for (let i = 0; i < firstDay; i++) {
         const emptyCell = document.createElement('div');
         emptyCell.className = 'calendar-day';
         calendarDays.appendChild(emptyCell);
     }
+
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center';
+        dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center relative'; // Added relative positioning
+
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         dayElement.appendChild(dayNumber);
+
         const dateObj = new Date(currentYear, currentMonth, day);
         const moonData = getMoonPhaseData(dateObj);
         const lunarPhase = lunarPhases[moonData.phaseIndex];
+
         const qualityIndicator = document.createElement('div');
         qualityIndicator.className = `quality-indicator quality-${lunarPhase.quality.toLowerCase()}`;
         dayElement.appendChild(qualityIndicator);
+
         const qualityText = document.createElement('div');
         qualityText.className = 'quality-text';
         qualityText.textContent = lunarPhase.quality;
         dayElement.appendChild(qualityText);
+
+        if (loggedDays.has(day)) {
+            const logIndicator = document.createElement('span');
+            logIndicator.className = 'log-indicator';
+            logIndicator.innerHTML = '<i class="fas fa-fish"></i>';
+            dayElement.appendChild(logIndicator);
+        }
+
         if (currentYear === new Date().getFullYear() && currentMonth === new Date().getMonth() && day === new Date().getDate()) {
             dayElement.classList.add('ring-2', 'ring-blue-500');
         }
+
         dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));
         calendarDays.appendChild(dayElement);
     }
@@ -992,9 +1022,10 @@ function importData(event) {
                         const message = `Successfully imported ${importCount} items from "${filename}".`;
                         console.log(message);
                         alert(message);
-                        // Refresh calendar or modal if it's open
-                        if (modalCurrentDay !== null) {
-                            displayCatches();
+                        renderCalendar(); // Re-render calendar to show new log indicators
+                        // Since many dates could be affected, just close the modal
+                        if (!lunarModal.classList.contains('hidden')) {
+                            hideModal();
                         }
                         document.getElementById('settingsModal').classList.add('hidden');
                     };
@@ -1014,6 +1045,41 @@ function importData(event) {
         }
     };
     reader.readAsText(file);
+}
+
+function getLoggedDaysForMonth(startDate, endDate) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            console.warn("DB not initialized, resolving with empty set.");
+            resolve(new Set());
+            return;
+        }
+        const transaction = db.transaction(["catch_logs"], "readonly");
+        const objectStore = transaction.objectStore("catch_logs");
+        const index = objectStore.index("date");
+
+        const start = startDate.toISOString().slice(0, 10);
+        const end = endDate.toISOString().slice(0, 10);
+        const range = IDBKeyRange.bound(start, end);
+
+        const request = index.getAll(range);
+        const loggedDays = new Set();
+
+        request.onsuccess = () => {
+            request.result.forEach(log => {
+                // Manually parse the date string to avoid timezone issues.
+                // log.date is 'YYYY-MM-DD'. We want the DD part.
+                const day = parseInt(log.date.split('-')[2], 10);
+                loggedDays.add(day);
+            });
+            resolve(loggedDays);
+        };
+
+        request.onerror = (event) => {
+            console.error("Error fetching logged days for month:", event.target.error);
+            reject(event.target.error);
+        };
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
