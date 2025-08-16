@@ -672,6 +672,30 @@ function initCalendar() {
 }
 
 function setupEventListeners() {
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsModal = document.getElementById('closeSettingsModal');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeSettingsModal) {
+        closeSettingsModal.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.add('hidden');
+            }
+        });
+    }
+
     prevMonthButton.addEventListener('click', () => {
         currentMonth--;
         if (currentMonth < 0) { currentMonth = 11; currentYear--; }
@@ -776,6 +800,16 @@ function setupEventListeners() {
             e.preventDefault(); // Prevent form submission if it's in a form
             clearCatchForm();
         });
+    }
+
+    const exportBtn = document.getElementById('export-data-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportData);
+    }
+
+    const importInput = document.getElementById('import-file-input');
+    if (importInput) {
+        importInput.addEventListener('change', importData);
     }
 }
 
@@ -894,6 +928,92 @@ function renderCalendar() {
         dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));
         calendarDays.appendChild(dayElement);
     }
+}
+
+function exportData() {
+    console.log("Exporting data...");
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const request = objectStore.getAll();
+
+    request.onsuccess = () => {
+        const data = request.result;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "fishing_log_export.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        console.log("Data exported successfully.");
+    };
+
+    request.onerror = (event) => {
+        console.error("Error exporting data:", event.target.error);
+        alert("Could not export data. See console for details.");
+    };
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+    const filename = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) {
+                throw new Error("Invalid data format: not an array.");
+            }
+
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite all existing catch log data.`);
+            if (confirmed) {
+                console.log("Import confirmed. Clearing old data...");
+                const transaction = db.transaction(["catch_logs"], "readwrite");
+                const objectStore = transaction.objectStore("catch_logs");
+                const clearRequest = objectStore.clear();
+
+                clearRequest.onsuccess = () => {
+                    console.log("Old data cleared. Starting import...");
+                    let importCount = 0;
+                    data.forEach(item => {
+                        // Ensure 'id' is not carried over if it exists in the JSON
+                        delete item.id;
+                        const addRequest = objectStore.add(item);
+                        addRequest.onsuccess = () => {
+                            importCount++;
+                        };
+                    });
+
+                    transaction.oncomplete = () => {
+                        const message = `Successfully imported ${importCount} items from "${filename}".`;
+                        console.log(message);
+                        alert(message);
+                        // Refresh calendar or modal if it's open
+                        if (modalCurrentDay !== null) {
+                            displayCatches();
+                        }
+                        document.getElementById('settingsModal').classList.add('hidden');
+                    };
+                };
+
+                clearRequest.onerror = (event) => {
+                    console.error("Error clearing object store:", event.target.error);
+                    alert("Error clearing old data. Import aborted.");
+                };
+            }
+        } catch (error) {
+            console.error("Error parsing or processing import file:", error);
+            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format.`);
+        } finally {
+            // Reset file input so the same file can be chosen again
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
