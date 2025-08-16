@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Māori Fishing Calendar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
+    <div class="fixed top-4 right-4 z-50 flex space-x-2">
+        <button id="settings-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
+            <i class="fas fa-cog"></i>
+        </button>
+        <button id="theme-toggle-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
+            <i class="fas fa-sun"></i>
+        </button>
+    </div>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Māori Fishing Calendar</h1>
+            <p class="text-gray-600 dark:text-gray-400">Find the best fishing days based on the Māori lunar calendar</p>
+        </header>
+
+        <main>
+            <!-- Calendar Navigation -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <button id="prevMonth" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <h2 id="currentMonth" class="text-xl font-semibold text-gray-800 dark:text-gray-100"></h2>
+                    <button id="nextMonth" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-1">
+                    <!-- Day Headers - Starting with Monday -->
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Mon</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Tue</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Wed</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Thu</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Fri</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Sat</div>
+                    <div class="text-center font-semibold py-2 text-gray-700 dark:text-gray-300">Sun</div>
+
+                    <!-- Calendar Days will be inserted here -->
+                    <div id="calendarDays" class="col-span-7 grid grid-cols-7 gap-1"></div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <h3 class="text-lg font-semibold mb-3 dark:text-gray-100">Fishing Quality Legend</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-2 dark:text-gray-300">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 quality-excellent rounded-full mr-2"></div>
+                        <span class="text-sm">Excellent</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 quality-good rounded-full mr-2"></div>
+                        <span class="text-sm">Good</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 quality-average rounded-full mr-2"></div>
+                        <span class="text-sm">Average</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 quality-poor rounded-full mr-2"></div>
+                        <span class="text-sm">Poor</span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mt-3">Hover over any day to see the fishing quality. Click for more details.</p>
+            </div>
+
+            <!-- Current Moon Phase Info -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
+                <h3 class="text-lg font-semibold mb-2 dark:text-gray-100">Current Moon Phase in New Zealand</h3>
+                <div id="currentMoonInfo" class="flex items-center">
+                    <span id="currentMoonIcon" class="text-4xl mr-3"></span>
+                    <div>
+                        <p id="currentMoonPhase" class="font-semibold dark:text-gray-100"></p>
+                        <p id="currentMoonAge" class="text-sm text-gray-600 dark:text-gray-400"></p>
+                        <p id="currentMoonIllumination" class="text-sm text-gray-600 dark:text-gray-400"></p>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="mt-8 text-center text-gray-600 dark:text-gray-400 text-sm">
+            <p>Māori Fishing Calendar • Based on traditional Māori lunar knowledge</p>
+        </footer>
+    </div>
+
+    <!-- Modal for Lunar Phase Information -->
+    <div id="lunarModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <!-- Modal Header with Navigation -->
+                <div class="flex justify-between items-center mb-4">
+                    <button id="modalPrevDay" class="nav-button px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <h3 id="modalTitle" class="text-2xl font-bold text-gray-800 dark:text-gray-100 flex-1 text-center"></h3>
+                    <button id="modalNextDay" class="nav-button px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <div class="flex items-center mb-4">
+                    <span id="modalMoonIcon" class="text-4xl mr-3"></span>
+                    <div>
+                        <p id="modalDate" class="text-gray-600 dark:text-gray-400"></p>
+                        <div id="modalQuality" class="inline-block px-2 py-1 rounded text-white text-sm font-bold mt-1"></div>
+                        <p id="modalMoonAge" class="text-sm text-gray-600 dark:text-gray-400 mt-1"></p>
+                        <p id="modalMoonIllumination" class="text-sm text-gray-600 dark:text-gray-400"></p>
+                    </div>
+                </div>
+                <div class="border-t dark:border-gray-700 pt-4 mb-4">
+                    <p id="modalDescription" class="text-gray-700 dark:text-gray-300"></p>
+                </div>
+
+                <!-- Bite Times Section -->
+                <div class="border-t dark:border-gray-700 pt-4 mb-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Bite Times</h4>
+                    <div class="flex items-center space-x-1 mb-4 relative">
+                        <input type="text" id="location-input" placeholder="Enter a location" class="w-full px-3 py-2 border border-gray-300 rounded-l-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button id="search-location-btn" class="px-3 py-2 bg-gray-500 text-white hover:bg-gray-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button id="use-location-btn" class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                        <div id="autocomplete-results" class="absolute top-full left-0 z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md mt-1 hidden"></div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="font-medium text-green-600 mb-2">Major Bites</h5>
+                        <div id="majorBites" class="space-y-1"></div>
+                    </div>
+
+                    <div>
+                        <h5 class="font-medium text-blue-600 mb-2">Minor Bites</h5>
+                        <div id="minorBites" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Bite Time Quality Legend -->
+                <div class="border-t dark:border-gray-700 pt-4">
+                    <h5 class="font-semibold mb-2 dark:text-gray-100">Bite Time Quality Legend</h5>
+                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2 dark:text-gray-300">
+                        <div class="flex items-center">
+                            <i class="fas fa-fish mr-2" style="color: #10b981;"></i>
+                            <span class="text-sm">Excellent</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-fish mr-2" style="color: #3b82f6;"></i>
+                            <span class="text-sm">Good</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-fish mr-2" style="color: #f59e0b;"></i>
+                            <span class="text-sm">Average</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-fish mr-2" style="color: #8b5cf6;"></i>
+                            <span class="text-sm">Fair</span>
+                        </div>
+                        <div class="flex items-center">
+                            <i class="fas fa-fish mr-2" style="color: #ef4444;"></i>
+                            <span class="text-sm">Poor</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Trip Log Section -->
+                <div class="border-t dark:border-gray-700 pt-4 mt-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Trip Log</h4>
+                    <div id="trip-log-list" class="space-y-4 mb-4">
+                        <!-- Logged trips will be displayed here -->
+                    </div>
+                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                        <h5 class="font-medium mb-3 dark:text-gray-200" id="trip-form-title">Log a New Trip</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <input type="text" id="trip-water" placeholder="Water Body (e.g., Lake Taupo)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <input type="text" id="trip-location" placeholder="Specific Location (e.g., Stump Bay)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <input type="number" id="trip-hours" placeholder="Hours Fished" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="number" id="trip-total-fish" placeholder="Total Fish Caught" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                            <input type="text" id="trip-companions" placeholder="Fished with" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                            <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
+                        </div>
+                        <div class="flex space-x-2 mt-4">
+                            <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition">Save Trip</button>
+                            <button id="cancel-edit-trip-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition hidden">Cancel Edit</button>
+                        </div>
+                        <div id="save-trip-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Trip saved!</div>
+                    </div>
+                </div>
+
+                <div class="mt-6 flex justify-between items-center">
+                    <button id="modalCloseBtn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">
+                        Close
+                    </button>
+                    <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Settings</h3>
+                    <button id="closeSettingsModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div class="border-t dark:border-gray-700 pt-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Data Management</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Export your catch log as a JSON file to back it up or transfer to another device. You can then import this file on another device to restore your data.</p>
+                    <div class="space-y-3">
+                        <button id="export-data-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Export Data</button>
+                        <div>
+                            <label for="import-file-input" class="w-full text-center block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer">Import Data</label>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
