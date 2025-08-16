@@ -228,36 +228,36 @@ var SunCalc = (function() {
 })();
 
 const lunarPhases = [
-    { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing." },
-    { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing." },
-    { name: "Hoata", quality: "Excellent", description: "A very good day for eeling and crayfishing." },
-    { name: "Oue", quality: "Good", description: "A good day for planting and fishing." },
-    { name: "Okoro", quality: "Good", description: "Another good day for planting and fishing." },
-    { name: "Tamatea-a-hotu", quality: "Average", description: "A day for planting. Fishing is average." },
-    { name: "Tamatea-a-ngana", quality: "Good", description: "A good day for fishing, but the weather can be unpredictable." },
-    { name: "Tamatea-whakapau", quality: "Poor", description: "Not a good day for fishing." },
-    { name: "Huna", quality: "Poor", description: "Means 'to hide'. Not a good day for fishing." },
-    { name: "Ari", quality: "Poor", description: "A disagreeable day. Unproductive." },
-    { name: "Hotu", quality: "Excellent", description: "The moon is bright and nearing full. A very good time for night fishing." },
-    { name: "Mawharu", quality: "Good", description: "A most favourable day for planting food and a good day for fishing." },
-    { name: "Atua", quality: "Poor", description: "Not a good day for planting or fishing." },
-    { name: "Ohua", quality: "Excellent", description: "The moon is nearly full. One of the best nights for fishing." },
-    { name: "Oanui", quality: "Good", description: "The day of the full moon. Good for fishing." },
-    { name: "Oturu", quality: "Good", description: "A good day for fishing and a very good day for eeling." },
-    { name: "Rakau-nui", quality: "Good", description: "A very good day for fishing." },
-    { name: "Rakau-matohi", quality: "Good", description: "A fine day for fishing." },
-    { name: "Takirau", quality: "Average", description: "Fine weather in the morning. Fishing is average." },
-    { name: "Oike", quality: "Average", description: "The afternoon is favourable for fishing." },
-    { name: "Korekore-te-whiwhia", quality: "Poor", description: "A bad day for fishing." },
-    { name: "Korekore-te-rawea", quality: "Poor", description: "Another bad day for fishing." },
-    { name: "Korekore-whakapau", quality: "Average", description: "A fairly good day." },
-    { name: "Tangaroa-a-mua", quality: "Good", description: "A good day for fishing." },
-    { name: "Tangaroa-a-roto", quality: "Good", description: "Another good day for fishing." },
-    { name: "Tangaroa-kiokio", quality: "Excellent", description: "An excellent day for fishing." },
-    { name: "Otane", quality: "Good", description: "A good day, and a good night for eeling." },
-    { name: "Orongonui", quality: "Good", description: "A desirable day for fishing." },
-    { name: "Mauri", quality: "Average", description: "The morning is fine. Fishing is average." },
-    { name: "Mutuwhenua", quality: "Poor", description: "An exceedingly bad day for fishing." }
+    { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing.", biteQualities: ["poor", "average", "poor", "poor"] },
+    { name: "Hoata", quality: "Excellent", description: "A very good day for eeling and crayfishing.", biteQualities: ["good", "excellent", "good", "average"] },
+    { name: "Oue", quality: "Good", description: "A good day for planting and fishing.", biteQualities: ["average", "good", "average", "poor"] },
+    { name: "Okoro", quality: "Good", description: "Another good day for planting and fishing.", biteQualities: ["average", "good", "fair", "poor"] },
+    { name: "Tamatea-a-hotu", quality: "Average", description: "A day for planting. Fishing is average.", biteQualities: ["fair", "average", "fair", "poor"] },
+    { name: "Tamatea-a-ngana", quality: "Good", description: "A good day for fishing, but the weather can be unpredictable.", biteQualities: ["good", "fair", "good", "fair"] },
+    { name: "Tamatea-whakapau", quality: "Poor", description: "Not a good day for fishing.", biteQualities: ["poor", "fair", "poor", "fair"] },
+    { name: "Huna", quality: "Poor", description: "Means 'to hide'. Not a good day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Ari", quality: "Poor", description: "A disagreeable day. Unproductive.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Hotu", quality: "Excellent", description: "The moon is bright and nearing full. A very good time for night fishing.", biteQualities: ["excellent", "average", "fair", "fair"] },
+    { name: "Mawharu", quality: "Good", description: "A most favourable day for planting food and a good day for fishing.", biteQualities: ["good", "good", "fair", "fair"] },
+    { name: "Atua", quality: "Poor", description: "Not a good day for planting or fishing.", biteQualities: ["fair", "poor", "poor", "poor"] },
+    { name: "Ohua", quality: "Excellent", description: "The moon is nearly full. One of the best nights for fishing.", biteQualities: ["excellent", "good", "good", "fair"] },
+    { name: "Oanui", quality: "Good", description: "The day of the full moon. Good for fishing.", biteQualities: ["average", "excellent", "good", "fair"] },
+    { name: "Oturu", quality: "Good", description: "A good day for fishing and a very good day for eeling.", biteQualities: ["fair", "good", "poor", "poor"] },
+    { name: "Rakau-nui", quality: "Good", description: "A very good day for fishing.", biteQualities: ["fair", "good", "poor", "poor"] },
+    { name: "Rakau-matohi", quality: "Good", description: "A fine day for fishing.", biteQualities: ["good", "fair", "poor", "poor"] },
+    { name: "Takirau", quality: "Average", description: "Fine weather in the morning. Fishing is average.", biteQualities: ["excellent", "average", "fair", "fair"] },
+    { name: "Oike", quality: "Average", description: "The afternoon is favourable for fishing.", biteQualities: ["average", "average", "fair", "fair"] },
+    { name: "Korekore-te-whiwhia", quality: "Good", description: "A bad day for fishing.", biteQualities: ["good", "good", "average", "average"] },
+    { name: "Korekore-te-rawea", quality: "Poor", description: "Another bad day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Korekore-whakapau", quality: "Poor", description: "A fairly good day.", biteQualities: ["poor", "poor", "poor", "poor"] },
+    { name: "Tangaroa-a-mua", quality: "Excellent", description: "A good day for fishing.", biteQualities: ["excellent", "good", "good", "fair"] },
+    { name: "Tangaroa-a-roto", quality: "Excellent", description: "Another good day for fishing.", biteQualities: ["excellent", "excellent", "good", "good"] },
+    { name: "Tangaroa-kiokio", quality: "Excellent", description: "An excellent day for fishing.", biteQualities: ["excellent", "excellent", "excellent", "good"] },
+    { name: "Otane", quality: "Good", description: "A good day, and a good night for eeling.", biteQualities: ["good", "fair", "fair", "poor"] },
+    { name: "Orongonui", quality: "Good", description: "A desirable day for fishing.", biteQualities: ["good", "good", "fair", "fair"] },
+    { name: "Mauri", quality: "Average", description: "The morning is fine. Fishing is average.", biteQualities: ["fair", "average", "poor", "poor"] },
+    { name: "Mutuwhenua", quality: "Poor", description: "An exceedingly bad day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] }
 ];
 
 const biteQualityColors = {
@@ -268,7 +268,9 @@ const biteQualityColors = {
     poor: "#ef4444"
 };
 
+let db;
 let userLocation = null;
+let currentCatchId = null;
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -302,6 +304,7 @@ const monthNames = [
     "January", "February", "March", "April", "May", "June",
     "July", "August", "September", "October", "November", "December"
 ];
+const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function getMoonPhaseData(date) {
     const moonIllumination = SunCalc.getMoonIllumination(date);
@@ -323,7 +326,6 @@ function minutesToTime(minutes) {
 }
 
 function getMoonTransitTimes(date, lat, lng) {
-    // This is a brute-force method to find transit times.
     var rc = { "transits": [] };
     var sign = 1, i, j;
     for (i = 0; i <= 25; i++) {
@@ -403,29 +405,31 @@ function calculateBiteTimes(date, lat, lon) {
 
     const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
     const moonTransits = getMoonTransitTimes(date, lat, lon).transits;
+    const lunarDay = lunarPhases[getMoonPhaseData(date).phaseIndex];
+    const qualities = lunarDay.biteQualities;
 
-    const formatBite = (start, end) => ({
+    const formatBite = (start, end, quality) => ({
         start: start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
         end: end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }),
-        quality: 'good'
+        quality: quality
     });
 
-    const majorBites = moonTransits.map(transit => {
-        const start = new Date(transit.time.getTime() - 1 * 60 * 60 * 1000);
+    const majorBites = moonTransits.map((transit, index) => {
+        const start = new Date(transit.time.getTime() - 1 * 60 * 60 * 1000); // 2 hour window
         const end = new Date(transit.time.getTime() + 1 * 60 * 60 * 1000);
-        return formatBite(start, end);
+        return formatBite(start, end, qualities[index]);
     });
 
     const minorBites = [];
     if (moonTimes.rise) {
-        const start = new Date(moonTimes.rise.getTime() - 1.5 * 60 * 60 * 1000);
-        const end = new Date(moonTimes.rise.getTime() + 1.5 * 60 * 60 * 1000);
-        minorBites.push(formatBite(start, end));
+        const start = new Date(moonTimes.rise.getTime() - 0.5 * 60 * 60 * 1000); // 1 hour window
+        const end = new Date(moonTimes.rise.getTime() + 0.5 * 60 * 60 * 1000);
+        minorBites.push(formatBite(start, end, qualities[2]));
     }
     if (moonTimes.set) {
-        const start = new Date(moonTimes.set.getTime() - 1.5 * 60 * 60 * 1000);
-        const end = new Date(moonTimes.set.getTime() + 1.5 * 60 * 60 * 1000);
-        minorBites.push(formatBite(start, end));
+        const start = new Date(moonTimes.set.getTime() - 0.5 * 60 * 60 * 1000); // 1 hour window
+        const end = new Date(moonTimes.set.getTime() + 0.5 * 60 * 60 * 1000);
+        minorBites.push(formatBite(start, end, qualities[3]));
     }
 
     return {
@@ -474,8 +478,8 @@ function loadLocation() {
     }
 }
 
-function setLocationAndFetchBiteTimes(lat, lon) {
-    userLocation = { lat, lon };
+function setLocationAndFetchBiteTimes(lat, lon, name) {
+    userLocation = { lat, lon, name };
     localStorage.setItem('userLocation', JSON.stringify(userLocation));
 
     const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
@@ -486,7 +490,188 @@ function setLocationAndFetchBiteTimes(lat, lon) {
     biteTimes.minor.forEach(biteTime => minorBites.appendChild(createBiteTimeElement(biteTime)));
 };
 
+function initDB() {
+    const request = indexedDB.open("fishingLog", 1);
+
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains('catch_logs')) {
+            const objectStore = db.createObjectStore("catch_logs", { keyPath: "id", autoIncrement:true });
+            objectStore.createIndex("date", "date", { unique: false });
+        }
+    };
+
+    request.onsuccess = function(event) {
+        db = event.target.result;
+        console.log("Database initialized successfully.");
+    };
+
+    request.onerror = function(event) {
+        console.error("Database error: " + event.target.errorCode);
+    };
+}
+
+function clearCatchForm() {
+    document.getElementById('log-fish').value = '';
+    document.getElementById('log-weight').value = '';
+    document.getElementById('log-length').value = '';
+    document.getElementById('log-lure').value = '';
+    document.getElementById('log-rod').value = '';
+    document.getElementById('log-reel').value = '';
+    document.getElementById('log-notes').value = '';
+    currentCatchId = null;
+    document.getElementById('save-catch-btn').textContent = 'Save Catch';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+function saveCatch() {
+    console.log("Attempting to save catch...");
+    const transaction = db.transaction(["catch_logs"], "readwrite");
+    const objectStore = transaction.objectStore("catch_logs");
+
+    const catchData = {
+        date: `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`,
+        fish: document.getElementById('log-fish').value,
+        weight: document.getElementById('log-weight').value,
+        length: document.getElementById('log-length').value,
+        lure: document.getElementById('log-lure').value,
+        rod: document.getElementById('log-rod').value,
+        reel: document.getElementById('log-reel').value,
+        notes: document.getElementById('log-notes').value,
+    };
+
+    let request;
+    if (currentCatchId) {
+        console.log(`Updating catch with id: ${currentCatchId}`);
+        catchData.id = currentCatchId;
+        request = objectStore.put(catchData);
+    } else {
+        console.log("Adding new catch.");
+        request = objectStore.add(catchData);
+    }
+
+    request.onsuccess = () => {
+        console.log("Catch saved/updated successfully.");
+        clearCatchForm();
+        displayCatches(catchData.date);
+        renderCalendar(); // Re-render calendar to show new log indicators
+        const successMsg = document.getElementById('save-success-msg');
+        successMsg.textContent = 'Catch Saved!';
+        successMsg.classList.remove('hidden');
+        setTimeout(() => {
+            successMsg.classList.add('hidden');
+        }, 2000);
+    };
+    request.onerror = (event) => {
+        console.error("Error saving/updating catch:", event.target.error);
+    };
+}
+
+function displayCatches(date) {
+    console.log(`Fetching catches for date: ${date}`);
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const index = objectStore.index("date");
+    const request = index.getAll(date);
+
+    request.onsuccess = () => {
+        const catchLogList = document.getElementById('catch-log-list');
+        catchLogList.innerHTML = '';
+        const catches = request.result;
+        console.log(`Found ${catches.length} catches.`);
+        if (catches.length > 0) {
+            catches.forEach(c => {
+                const catchEl = document.createElement('div');
+                catchEl.className = 'p-2 bg-white dark:bg-gray-800 rounded shadow text-sm space-y-1';
+
+                let fishInfo = `<strong>Fish:</strong> ${c.fish || ''}`;
+                const details = [c.weight, c.length].filter(Boolean).join(', ');
+                if (details) {
+                    fishInfo += ` (${details})`;
+                }
+                const fishP = document.createElement('p');
+                fishP.innerHTML = fishInfo;
+                catchEl.appendChild(fishP);
+
+                const tackleParts = [c.lure, c.rod, c.reel].filter(Boolean);
+                if (tackleParts.length > 0) {
+                    const tackleP = document.createElement('p');
+                    tackleP.innerHTML = `<strong>Tackle:</strong> ${tackleParts.join(', ')}`;
+                    catchEl.appendChild(tackleP);
+                }
+
+                if (c.notes) {
+                    const notesP = document.createElement('p');
+                    notesP.innerHTML = `<strong>Notes:</strong> ${c.notes}`;
+                    catchEl.appendChild(notesP);
+                }
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'mt-2';
+                buttonsDiv.innerHTML = `
+                    <button onclick="editCatch(${c.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                    <button onclick="deleteCatch(${c.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                `;
+                catchEl.appendChild(buttonsDiv);
+
+                catchLogList.appendChild(catchEl);
+            });
+        } else {
+            catchLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No catches logged for this day.</p>';
+        }
+    };
+}
+
+function deleteCatch(id) {
+    console.log(`Deleting catch with id: ${id}`);
+    const transaction = db.transaction(["catch_logs"], "readwrite");
+    const objectStore = transaction.objectStore("catch_logs");
+
+    // First, get the date of the item being deleted to refresh the correct modal view
+    const getRequest = objectStore.get(id);
+    getRequest.onsuccess = () => {
+        const dateToDelete = getRequest.result.date;
+
+        const deleteRequest = objectStore.delete(id);
+        deleteRequest.onsuccess = () => {
+            console.log("Catch deleted successfully.");
+            displayCatches(dateToDelete);
+            renderCalendar(); // Re-render calendar to update log indicators
+        };
+    };
+}
+
+function editCatch(id) {
+    console.log(`Editing catch with id: ${id}`);
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const request = objectStore.get(id);
+
+    request.onsuccess = () => {
+        const catchData = request.result;
+        if (catchData) {
+            document.getElementById('log-fish').value = catchData.fish;
+            document.getElementById('log-weight').value = catchData.weight;
+            document.getElementById('log-length').value = catchData.length;
+            document.getElementById('log-lure').value = catchData.lure;
+            document.getElementById('log-rod').value = catchData.rod;
+            document.getElementById('log-reel').value = catchData.reel;
+            document.getElementById('log-notes').value = catchData.notes;
+
+            currentCatchId = id;
+            document.getElementById('save-catch-btn').textContent = 'Update Catch';
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        } else {
+            console.error(`Catch with id ${id} not found.`);
+        }
+    };
+    request.onerror = (event) => {
+        console.error("Error fetching catch for edit:", event.target.error);
+    };
+}
+
 function initCalendar() {
+    initDB();
     loadLocation();
     renderCalendar();
     updateCurrentMoonInfo();
@@ -495,6 +680,30 @@ function initCalendar() {
 }
 
 function setupEventListeners() {
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settingsModal');
+    const closeSettingsModal = document.getElementById('closeSettingsModal');
+
+    if (settingsBtn) {
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeSettingsModal) {
+        closeSettingsModal.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+        });
+    }
+
+    if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.add('hidden');
+            }
+        });
+    }
+
     prevMonthButton.addEventListener('click', () => {
         currentMonth--;
         if (currentMonth < 0) { currentMonth = 11; currentYear--; }
@@ -515,6 +724,38 @@ function setupEventListeners() {
 
     const useLocationBtn = document.getElementById('use-location-btn');
     const locationInput = document.getElementById('location-input');
+    const searchLocationBtn = document.getElementById('search-location-btn');
+    const saveCatchBtn = document.getElementById('save-catch-btn');
+
+    const handleManualLocationSearch = () => {
+        const query = locationInput.value;
+        if (query.length < 2) return;
+
+        majorBites.innerHTML = '<li>Loading...</li>';
+        minorBites.innerHTML = '';
+
+        fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.length > 0) {
+                    const item = data[0];
+                    const lat = parseFloat(item.lat);
+                    const lon = parseFloat(item.lon);
+                    locationInput.value = item.display_name;
+                    setLocationAndFetchBiteTimes(lat, lon, item.display_name);
+                } else {
+                    majorBites.innerHTML = '<li>Location not found.</li>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching location:', error);
+                majorBites.innerHTML = '<li>Error finding location.</li>';
+            });
+    };
+
+    if (searchLocationBtn) {
+        searchLocationBtn.addEventListener('click', handleManualLocationSearch);
+    }
 
     if (useLocationBtn) {
         useLocationBtn.addEventListener('click', () => {
@@ -523,8 +764,20 @@ function setupEventListeners() {
                     (position) => {
                         const lat = position.coords.latitude;
                         const lon = position.coords.longitude;
-                        locationInput.value = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-                        setLocationAndFetchBiteTimes(lat, lon);
+
+                        fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                const name = data.display_name;
+                                locationInput.value = name;
+                                setLocationAndFetchBiteTimes(lat, lon, name);
+                            })
+                            .catch(error => {
+                                console.error('Error fetching location name:', error);
+                                const name = `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                                locationInput.value = name;
+                                setLocationAndFetchBiteTimes(lat, lon, name);
+                            });
                     },
                     (error) => {
                         console.error("Error getting location:", error);
@@ -537,18 +790,34 @@ function setupEventListeners() {
         });
     }
 
-    if(locationInput) {
-        locationInput.addEventListener('change', () => {
-            // Basic lat,lon parsing
-            const parts = locationInput.value.split(',');
-            if (parts.length === 2) {
-                const lat = parseFloat(parts[0]);
-                const lon = parseFloat(parts[1]);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    setLocationAndFetchBiteTimes(lat, lon);
-                }
+    if (locationInput) {
+        locationInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                handleManualLocationSearch();
             }
         });
+    }
+
+    if (saveCatchBtn) {
+        saveCatchBtn.addEventListener('click', saveCatch);
+    }
+
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent form submission if it's in a form
+            clearCatchForm();
+        });
+    }
+
+    const exportBtn = document.getElementById('export-data-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', exportData);
+    }
+
+    const importInput = document.getElementById('import-file-input');
+    if (importInput) {
+        importInput.addEventListener('change', importData);
     }
 }
 
@@ -580,7 +849,9 @@ function showModal(day, month, year) {
     const dateObj = new Date(year, month, day);
     const moonData = getMoonPhaseData(dateObj);
     const lunarPhase = lunarPhases[moonData.phaseIndex];
-    const dateStr = `${day} ${monthNames[month]} ${year}`;
+    const dayName = dayNames[dateObj.getDay()];
+    const monthName = monthNames[month].substring(0, 3);
+    const dateStr = `${dayName} ${day} ${monthName}`;
     modalTitle.textContent = lunarPhase.name;
     modalDate.textContent = dateStr;
     modalQuality.textContent = lunarPhase.quality;
@@ -590,9 +861,9 @@ function showModal(day, month, year) {
     modalDescription.textContent = lunarPhase.description;
 
     const locationInput = document.getElementById('location-input');
-    if (userLocation) {
-        locationInput.value = `${userLocation.lat.toFixed(4)}, ${userLocation.lon.toFixed(4)}`;
-        setLocationAndFetchBiteTimes(userLocation.lat, userLocation.lon);
+    if (userLocation && userLocation.name) {
+        locationInput.value = userLocation.name;
+        setLocationAndFetchBiteTimes(userLocation.lat, userLocation.lon, userLocation.name);
     } else {
         majorBites.innerHTML = 'Enter a location to see bite times.';
         minorBites.innerHTML = '';
@@ -601,6 +872,8 @@ function showModal(day, month, year) {
         }
     }
 
+    const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    displayCatches(dateStrForDisplay);
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -617,11 +890,9 @@ function showNextDay() {
 }
 
 function updateNavigationButtons() {
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const modalDate = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
-    modalPrevDay.disabled = modalDate <= firstDayOfMonth;
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    modalNextDay.disabled = modalDate >= lastDayOfMonth;
+    // No longer disabling buttons to allow infinite scroll
+    modalPrevDay.disabled = false;
+    modalNextDay.disabled = false;
 }
 
 function hideModal() {
@@ -632,40 +903,183 @@ function hideModal() {
     modalCurrentYear = null;
 }
 
-function renderCalendar() {
+async function renderCalendar() {
     currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
     calendarDays.innerHTML = '';
-    let firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    firstDay = (firstDay === 0) ? 6 : firstDay - 1;
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+
+    const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth);
+
+    let firstDay = firstDayOfMonth.getDay();
+    firstDay = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Monday start
+    const daysInMonth = lastDayOfMonth.getDate();
+
     for (let i = 0; i < firstDay; i++) {
         const emptyCell = document.createElement('div');
         emptyCell.className = 'calendar-day';
         calendarDays.appendChild(emptyCell);
     }
+
     for (let day = 1; day <= daysInMonth; day++) {
         const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center';
+        dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center relative'; // Added relative positioning
+
         const dayNumber = document.createElement('div');
         dayNumber.className = 'day-number';
         dayNumber.textContent = day;
         dayElement.appendChild(dayNumber);
+
         const dateObj = new Date(currentYear, currentMonth, day);
         const moonData = getMoonPhaseData(dateObj);
         const lunarPhase = lunarPhases[moonData.phaseIndex];
+
         const qualityIndicator = document.createElement('div');
         qualityIndicator.className = `quality-indicator quality-${lunarPhase.quality.toLowerCase()}`;
         dayElement.appendChild(qualityIndicator);
+
         const qualityText = document.createElement('div');
         qualityText.className = 'quality-text';
         qualityText.textContent = lunarPhase.quality;
         dayElement.appendChild(qualityText);
+
+        if (loggedDays.has(day)) {
+            const logIndicator = document.createElement('span');
+            logIndicator.className = 'log-indicator';
+            logIndicator.innerHTML = '<i class="fas fa-fish"></i>';
+            dayElement.appendChild(logIndicator);
+        }
+
         if (currentYear === new Date().getFullYear() && currentMonth === new Date().getMonth() && day === new Date().getDate()) {
             dayElement.classList.add('ring-2', 'ring-blue-500');
         }
+
         dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));
         calendarDays.appendChild(dayElement);
     }
+}
+
+function exportData() {
+    console.log("Exporting data...");
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const request = objectStore.getAll();
+
+    request.onsuccess = () => {
+        const data = request.result;
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "fishing_log_export.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+        console.log("Data exported successfully.");
+    };
+
+    request.onerror = (event) => {
+        console.error("Error exporting data:", event.target.error);
+        alert("Could not export data. See console for details.");
+    };
+}
+
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) {
+        return;
+    }
+    const filename = file.name;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) {
+                throw new Error("Invalid data format: not an array.");
+            }
+
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite all existing catch log data.`);
+            if (confirmed) {
+                console.log("Import confirmed. Clearing old data...");
+                const transaction = db.transaction(["catch_logs"], "readwrite");
+                const objectStore = transaction.objectStore("catch_logs");
+                const clearRequest = objectStore.clear();
+
+                clearRequest.onsuccess = () => {
+                    console.log("Old data cleared. Starting import...");
+                    let importCount = 0;
+                    data.forEach(item => {
+                        // Ensure 'id' is not carried over if it exists in the JSON
+                        delete item.id;
+                        const addRequest = objectStore.add(item);
+                        addRequest.onsuccess = () => {
+                            importCount++;
+                        };
+                    });
+
+                    transaction.oncomplete = () => {
+                        const message = `Successfully imported ${importCount} items from "${filename}".`;
+                        console.log(message);
+                        alert(message);
+                        renderCalendar(); // Re-render calendar to show new log indicators
+                        // Since many dates could be affected, just close the modal
+                        if (!lunarModal.classList.contains('hidden')) {
+                            hideModal();
+                        }
+                        document.getElementById('settingsModal').classList.add('hidden');
+                    };
+                };
+
+                clearRequest.onerror = (event) => {
+                    console.error("Error clearing object store:", event.target.error);
+                    alert("Error clearing old data. Import aborted.");
+                };
+            }
+        } catch (error) {
+            console.error("Error parsing or processing import file:", error);
+            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format.`);
+        } finally {
+            // Reset file input so the same file can be chosen again
+            event.target.value = '';
+        }
+    };
+    reader.readAsText(file);
+}
+
+function getLoggedDaysForMonth(startDate, endDate) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            console.warn("DB not initialized, resolving with empty set.");
+            resolve(new Set());
+            return;
+        }
+        const transaction = db.transaction(["catch_logs"], "readonly");
+        const objectStore = transaction.objectStore("catch_logs");
+        const index = objectStore.index("date");
+
+        const start = startDate.toISOString().slice(0, 10);
+        const end = endDate.toISOString().slice(0, 10);
+        const range = IDBKeyRange.bound(start, end);
+
+        const request = index.getAll(range);
+        const loggedDays = new Set();
+
+        request.onsuccess = () => {
+            request.result.forEach(log => {
+                // Manually parse the date string to avoid timezone issues.
+                // log.date is 'YYYY-MM-DD'. We want the DD part.
+                const day = parseInt(log.date.split('-')[2], 10);
+                loggedDays.add(day);
+            });
+            resolve(loggedDays);
+        };
+
+        request.onerror = (event) => {
+            console.error("Error fetching logged days for month:", event.target.error);
+            reject(event.target.error);
+        };
+    });
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
