@@ -274,6 +274,7 @@ let currentTripId = null;
 let currentEditingTripId = null; // For weather modal
 let currentEditingWeatherId = null;
 
+
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
@@ -855,6 +856,7 @@ function createBiteTimeElement(biteTime) {
 
 function showModal(day, month, year) {
     clearTripForm(); // Reset the form every time the modal is shown or day is changed
+
     modalCurrentDay = day;
     modalCurrentMonth = month;
     modalCurrentYear = year;
@@ -886,6 +888,7 @@ function showModal(day, month, year) {
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     displayTrips(dateStrForDisplay);
+
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
@@ -1016,6 +1019,7 @@ function importData(event) {
                 console.log("Import confirmed. Clearing old data...");
                 const transaction = db.transaction(["trips"], "readwrite");
                 const objectStore = transaction.objectStore("trips");
+
                 const clearRequest = objectStore.clear();
 
                 clearRequest.onsuccess = () => {
@@ -1192,6 +1196,7 @@ function getLoggedDaysForMonth(startDate, endDate) {
         }
         const transaction = db.transaction(["trips"], "readonly");
         const objectStore = transaction.objectStore("trips");
+
         const index = objectStore.index("date");
 
         const start = startDate.toISOString().slice(0, 10);
