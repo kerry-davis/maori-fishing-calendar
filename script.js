@@ -582,16 +582,38 @@ function displayCatches() {
         if (catches.length > 0) {
             catches.forEach(c => {
                 const catchEl = document.createElement('div');
-                catchEl.className = 'p-2 bg-white dark:bg-gray-800 rounded shadow text-sm';
-                catchEl.innerHTML = `
-                    <p><strong>Fish:</strong> ${c.fish} (${c.weight}, ${c.length})</p>
-                    <p><strong>Tackle:</strong> ${c.lure}, ${c.rod}, ${c.reel}</p>
-                    <p><strong>Notes:</strong> ${c.notes}</p>
-                    <div class="mt-2">
-                        <button onclick="editCatch(${c.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                        <button onclick="deleteCatch(${c.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
-                    </div>
+                catchEl.className = 'p-2 bg-white dark:bg-gray-800 rounded shadow text-sm space-y-1';
+
+                let fishInfo = `<strong>Fish:</strong> ${c.fish || ''}`;
+                const details = [c.weight, c.length].filter(Boolean).join(', ');
+                if (details) {
+                    fishInfo += ` (${details})`;
+                }
+                const fishP = document.createElement('p');
+                fishP.innerHTML = fishInfo;
+                catchEl.appendChild(fishP);
+
+                const tackleParts = [c.lure, c.rod, c.reel].filter(Boolean);
+                if (tackleParts.length > 0) {
+                    const tackleP = document.createElement('p');
+                    tackleP.innerHTML = `<strong>Tackle:</strong> ${tackleParts.join(', ')}`;
+                    catchEl.appendChild(tackleP);
+                }
+
+                if (c.notes) {
+                    const notesP = document.createElement('p');
+                    notesP.innerHTML = `<strong>Notes:</strong> ${c.notes}`;
+                    catchEl.appendChild(notesP);
+                }
+
+                const buttonsDiv = document.createElement('div');
+                buttonsDiv.className = 'mt-2';
+                buttonsDiv.innerHTML = `
+                    <button onclick="editCatch(${c.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                    <button onclick="deleteCatch(${c.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
                 `;
+                catchEl.appendChild(buttonsDiv);
+
                 catchLogList.appendChild(catchEl);
             });
         } else {
