@@ -1,7 +1,7 @@
 const CACHE_NAME = 'maori-fishing-calendar-cache-v1';
 const urlsToCache = [
   '.',
-  'fishing calendar.html',
+  'index.html',
   'style.css',
   'script.js',
   'manifest.json',
