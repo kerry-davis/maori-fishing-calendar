@@ -270,6 +270,7 @@ const biteQualityColors = {
 
 let db;
 let userLocation = null;
+let currentCatchId = null;
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -502,10 +503,140 @@ function initDB() {
 
     request.onsuccess = function(event) {
         db = event.target.result;
+        console.log("Database initialized successfully.");
     };
 
     request.onerror = function(event) {
         console.error("Database error: " + event.target.errorCode);
+    };
+}
+
+function clearCatchForm() {
+    document.getElementById('log-fish').value = '';
+    document.getElementById('log-weight').value = '';
+    document.getElementById('log-length').value = '';
+    document.getElementById('log-lure').value = '';
+    document.getElementById('log-rod').value = '';
+    document.getElementById('log-reel').value = '';
+    document.getElementById('log-notes').value = '';
+    currentCatchId = null;
+    document.getElementById('save-catch-btn').textContent = 'Save Catch';
+    document.getElementById('cancel-edit-btn').classList.add('hidden');
+}
+
+function saveCatch() {
+    console.log("Attempting to save catch...");
+    const transaction = db.transaction(["catch_logs"], "readwrite");
+    const objectStore = transaction.objectStore("catch_logs");
+
+    const catchData = {
+        date: new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay).toISOString().slice(0, 10),
+        fish: document.getElementById('log-fish').value,
+        weight: document.getElementById('log-weight').value,
+        length: document.getElementById('log-length').value,
+        lure: document.getElementById('log-lure').value,
+        rod: document.getElementById('log-rod').value,
+        reel: document.getElementById('log-reel').value,
+        notes: document.getElementById('log-notes').value,
+    };
+
+    let request;
+    if (currentCatchId) {
+        console.log(`Updating catch with id: ${currentCatchId}`);
+        catchData.id = currentCatchId;
+        request = objectStore.put(catchData);
+    } else {
+        console.log("Adding new catch.");
+        request = objectStore.add(catchData);
+    }
+
+    request.onsuccess = () => {
+        console.log("Catch saved/updated successfully.");
+        clearCatchForm();
+        displayCatches();
+        const successMsg = document.getElementById('save-success-msg');
+        successMsg.textContent = 'Catch Saved!';
+        successMsg.classList.remove('hidden');
+        setTimeout(() => {
+            successMsg.classList.add('hidden');
+        }, 2000);
+    };
+    request.onerror = (event) => {
+        console.error("Error saving/updating catch:", event.target.error);
+    };
+}
+
+function displayCatches() {
+    const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay).toISOString().slice(0, 10);
+    console.log(`Fetching catches for date: ${date}`);
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const index = objectStore.index("date");
+    const request = index.getAll(date);
+
+    request.onsuccess = () => {
+        const catchLogList = document.getElementById('catch-log-list');
+        catchLogList.innerHTML = '';
+        const catches = request.result;
+        console.log(`Found ${catches.length} catches.`);
+        if (catches.length > 0) {
+            catches.forEach(c => {
+                const catchEl = document.createElement('div');
+                catchEl.className = 'p-2 bg-white dark:bg-gray-800 rounded shadow text-sm';
+                catchEl.innerHTML = `
+                    <p><strong>Fish:</strong> ${c.fish} (${c.weight}, ${c.length})</p>
+                    <p><strong>Tackle:</strong> ${c.lure}, ${c.rod}, ${c.reel}</p>
+                    <p><strong>Notes:</strong> ${c.notes}</p>
+                    <div class="mt-2">
+                        <button onclick="editCatch(${c.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                        <button onclick="deleteCatch(${c.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                    </div>
+                `;
+                catchLogList.appendChild(catchEl);
+            });
+        } else {
+            catchLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No catches logged for this day.</p>';
+        }
+    };
+}
+
+function deleteCatch(id) {
+    console.log(`Deleting catch with id: ${id}`);
+    const transaction = db.transaction(["catch_logs"], "readwrite");
+    const objectStore = transaction.objectStore("catch_logs");
+    const request = objectStore.delete(id);
+    request.onsuccess = () => {
+        console.log("Catch deleted successfully.");
+        displayCatches();
+    };
+}
+
+function editCatch(id) {
+    console.log(`Editing catch with id: ${id}`);
+    const transaction = db.transaction(["catch_logs"], "readonly");
+    const objectStore = transaction.objectStore("catch_logs");
+    const request = objectStore.get(id);
+
+    request.onsuccess = () => {
+        const catchData = request.result;
+        if (catchData) {
+            document.getElementById('log-fish').value = catchData.fish;
+            document.getElementById('log-weight').value = catchData.weight;
+            document.getElementById('log-length').value = catchData.length;
+            document.getElementById('log-lure').value = catchData.lure;
+            document.getElementById('log-rod').value = catchData.rod;
+            document.getElementById('log-reel').value = catchData.reel;
+            document.getElementById('log-notes').value = catchData.notes;
+
+            currentCatchId = id;
+            document.getElementById('save-catch-btn').textContent = 'Update Catch';
+            document.getElementById('cancel-edit-btn').classList.remove('hidden');
+        } else {
+            console.error(`Catch with id ${id} not found.`);
+        }
+    };
+    request.onerror = (event) => {
+        console.error("Error fetching catch for edit:", event.target.error);
     };
 }
 
@@ -540,6 +671,7 @@ function setupEventListeners() {
     const useLocationBtn = document.getElementById('use-location-btn');
     const locationInput = document.getElementById('location-input');
     const searchLocationBtn = document.getElementById('search-location-btn');
+    const saveCatchBtn = document.getElementById('save-catch-btn');
 
     const handleManualLocationSearch = () => {
         const query = locationInput.value;
@@ -611,6 +743,18 @@ function setupEventListeners() {
             }
         });
     }
+
+    if (saveCatchBtn) {
+        saveCatchBtn.addEventListener('click', saveCatch);
+    }
+
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
+    if (cancelEditBtn) {
+        cancelEditBtn.addEventListener('click', (e) => {
+            e.preventDefault(); // Prevent form submission if it's in a form
+            clearCatchForm();
+        });
+    }
 }
 
 function updateCurrentMoonInfo() {
@@ -664,6 +808,7 @@ function showModal(day, month, year) {
         }
     }
 
+    displayCatches();
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
