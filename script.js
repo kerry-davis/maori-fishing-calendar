@@ -882,24 +882,6 @@ function setupEventListeners() {
     }
 }
 
-function showTripLogModal() {
-    const tripLogModal = document.getElementById('tripLogModal');
-    if (!tripLogModal) return;
-
-    // Populate the trips for the currently selected day
-    const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
-    displayTrips(dateStrForDisplay);
-
-    tripLogModal.classList.remove('hidden');
-
-    const modalContent = tripLogModal.querySelector('.overflow-y-auto');
-    if (modalContent) {
-        setTimeout(() => {
-            modalContent.scrollTop = 0;
-        }, 0);
-    }
-}
-
 function updateCurrentMoonInfo() {
     const moonData = getMoonPhaseData(new Date());
     const lunarPhase = lunarPhases[moonData.phaseIndex];
@@ -939,6 +921,24 @@ function checkIfTripsExist(date, callback) {
         console.error("Error checking for trips:", event.target.error);
         callback(false);
     };
+}
+
+function showTripLogModal() {
+    const tripLogModal = document.getElementById('tripLogModal');
+    if (!tripLogModal) return;
+
+    // Populate the trips for the currently selected day
+    const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
+    displayTrips(dateStrForDisplay);
+
+    tripLogModal.classList.remove('hidden');
+
+    const modalContent = tripLogModal.querySelector('.overflow-y-auto');
+    if (modalContent) {
+        setTimeout(() => {
+            modalContent.scrollTop = 0;
+        }, 0);
+    }
 }
 
 function showModal(day, month, year) {
@@ -993,13 +993,6 @@ function showModal(day, month, year) {
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-
-    const modalContent = document.getElementById('modal-scroll-container');
-    if (modalContent) {
-        setTimeout(() => {
-            modalContent.scrollTop = 0;
-        }, 0);
-    }
 }
 
 function showPreviousDay() {
