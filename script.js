@@ -1101,9 +1101,8 @@ function importData(event) {
                         if (storeData) {
                             const objectStore = importTransaction.objectStore(storeName);
                             storeData.forEach(item => {
-                                // Ensure 'id' is not carried over
-                                delete item.id;
-                                objectStore.add(item);
+                                // Using put() preserves the IDs from the import file
+                                objectStore.put(item);
                                 totalImportCount++;
                             });
                         }
