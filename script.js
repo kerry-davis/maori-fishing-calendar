@@ -430,12 +430,33 @@ function displaySunMoonTimes(date, lat, lon) {
     };
 
     const sunTimes = SunCalc.getTimes(date, lat, lon);
-    const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
-
     const sunrise = formatTime(sunTimes.sunrise);
     const sunset = formatTime(sunTimes.sunset);
-    const moonrise = formatTime(moonTimes.rise);
-    const moonset = formatTime(moonTimes.set);
+
+    const today = new Date(date);
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const rise_times = [
+        SunCalc.getMoonTimes(yesterday, lat, lon).rise,
+        SunCalc.getMoonTimes(today, lat, lon).rise,
+        SunCalc.getMoonTimes(tomorrow, lat, lon).rise
+    ].filter(Boolean);
+
+    const set_times = [
+        SunCalc.getMoonTimes(yesterday, lat, lon).set,
+        SunCalc.getMoonTimes(today, lat, lon).set,
+        SunCalc.getMoonTimes(tomorrow, lat, lon).set
+    ].filter(Boolean);
+
+    const moonrise_date = rise_times.find(r => r > today && r < tomorrow);
+    const moonset_date = set_times.find(s => s > today && s < tomorrow);
+
+    const moonrise = formatTime(moonrise_date);
+    const moonset = formatTime(moonset_date);
 
     sunMoonContent.innerHTML = `
         <div class="grid grid-cols-2 gap-2">
