@@ -209,26 +209,9 @@
 
                 <!-- Trip Log Section -->
                 <div class="border-t dark:border-gray-700 pt-4 mt-4">
-                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Trip Log</h4>
-                    <div id="trip-log-list" class="space-y-4 mb-4">
-                        <!-- Logged trips will be displayed here -->
-                    </div>
-                    <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                        <h5 class="font-medium mb-3 dark:text-gray-200" id="trip-form-title">Log a New Trip</h5>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <input type="text" id="trip-water" placeholder="Water Body (e.g., Lake Taupo)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
-                            <input type="text" id="trip-location" placeholder="Specific Location (e.g., Stump Bay)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
-                            <input type="number" id="trip-hours" placeholder="Hours Fished" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="number" id="trip-total-fish" placeholder="Total Fish Caught" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <input type="text" id="trip-companions" placeholder="Fished with" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
-                            <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
-                        </div>
-                        <div class="flex space-x-2 mt-4">
-                            <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Save Trip</button>
-                            <button id="cancel-edit-trip-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition hidden">Cancel Edit</button>
-                        </div>
-                        <div id="save-trip-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Trip saved!</div>
-                    </div>
+                    <button id="open-trip-log-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                        <i class="fas fa-book-open mr-2"></i> View / Manage Trip Log
+                    </button>
                 </div>
 
                 <div class="mt-6 flex justify-between items-center">
@@ -238,6 +221,39 @@
                     <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                         <i class="fas fa-times text-xl"></i>
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trip Log Modal -->
+    <div id="tripLogModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                 <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Trip Log</h3>
+                    <button id="closeTripLogModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                <div id="trip-log-list" class="space-y-4 mb-4">
+                    <!-- Logged trips will be displayed here -->
+                </div>
+                <div class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                    <h5 class="font-medium mb-3 dark:text-gray-200" id="trip-form-title">Log a New Trip</h5>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <input type="text" id="trip-water" placeholder="Water Body (e.g., Lake Taupo)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                        <input type="text" id="trip-location" placeholder="Specific Location (e.g., Stump Bay)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                        <input type="number" id="trip-hours" placeholder="Hours Fished" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <input type="number" id="trip-total-fish" placeholder="Total Fish Caught" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <input type="text" id="trip-companions" placeholder="Fished with" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                        <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
+                    </div>
+                    <div class="flex space-x-2 mt-4">
+                        <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Save Trip</button>
+                        <button id="cancel-edit-trip-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition hidden">Cancel Edit</button>
+                    </div>
+                    <div id="save-trip-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Trip saved!</div>
                 </div>
             </div>
         </div>

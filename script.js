@@ -858,6 +858,44 @@ function setupEventListeners() {
             }
         });
     }
+
+    const openTripLogBtn = document.getElementById('open-trip-log-btn');
+    if (openTripLogBtn) {
+        openTripLogBtn.addEventListener('click', showTripLogModal);
+    }
+
+    const tripLogModal = document.getElementById('tripLogModal');
+    const closeTripLogModal = document.getElementById('closeTripLogModal');
+
+    if (tripLogModal && closeTripLogModal) {
+        closeTripLogModal.addEventListener('click', () => {
+            tripLogModal.classList.add('hidden');
+        });
+
+        tripLogModal.addEventListener('click', (e) => {
+            if (e.target === tripLogModal) {
+                tripLogModal.classList.add('hidden');
+            }
+        });
+    }
+}
+
+function showTripLogModal() {
+    const tripLogModal = document.getElementById('tripLogModal');
+    if (!tripLogModal) return;
+
+    // Populate the trips for the currently selected day
+    const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
+    displayTrips(dateStrForDisplay);
+
+    tripLogModal.classList.remove('hidden');
+
+    const modalContent = tripLogModal.querySelector('.overflow-y-auto');
+    if (modalContent) {
+        setTimeout(() => {
+            modalContent.scrollTop = 0;
+        }, 0);
+    }
 }
 
 function updateCurrentMoonInfo() {
@@ -919,8 +957,6 @@ function showModal(day, month, year) {
         sunMoonContent.innerHTML = '<p>Enter a location to see sun and moon times.</p>';
     }
 
-    const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    displayTrips(dateStrForDisplay);
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
