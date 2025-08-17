@@ -570,6 +570,11 @@ function editTrip(id) {
         document.getElementById('save-trip-btn').textContent = 'Update Trip';
         document.getElementById('cancel-edit-trip-btn').classList.remove('hidden');
         validateTripForm();
+
+        const modalContent = document.getElementById('trip-log-scroll-container');
+        if (modalContent) {
+            modalContent.scrollTop = 0;
+        }
     };
 }
 
@@ -858,6 +863,28 @@ function setupEventListeners() {
             }
         });
     }
+
+    const openTripLogBtn = document.getElementById('open-trip-log-btn');
+    if (openTripLogBtn) {
+        openTripLogBtn.addEventListener('click', showTripLogModal);
+    }
+
+    const tripLogModal = document.getElementById('tripLogModal');
+    const closeTripLogModal = document.getElementById('closeTripLogModal');
+
+    if (tripLogModal && closeTripLogModal) {
+        closeTripLogModal.addEventListener('click', () => {
+            tripLogModal.classList.add('hidden');
+        });
+
+        tripLogModal.addEventListener('click', (e) => {
+            if (e.target === tripLogModal) {
+                tripLogModal.classList.add('hidden');
+            }
+        });
+
+        tripLogModal.addEventListener('click', handleModalClicks);
+    }
 }
 
 function updateCurrentMoonInfo() {
@@ -880,6 +907,43 @@ function createBiteTimeElement(biteTime) {
     biteElement.appendChild(fishIcon);
     biteElement.appendChild(timeText);
     return biteElement;
+}
+
+function checkIfTripsExist(date, callback) {
+    if (!db) {
+        callback(false);
+        return;
+    }
+    const transaction = db.transaction(["trips"], "readonly");
+    const objectStore = transaction.objectStore("trips");
+    const index = objectStore.index("date");
+    const request = index.count(date);
+
+    request.onsuccess = () => {
+        callback(request.result > 0);
+    };
+    request.onerror = (event) => {
+        console.error("Error checking for trips:", event.target.error);
+        callback(false);
+    };
+}
+
+function showTripLogModal() {
+    const tripLogModal = document.getElementById('tripLogModal');
+    if (!tripLogModal) return;
+
+    // Populate the trips for the currently selected day
+    const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
+    displayTrips(dateStrForDisplay);
+
+    tripLogModal.classList.remove('hidden');
+
+    const modalContent = tripLogModal.querySelector('.overflow-y-auto');
+    if (modalContent) {
+        setTimeout(() => {
+            modalContent.scrollTop = 0;
+        }, 0);
+    }
 }
 
 function showModal(day, month, year) {
@@ -920,7 +984,17 @@ function showModal(day, month, year) {
     }
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    displayTrips(dateStrForDisplay);
+    checkIfTripsExist(dateStrForDisplay, (tripsExist) => {
+        const openTripLogBtn = document.getElementById('open-trip-log-btn');
+        if (openTripLogBtn) {
+            if (tripsExist) {
+                openTripLogBtn.innerHTML = '<i class="fas fa-book-open mr-2"></i> View / Manage Trip Log';
+            } else {
+                openTripLogBtn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Create Trip Log';
+            }
+        }
+    });
+
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
