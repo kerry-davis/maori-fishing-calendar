@@ -62,6 +62,7 @@ const lunarModal = document.getElementById('lunarModal');
 const closeModal = document.getElementById('closeModal');
 const modalCloseBtn = document.getElementById('modalCloseBtn');
 const modalTitle = document.getElementById('modalTitle');
+const modalSummary = document.getElementById('modalSummary');
 const modalDate = document.getElementById('modalDate');
 const modalQuality = document.getElementById('modalQuality');
 const modalMoonAge = document.getElementById('modalMoonAge');
@@ -854,6 +855,7 @@ function showModal(day, month, year) {
     const monthName = monthNames[month].substring(0, 3);
     const dateStr = `${dayName} ${day} ${monthName}`;
     modalTitle.textContent = lunarPhase.name;
+    modalSummary.textContent = lunarPhase.description;
     modalDate.textContent = dateStr;
     modalQuality.textContent = lunarPhase.quality;
     modalQuality.className = `inline-block px-2 py-1 rounded text-white text-sm font-bold mt-1 quality-${lunarPhase.quality.toLowerCase()}`;
