@@ -381,6 +381,7 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
     // Fetch weather for the new location
     fetchWeatherForecast(lat, lon, date);
     displaySunMoonTimes(date, lat, lon);
+    updateLocationDisplay();
 };
 
 function initDB(callback) {
@@ -572,6 +573,19 @@ function deleteTrip(id) {
     };
 }
 
+function updateLocationDisplay() {
+    const locationDisplay = document.getElementById('current-location-display');
+    const promptBtn = document.getElementById('prompt-location-btn');
+
+    if (userLocation && userLocation.name) {
+        locationDisplay.textContent = `Location: ${userLocation.name}`;
+        promptBtn.classList.add('hidden');
+    } else {
+        locationDisplay.textContent = 'Location not set. Bite times and weather are disabled.';
+        promptBtn.classList.remove('hidden');
+    }
+}
+
 function initCalendar() {
     loadLocation();
     setupEventListeners();
@@ -579,6 +593,7 @@ function initCalendar() {
     initDB(() => {
         renderCalendar();
         updateCurrentMoonInfo();
+        updateLocationDisplay();
     });
 }
 
@@ -609,6 +624,14 @@ function handleModalClicks(e) {
 }
 
 function setupEventListeners() {
+    const promptBtn = document.getElementById('prompt-location-btn');
+    if (promptBtn) {
+        promptBtn.addEventListener('click', () => {
+            const today = new Date();
+            showModal(today.getDate(), today.getMonth(), today.getFullYear());
+        });
+    }
+
     const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsModal = document.getElementById('closeSettingsModal');
@@ -775,6 +798,7 @@ function updateCurrentMoonInfo() {
     currentMoonPhase.textContent = lunarPhase.name;
     currentMoonAge.textContent = `Moon age: ${moonData.moonAge.toFixed(1)} days`;
     currentMoonIllumination.textContent = `Illumination: ${(moonData.illumination * 100).toFixed(1)}%`;
+    updateLocationDisplay();
 }
 
 function createBiteTimeElement(biteTime) {
