@@ -15,17 +15,11 @@
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
 </head>
-<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
-    <div class="fixed top-4 right-4 z-50 flex space-x-2">
-        <button id="search-logs-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
-            <i class="fas fa-search"></i>
-        </button>
-        <button id="import-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
-            <i class="fas fa-file-import"></i>
-        </button>
-        <button id="export-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
-            <i class="fas fa-file-export"></i>
-        </button>
+<body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100 relative">
+    <div class="absolute top-4 right-4 z-50 flex space-x-2">
+    <button id="search-logs-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
+        <i class="fas fa-search"></i>
+    </button>
         <button id="settings-btn" class="bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full w-10 h-10 flex items-center justify-center shadow-md">
             <i class="fas fa-cog"></i>
         </button>
@@ -269,7 +263,6 @@
         </div>
     </div>
 
-    <input type="file" id="import-file-input" class="hidden" accept=".json">
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -281,12 +274,15 @@
                     </button>
                 </div>
                 <div class="border-t dark:border-gray-700 pt-4">
-                    <p class="text-sm text-gray-600 dark:text-gray-400">
-                        Use the <i class="fas fa-file-import"></i> and <i class="fas fa-file-export"></i> buttons in the top right to import or export your data.
-                    </p>
-                    <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
-                        Configure other application settings here.
-                    </p>
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Data Management</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Export your catch log as a JSON file to back it up or transfer to another device. You can then import this file on another device to restore your data.</p>
+                    <div class="space-y-3">
+                        <button id="export-data-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Export Data</button>
+                        <div>
+                            <label for="import-file-input" class="w-full text-center block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer">Import Data</label>
+                            <input type="file" id="import-file-input" class="hidden" accept=".json">
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

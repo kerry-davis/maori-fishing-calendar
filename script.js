@@ -788,19 +788,12 @@ function setupEventListeners() {
         });
     }
 
-    const exportBtn = document.getElementById('export-btn');
+    const exportBtn = document.getElementById('export-data-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportData);
     }
 
-    const importBtn = document.getElementById('import-btn');
     const importInput = document.getElementById('import-file-input');
-    if (importBtn && importInput) {
-        importBtn.addEventListener('click', () => {
-            importInput.click();
-        });
-    }
-
     if (importInput) {
         importInput.addEventListener('change', importData);
     }
