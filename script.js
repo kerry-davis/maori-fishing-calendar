@@ -627,11 +627,18 @@ function displayTrips(date) {
                         <div id="fish-list-${trip.id}" class="space-y-2">
                             <p class="text-xs text-gray-500">No fish logged for this trip yet.</p>
                         </div>
-                        <button onclick="openFishModal(${trip.id})" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
+                        <button data-action="add-weather" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-blue-500 text-white rounded">Add Weather</button>
+                    </div>
+                    <div class="border-t dark:border-gray-700 mt-3 pt-3">
+                        <h6 class="font-semibold mb-2">Fish Caught</h6>
+                        <div id="fish-list-${trip.id}" class="space-y-2">
+                            <p class="text-xs text-gray-500">No fish logged for this trip yet.</p>
+                        </div>
+                        <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
                     </div>
                     <div class="mt-3 border-t dark:border-gray-700 pt-3">
-                        <button onclick="editTrip(${trip.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
-                        <button onclick="deleteTrip(${trip.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
+                        <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
+                        <button data-action="delete-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
                     </div>
                 `;
                 tripEl.innerHTML = content;
@@ -730,8 +737,29 @@ function setupEventListeners() {
     closeModal.addEventListener('click', hideModal);
     modalCloseBtn.addEventListener('click', hideModal);
     lunarModal.addEventListener('click', (e) => {
-        if (e.target === lunarModal) hideModal();
+        if (e.target === lunarModal) {
+            hideModal();
+            return;
+        }
+
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        const action = target.dataset.action;
+        const tripId = parseInt(target.dataset.tripId, 10);
+
+        if (action === 'add-weather') openWeatherModal(tripId);
+        if (action === 'edit-weather') openWeatherModal(tripId, parseInt(target.dataset.weatherId, 10));
+        if (action === 'delete-weather') deleteWeather(parseInt(target.dataset.weatherId, 10), tripId);
+
+        if (action === 'add-fish') openFishModal(tripId);
+        if (action === 'edit-fish') openFishModal(tripId, parseInt(target.dataset.fishId, 10));
+        if (action === 'delete-fish') deleteFish(parseInt(target.dataset.fishId, 10), tripId);
+
+        if (action === 'edit-trip') editTrip(tripId);
+        if (action === 'delete-trip') deleteTrip(tripId);
     });
+
     modalPrevDay.addEventListener('click', showPreviousDay);
     modalNextDay.addEventListener('click', showNextDay);
 
@@ -1135,7 +1163,7 @@ function saveWeather() {
     };
 
     // Validation: Check if at least one field is filled
-    const isDataPresent = Object.values(weatherData).some(value => value && String(value).trim() !== '');
+    const isDataPresent = weatherData.timeOfDay || weatherData.sky || weatherData.windCondition || weatherData.windDirection.trim() || weatherData.waterTemp.trim() || weatherData.airTemp.trim();
     if (!isDataPresent) {
         alert("Please fill in at least one weather detail to save the log.");
         return;
@@ -1190,8 +1218,8 @@ function displayWeatherForTrip(tripId) {
 
                 content += `
                     <div class="mt-2">
-                        <button onclick="openWeatherModal(${tripId}, ${log.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                        <button onclick="deleteWeather(${log.id}, ${tripId})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                        <button data-action="edit-weather" data-trip-id="${tripId}" data-weather-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                        <button data-action="delete-weather" data-weather-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
                     </div>
                 `;
                 weatherEl.innerHTML = content;
@@ -1317,8 +1345,8 @@ function displayFishForTrip(tripId) {
 
                 content += `
                     <div class="mt-2">
-                        <button onclick="openFishModal(${tripId}, ${log.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                        <button onclick="deleteFish(${log.id}, ${tripId})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                        <button data-action="edit-fish" data-trip-id="${tripId}" data-fish-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                        <button data-action="delete-fish" data-fish-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
                     </div>
                 `;
                 fishEl.innerHTML = content;
