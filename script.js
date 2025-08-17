@@ -401,6 +401,61 @@ function getMoonTransitTimes(date, lat, lng) {
     return rc;
 };
 
+async function fetchWeatherForecast(lat, lon, date) {
+    const weatherContent = document.getElementById('weather-forecast-content');
+    weatherContent.innerHTML = '<p>Loading weather...</p>';
+
+    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
+
+    try {
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        displayWeatherForecast(data);
+    } catch (error) {
+        console.error('Error fetching weather forecast:', error);
+        weatherContent.innerHTML = '<p>Could not load weather forecast.</p>';
+    }
+}
+
+function displayWeatherForecast(data) {
+    const weatherContent = document.getElementById('weather-forecast-content');
+    if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
+        weatherContent.innerHTML = '<p>Weather data is not available for this day.</p>';
+        return;
+    }
+
+    const dayData = data.daily;
+    const tempMax = dayData.temperature_2m_max[0];
+    const tempMin = dayData.temperature_2m_min[0];
+    const windSpeed = dayData.windspeed_10m_max[0];
+    const windDirection = dayData.winddirection_10m_dominant[0];
+
+    // Function to convert wind direction in degrees to cardinal direction
+    const getCardinalDirection = (angle) => {
+        const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        return directions[Math.round(angle / 45) % 8];
+    };
+
+    const cardinalWindDirection = getCardinalDirection(windDirection);
+
+    weatherContent.innerHTML = `
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <p class="font-semibold">Temperature:</p>
+                <p>${tempMin}°C - ${tempMax}°C</p>
+            </div>
+            <div>
+                <p class="font-semibold">Wind:</p>
+                <p>${windSpeed} km/h (${cardinalWindDirection})</p>
+            </div>
+        </div>
+    `;
+}
+
 function calculateBiteTimes(date, lat, lon) {
     if (lat === null || lon === null) {
         return { major: [], minor: [] };
@@ -491,6 +546,9 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
     biteTimes.major.forEach(biteTime => majorBites.appendChild(createBiteTimeElement(biteTime)));
     minorBites.innerHTML = '';
     biteTimes.minor.forEach(biteTime => minorBites.appendChild(createBiteTimeElement(biteTime)));
+
+    // Fetch weather for the new location
+    fetchWeatherForecast(lat, lon, date);
 };
 
 function initDB(callback) {
@@ -929,6 +987,9 @@ function showModal(day, month, year) {
         if (locationInput) {
             locationInput.value = '';
         }
+        // Clear weather forecast if no location is set
+        const weatherContent = document.getElementById('weather-forecast-content');
+        weatherContent.innerHTML = '<p>Enter a location to see the weather forecast.</p>';
     }
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
