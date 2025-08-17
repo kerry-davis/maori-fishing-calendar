@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Māori Fishing Calendar</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -151,6 +152,24 @@
                     <div>
                         <h5 class="font-medium text-blue-600 mb-2">Minor Bites</h5>
                         <div id="minorBites" class="space-y-1"></div>
+                    </div>
+                </div>
+
+                <!-- Weather Forecast Section -->
+                <div class="border-t dark:border-gray-700 pt-4 mb-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Weather Forecast</h4>
+                    <div id="weather-forecast-content" class="text-sm">
+                        <!-- Weather data will be injected here -->
+                        <p>Loading weather...</p>
+                    </div>
+                </div>
+
+                <!-- Sun and Moon Times Section -->
+                <div class="border-t dark:border-gray-700 pt-4 mb-4">
+                    <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Sun & Moon</h4>
+                    <div id="sun-moon-content" class="text-sm">
+                        <!-- Sun and moon data will be injected here -->
+                        <p>Loading times...</p>
                     </div>
                 </div>
 
