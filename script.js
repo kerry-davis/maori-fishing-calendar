@@ -681,7 +681,6 @@ function initCalendar() {
 }
 
 function setupEventListeners() {
-    console.log('[DEBUG] Setting up event listeners');
     const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settingsModal');
     const closeSettingsModal = document.getElementById('closeSettingsModal');
@@ -824,13 +823,11 @@ function setupEventListeners() {
 
     const saveWeatherBtn = document.getElementById('save-weather-btn');
     if (saveWeatherBtn) {
-        console.log('[DEBUG] Adding event listener for save-weather-btn');
         saveWeatherBtn.addEventListener('click', saveWeather);
     }
 
     const closeWeatherModalBtn = document.getElementById('close-weather-modal-btn');
     if (closeWeatherModalBtn) {
-        console.log('[DEBUG] Adding event listener for close-weather-modal-btn');
         closeWeatherModalBtn.addEventListener('click', closeWeatherModal);
     }
 }
@@ -1063,7 +1060,6 @@ function importData(event) {
 }
 
 function openWeatherModal(tripId, weatherId = null) {
-    console.log(`[DEBUG] openWeatherModal called with tripId: ${tripId}, weatherId: ${weatherId}`);
     const weatherModal = document.getElementById('weatherModal');
     const modalTitle = document.getElementById('weather-modal-title');
     currentEditingTripId = tripId;
@@ -1098,14 +1094,12 @@ function openWeatherModal(tripId, weatherId = null) {
 }
 
 function closeWeatherModal() {
-    console.log('[DEBUG] closeWeatherModal called');
     document.getElementById('weatherModal').classList.add('hidden');
     currentEditingTripId = null;
     currentEditingWeatherId = null;
 }
 
 function saveWeather() {
-    console.log(`[DEBUG] saveWeather called. currentEditingTripId: ${currentEditingTripId}`);
     if (!currentEditingTripId) return;
 
     const weatherData = {
@@ -1117,7 +1111,6 @@ function saveWeather() {
         waterTemp: document.getElementById('weather-water-temp').value,
         airTemp: document.getElementById('weather-air-temp').value,
     };
-    console.log('[DEBUG] Weather data to save:', weatherData);
 
     const transaction = db.transaction(['weather_logs'], 'readwrite');
     const store = transaction.objectStore('weather_logs');
@@ -1131,20 +1124,17 @@ function saveWeather() {
     }
 
     request.onsuccess = () => {
-        console.log('[DEBUG] Weather data saved successfully');
         displayWeatherForTrip(currentEditingTripId);
         closeWeatherModal();
     };
     request.onerror = (event) => {
-        console.error('[DEBUG] Error saving weather data:', event.target.error);
+        console.error('Error saving weather data:', event.target.error);
     };
 }
 
 function displayWeatherForTrip(tripId) {
-    console.log(`[DEBUG] displayWeatherForTrip called for tripId: ${tripId}`);
     const listEl = document.getElementById(`weather-list-${tripId}`);
     if (!listEl) {
-        console.error(`[DEBUG] Could not find weather list element for trip ${tripId}`);
         return;
     }
 
@@ -1155,7 +1145,6 @@ function displayWeatherForTrip(tripId) {
 
     request.onsuccess = () => {
         const weatherLogs = request.result;
-        console.log(`[DEBUG] Found ${weatherLogs.length} weather logs for trip ${tripId}`);
         listEl.innerHTML = ''; // Clear previous entries
         if (weatherLogs.length > 0) {
             weatherLogs.forEach(log => {
@@ -1180,22 +1169,17 @@ function displayWeatherForTrip(tripId) {
             listEl.innerHTML = '<p class="text-xs text-gray-500">No weather logs for this trip yet.</p>';
         }
     };
-    request.onerror = (event) => {
-        console.error(`[DEBUG] Error fetching weather for trip ${tripId}:`, event.target.error);
-    };
 }
 
 function deleteWeather(weatherId, tripId) {
-    console.log(`[DEBUG] deleteWeather called for weatherId: ${weatherId}, tripId: ${tripId}`);
     const transaction = db.transaction(['weather_logs'], 'readwrite');
     const store = transaction.objectStore('weather_logs');
     const request = store.delete(weatherId);
     request.onsuccess = () => {
-        console.log('[DEBUG] Weather log deleted successfully');
         displayWeatherForTrip(tripId);
     };
     request.onerror = (event) => {
-        console.error('[DEBUG] Error deleting weather log:', event.target.error);
+        console.error('Error deleting weather log:', event.target.error);
     };
 }
 
