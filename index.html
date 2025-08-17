@@ -85,7 +85,8 @@
 
             <!-- Current Moon Phase Info -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
-                <h3 class="text-lg font-semibold mb-2 dark:text-gray-100">Current Moon Phase in New Zealand</h3>
+                <h3 class="text-lg font-semibold mb-2 dark:text-gray-100">Current Moon Phase</h3>
+                <p id="current-location-display" class="text-sm text-gray-600 dark:text-gray-400 mb-2"></p>
                 <div id="currentMoonInfo" class="flex items-center">
                     <span id="currentMoonIcon" class="text-4xl mr-3"></span>
                     <div>
@@ -94,6 +95,7 @@
                         <p id="currentMoonIllumination" class="text-sm text-gray-600 dark:text-gray-400"></p>
                     </div>
                 </div>
+                <button id="prompt-location-btn" class="hidden mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Set Location</button>
             </div>
         </main>
 
