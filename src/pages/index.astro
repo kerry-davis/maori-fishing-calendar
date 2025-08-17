@@ -1,0 +1,15 @@
+---
+import Layout from '../layouts/Layout.astro';
+import FishingCalendar from '../components/FishingCalendar.tsx';
+---
+
+<Layout title="Māori Fishing Calendar">
+  <main class="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
+    <h1 class="text-3xl sm:text-4xl font-bold text-center text-white mb-8">
+      Māori Fishing Calendar
+    </h1>
+    <div class="w-full">
+      <FishingCalendar client:load />
+    </div>
+  </main>
+</Layout>
