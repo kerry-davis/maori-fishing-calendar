@@ -603,7 +603,11 @@ function displayTrips(date) {
                 const tripEl = document.createElement('div');
                 tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
 
-                let content = `<div class="font-bold text-base mb-2">${trip.water || 'Unnamed Trip'} - ${trip.location || ''}</div>`;
+                let title = trip.water || 'Unnamed Trip';
+                if (trip.location) {
+                    title += ` - ${trip.location}`;
+                }
+                let content = `<div class="font-bold text-base mb-2">${title}</div>`;
                 if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
                 if(trip.totalFish) content += `<p><strong>Total Fish Caught:</strong> ${trip.totalFish}</p>`;
                 if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
@@ -1146,7 +1150,10 @@ function displayWeatherForTrip(tripId) {
     request.onsuccess = () => {
         const weatherLogs = request.result;
         listEl.innerHTML = ''; // Clear previous entries
+        const addWeatherBtn = listEl.nextElementSibling; // The button is the next sibling
+
         if (weatherLogs.length > 0) {
+            addWeatherBtn.classList.add('hidden'); // Hide "Add Weather" button
             weatherLogs.forEach(log => {
                 const weatherEl = document.createElement('div');
                 weatherEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
