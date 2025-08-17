@@ -916,85 +916,118 @@ async function renderCalendar() {
 
 function exportData() {
     console.log("Exporting data...");
-    const transaction = db.transaction(["trips"], "readonly");
-    const objectStore = transaction.objectStore("trips");
-    const request = objectStore.getAll();
+    const storesToExport = ["trips", "weather_logs", "fish_caught"];
+    const exportData = {};
+    const transaction = db.transaction(storesToExport, "readonly");
+    let promises = [];
 
-    request.onsuccess = () => {
-        const data = request.result;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+    storesToExport.forEach(storeName => {
+        const objectStore = transaction.objectStore(storeName);
+        const request = objectStore.getAll();
+        const promise = new Promise((resolve, reject) => {
+            request.onsuccess = () => {
+                exportData[storeName] = request.result;
+                resolve();
+            };
+            request.onerror = (event) => {
+                console.error(`Error exporting from ${storeName}:`, event.target.error);
+                reject(event.target.error);
+            };
+        });
+        promises.push(promise);
+    });
+
+    Promise.all(promises).then(() => {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
         downloadAnchorNode.setAttribute("download", "fishing_log_export.json");
-        document.body.appendChild(downloadAnchorNode); // required for firefox
+        document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
         console.log("Data exported successfully.");
-    };
-
-    request.onerror = (event) => {
-        console.error("Error exporting data:", event.target.error);
+        alert("Data exported successfully.");
+    }).catch(error => {
+        console.error("Error during export:", error);
         alert("Could not export data. See console for details.");
-    };
+    });
 }
 
 function importData(event) {
     const file = event.target.files[0];
-    if (!file) {
-        return;
-    }
-    const filename = file.name;
+    if (!file) return;
 
+    const filename = file.name;
     const reader = new FileReader();
+
     reader.onload = function(e) {
         try {
             const data = JSON.parse(e.target.result);
-            if (!Array.isArray(data)) {
-                throw new Error("Invalid data format: not an array.");
+            const storesToImport = ["trips", "weather_logs", "fish_caught"];
+
+            // Basic validation
+            if (typeof data !== 'object' || data === null || !storesToImport.every(store => Array.isArray(data[store]))) {
+                 throw new Error("Invalid data format: does not contain the required arrays (trips, weather_logs, fish_caught).");
             }
 
-            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite all existing catch log data.`);
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data.`);
             if (confirmed) {
                 console.log("Import confirmed. Clearing old data...");
-                const transaction = db.transaction(["trips"], "readwrite");
-                const objectStore = transaction.objectStore("trips");
-                const clearRequest = objectStore.clear();
+                const transaction = db.transaction(storesToImport, "readwrite");
+                let clearPromises = [];
+                let totalImportCount = 0;
 
-                clearRequest.onsuccess = () => {
+                storesToImport.forEach(storeName => {
+                    const objectStore = transaction.objectStore(storeName);
+                    const clearRequest = objectStore.clear();
+                    const promise = new Promise((resolve, reject) => {
+                        clearRequest.onsuccess = resolve;
+                        clearRequest.onerror = reject;
+                    });
+                    clearPromises.push(promise);
+                });
+
+                Promise.all(clearPromises).then(() => {
                     console.log("Old data cleared. Starting import...");
-                    let importCount = 0;
-                    data.forEach(item => {
-                        // Ensure 'id' is not carried over if it exists in the JSON
-                        delete item.id;
-                        const addRequest = objectStore.add(item);
-                        addRequest.onsuccess = () => {
-                            importCount++;
-                        };
+                    const importTransaction = db.transaction(storesToImport, "readwrite");
+
+                    storesToImport.forEach(storeName => {
+                        const storeData = data[storeName];
+                        if (storeData) {
+                            const objectStore = importTransaction.objectStore(storeName);
+                            storeData.forEach(item => {
+                                // Using put() preserves the IDs from the import file
+                                objectStore.put(item);
+                                totalImportCount++;
+                            });
+                        }
                     });
 
-                    transaction.oncomplete = () => {
-                        const message = `Successfully imported ${importCount} items from "${filename}".`;
+                    importTransaction.oncomplete = () => {
+                        const message = `Successfully imported ${totalImportCount} items from "${filename}".`;
                         console.log(message);
                         alert(message);
-                        renderCalendar(); // Re-render calendar to show new log indicators
-                        // Since many dates could be affected, just close the modal
+                        renderCalendar();
                         if (!lunarModal.classList.contains('hidden')) {
                             hideModal();
                         }
                         document.getElementById('settingsModal').classList.add('hidden');
                     };
-                };
 
-                clearRequest.onerror = (event) => {
-                    console.error("Error clearing object store:", event.target.error);
+                    importTransaction.onerror = (event) => {
+                        console.error("Error during data import:", event.target.error);
+                        alert("An error occurred during import. Data may be partially imported.");
+                    };
+
+                }).catch(error => {
+                    console.error("Error clearing object stores:", error);
                     alert("Error clearing old data. Import aborted.");
-                };
+                });
             }
         } catch (error) {
             console.error("Error parsing or processing import file:", error);
-            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format.`);
+            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format. Error: ${error.message}`);
         } finally {
-            // Reset file input so the same file can be chosen again
             event.target.value = '';
         }
     };
