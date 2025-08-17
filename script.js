@@ -421,6 +421,44 @@ async function fetchWeatherForecast(lat, lon, date) {
     }
 }
 
+function displaySunMoonTimes(date, lat, lon) {
+    const sunMoonContent = document.getElementById('sun-moon-content');
+
+    const formatTime = (dateObj) => {
+        if (!dateObj || isNaN(dateObj)) return 'N/A';
+        return dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    };
+
+    const sunTimes = SunCalc.getTimes(date, lat, lon);
+    const moonTimes = SunCalc.getMoonTimes(date, lat, lon);
+
+    const sunrise = formatTime(sunTimes.sunrise);
+    const sunset = formatTime(sunTimes.sunset);
+    const moonrise = formatTime(moonTimes.rise);
+    const moonset = formatTime(moonTimes.set);
+
+    sunMoonContent.innerHTML = `
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <p class="font-semibold">Sunrise:</p>
+                <p>${sunrise}</p>
+            </div>
+            <div>
+                <p class="font-semibold">Sunset:</p>
+                <p>${sunset}</p>
+            </div>
+            <div>
+                <p class="font-semibold">Moonrise:</p>
+                <p>${moonrise}</p>
+            </div>
+            <div>
+                <p class="font-semibold">Moonset:</p>
+                <p>${moonset}</p>
+            </div>
+        </div>
+    `;
+}
+
 function displayWeatherForecast(data) {
     const weatherContent = document.getElementById('weather-forecast-content');
     if (!data || !data.daily || !data.daily.time || data.daily.time.length === 0) {
@@ -549,6 +587,7 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
 
     // Fetch weather for the new location
     fetchWeatherForecast(lat, lon, date);
+    displaySunMoonTimes(date, lat, lon);
 };
 
 function initDB(callback) {
@@ -990,6 +1029,8 @@ function showModal(day, month, year) {
         // Clear weather forecast if no location is set
         const weatherContent = document.getElementById('weather-forecast-content');
         weatherContent.innerHTML = '<p>Enter a location to see the weather forecast.</p>';
+        const sunMoonContent = document.getElementById('sun-moon-content');
+        sunMoonContent.innerHTML = '<p>Enter a location to see sun and moon times.</p>';
     }
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
