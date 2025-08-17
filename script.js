@@ -67,7 +67,6 @@ const modalDate = document.getElementById('modalDate');
 const modalQuality = document.getElementById('modalQuality');
 const modalMoonAge = document.getElementById('modalMoonAge');
 const modalMoonIllumination = document.getElementById('modalMoonIllumination');
-const modalDescription = document.getElementById('modalDescription');
 const majorBites = document.getElementById('majorBites');
 const minorBites = document.getElementById('minorBites');
 const modalPrevDay = document.getElementById('modalPrevDay');
@@ -861,7 +860,6 @@ function showModal(day, month, year) {
     modalQuality.className = `inline-block px-2 py-1 rounded text-white text-sm font-bold mt-1 quality-${lunarPhase.quality.toLowerCase()}`;
     modalMoonAge.textContent = `Moon age: ${moonData.moonAge.toFixed(1)} days`;
     modalMoonIllumination.textContent = `Illumination: ${(moonData.illumination * 100).toFixed(1)}%`;
-    modalDescription.textContent = lunarPhase.description;
 
     const locationInput = document.getElementById('location-input');
     if (userLocation && userLocation.name) {
