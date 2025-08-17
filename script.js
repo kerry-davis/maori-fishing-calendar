@@ -1264,7 +1264,12 @@ function displayFishForTrip(tripId) {
                 const fishEl = document.createElement('div');
                 fishEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
                 let content = `<div class="font-semibold">${log.species}</div>`;
-                if(log.length || log.weight) content += `<div>${log.length || ''} / ${log.weight || ''}</div>`;
+                let sizeParts = [];
+                if (log.length) sizeParts.push(log.length);
+                if (log.weight) sizeParts.push(log.weight);
+                if (sizeParts.length > 0) {
+                    content += `<div>${sizeParts.join(' / ')}</div>`;
+                }
                 if(log.bait) content += `<div>Bait: ${log.bait}</div>`;
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
