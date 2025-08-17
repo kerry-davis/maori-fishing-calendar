@@ -426,6 +426,20 @@ function initDB(callback) {
     };
 }
 
+function validateTripForm() {
+    const tripInputs = [
+        document.getElementById('trip-water'),
+        document.getElementById('trip-location'),
+        document.getElementById('trip-hours'),
+        document.getElementById('trip-total-fish'),
+        document.getElementById('trip-companions'),
+        document.getElementById('trip-best-times')
+    ];
+    const saveTripBtn = document.getElementById('save-trip-btn');
+    const isAnyFieldFilled = tripInputs.some(input => input.value.trim() !== '');
+    saveTripBtn.disabled = !isAnyFieldFilled;
+}
+
 function clearTripForm() {
     document.getElementById('trip-water').value = '';
     document.getElementById('trip-location').value = '';
@@ -437,6 +451,7 @@ function clearTripForm() {
     document.getElementById('trip-form-title').textContent = 'Log a New Trip';
     document.getElementById('save-trip-btn').textContent = 'Save Trip';
     document.getElementById('cancel-edit-trip-btn').classList.add('hidden');
+    validateTripForm();
 }
 
 function saveTrip() {
@@ -690,6 +705,17 @@ function setupEventListeners() {
         });
     }
 
+    const tripInputs = [
+        'trip-water', 'trip-location', 'trip-hours',
+        'trip-total-fish', 'trip-companions', 'trip-best-times'
+    ];
+    tripInputs.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+            input.addEventListener('input', validateTripForm);
+        }
+    });
+
     const handleManualLocationSearch = () => {
         const query = locationInput.value;
         if (query.length < 2) return;
@@ -816,6 +842,7 @@ function createBiteTimeElement(biteTime) {
 
 function showModal(day, month, year) {
     clearTripForm(); // Reset the form every time the modal is shown or day is changed
+    validateTripForm(); // Ensure button state is correct on modal open
     modalCurrentDay = day;
     modalCurrentMonth = month;
     modalCurrentYear = year;
