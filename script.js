@@ -877,6 +877,8 @@ function setupEventListeners() {
                 tripLogModal.classList.add('hidden');
             }
         });
+
+        tripLogModal.addEventListener('click', handleModalClicks);
     }
 }
 
@@ -920,6 +922,25 @@ function createBiteTimeElement(biteTime) {
     return biteElement;
 }
 
+function checkIfTripsExist(date, callback) {
+    if (!db) {
+        callback(false);
+        return;
+    }
+    const transaction = db.transaction(["trips"], "readonly");
+    const objectStore = transaction.objectStore("trips");
+    const index = objectStore.index("date");
+    const request = index.count(date);
+
+    request.onsuccess = () => {
+        callback(request.result > 0);
+    };
+    request.onerror = (event) => {
+        console.error("Error checking for trips:", event.target.error);
+        callback(false);
+    };
+}
+
 function showModal(day, month, year) {
     clearTripForm(); // Reset the form every time the modal is shown or day is changed
     validateTripForm(); // Ensure button state is correct on modal open
@@ -956,6 +977,18 @@ function showModal(day, month, year) {
         const sunMoonContent = document.getElementById('sun-moon-content');
         sunMoonContent.innerHTML = '<p>Enter a location to see sun and moon times.</p>';
     }
+
+    const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+    checkIfTripsExist(dateStrForDisplay, (tripsExist) => {
+        const openTripLogBtn = document.getElementById('open-trip-log-btn');
+        if (openTripLogBtn) {
+            if (tripsExist) {
+                openTripLogBtn.innerHTML = '<i class="fas fa-book-open mr-2"></i> View / Manage Trip Log';
+            } else {
+                openTripLogBtn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Create Trip Log';
+            }
+        }
+    });
 
     updateNavigationButtons();
     lunarModal.classList.remove('hidden');
