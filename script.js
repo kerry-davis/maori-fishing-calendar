@@ -658,21 +658,17 @@ function setupEventListeners() {
     const closeSettingsModal = document.getElementById('closeSettingsModal');
 
     if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => {
-            settingsModal.classList.remove('hidden');
-        });
+        settingsBtn.addEventListener('click', () => openModal(settingsModal));
     }
 
     if (closeSettingsModal) {
-        closeSettingsModal.addEventListener('click', () => {
-            settingsModal.classList.add('hidden');
-        });
+        closeSettingsModal.addEventListener('click', () => closeModal(settingsModal));
     }
 
     if (settingsModal) {
         settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) {
-                settingsModal.classList.add('hidden');
+                closeModal(settingsModal);
             }
         });
     }
@@ -831,21 +827,17 @@ function setupEventListeners() {
     const searchInput = document.getElementById('search-input');
 
     if (searchLogsBtn) {
-        searchLogsBtn.addEventListener('click', () => {
-            searchModal.classList.remove('hidden');
-        });
+        searchLogsBtn.addEventListener('click', () => openModal(searchModal));
     }
 
     if (closeSearchModal) {
-        closeSearchModal.addEventListener('click', () => {
-            searchModal.classList.add('hidden');
-        });
+        closeSearchModal.addEventListener('click', () => closeModal(searchModal));
     }
 
     if (searchModal) {
         searchModal.addEventListener('click', (e) => {
             if (e.target === searchModal) {
-                searchModal.classList.add('hidden');
+                closeModal(searchModal);
             }
         });
     }
@@ -873,13 +865,12 @@ function setupEventListeners() {
     const closeTripLogModal = document.getElementById('closeTripLogModal');
 
     if (tripLogModal && closeTripLogModal) {
-        closeTripLogModal.addEventListener('click', () => {
-            tripLogModal.classList.add('hidden');
-        });
+        closeTripLogModal.addEventListener('click', () => closeModal(tripLogModal));
 
         tripLogModal.addEventListener('click', (e) => {
+            // Close if the backdrop is clicked, but not if an inner element is clicked
             if (e.target === tripLogModal) {
-                tripLogModal.classList.add('hidden');
+                closeModal(tripLogModal);
             }
         });
 
@@ -936,7 +927,7 @@ function showTripLogModal() {
     const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     displayTrips(dateStrForDisplay);
 
-    tripLogModal.classList.remove('hidden');
+    openModal(tripLogModal);
 
     const modalContent = tripLogModal.querySelector('.overflow-y-auto');
     if (modalContent) {
@@ -944,6 +935,29 @@ function showTripLogModal() {
             modalContent.scrollTop = 0;
         }, 0);
     }
+}
+
+// Generic modal handlers
+function openModal(modal) {
+    if (!modal) return;
+    document.body.classList.add('modal-open');
+    modal.classList.remove('hidden');
+    setTimeout(() => { // Ensures display property is set before transition starts
+        modal.classList.add('is-visible');
+    }, 10);
+}
+
+function closeModal(modal) {
+    if (!modal) return;
+    document.body.classList.remove('modal-open');
+    modal.classList.remove('is-visible');
+    const onTransitionEnd = (e) => {
+        if (e.target === modal) {
+            modal.classList.add('hidden');
+            modal.removeEventListener('transitionend', onTransitionEnd);
+        }
+    };
+    modal.addEventListener('transitionend', onTransitionEnd);
 }
 
 function showModal(day, month, year) {
@@ -996,8 +1010,7 @@ function showModal(day, month, year) {
     });
 
     updateNavigationButtons();
-    lunarModal.classList.remove('hidden');
-    document.body.style.overflow = 'hidden';
+    openModal(lunarModal);
 }
 
 function showPreviousDay() {
@@ -1017,67 +1030,86 @@ function updateNavigationButtons() {
 }
 
 function hideModal() {
-    lunarModal.classList.add('hidden');
-    document.body.style.overflow = 'auto';
+    closeModal(lunarModal);
     modalCurrentDay = null;
     modalCurrentMonth = null;
     modalCurrentYear = null;
 }
 
 async function renderCalendar() {
-    currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
-    calendarDays.innerHTML = '';
+    const render = async () => {
+        currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
+        calendarDays.innerHTML = '';
 
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+        const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-    const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth);
+        const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth);
 
-    let firstDay = firstDayOfMonth.getDay();
-    firstDay = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Monday start
-    const daysInMonth = lastDayOfMonth.getDate();
+        let firstDay = firstDayOfMonth.getDay();
+        firstDay = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Monday start
+        const daysInMonth = lastDayOfMonth.getDate();
 
-    for (let i = 0; i < firstDay; i++) {
-        const emptyCell = document.createElement('div');
-        emptyCell.className = 'calendar-day';
-        calendarDays.appendChild(emptyCell);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-        const dayElement = document.createElement('div');
-        dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center relative'; // Added relative positioning
-
-        const dayNumber = document.createElement('div');
-        dayNumber.className = 'day-number';
-        dayNumber.textContent = day;
-        dayElement.appendChild(dayNumber);
-
-        const dateObj = new Date(currentYear, currentMonth, day);
-        const moonData = getMoonPhaseData(dateObj);
-        const lunarPhase = lunarPhases[moonData.phaseIndex];
-
-        const qualityIndicator = document.createElement('div');
-        qualityIndicator.className = `quality-indicator quality-${lunarPhase.quality.toLowerCase()}`;
-        dayElement.appendChild(qualityIndicator);
-
-        const qualityText = document.createElement('div');
-        qualityText.className = 'quality-text';
-        qualityText.textContent = lunarPhase.quality;
-        dayElement.appendChild(qualityText);
-
-        if (loggedDays.has(day)) {
-            const logIndicator = document.createElement('span');
-            logIndicator.className = 'log-indicator';
-            logIndicator.innerHTML = '<i class="fas fa-fish"></i>';
-            dayElement.appendChild(logIndicator);
+        for (let i = 0; i < firstDay; i++) {
+            const emptyCell = document.createElement('div');
+            emptyCell.className = 'calendar-day';
+            calendarDays.appendChild(emptyCell);
         }
 
-        if (currentYear === new Date().getFullYear() && currentMonth === new Date().getMonth() && day === new Date().getDate()) {
-            dayElement.classList.add('ring-2', 'ring-blue-500');
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayElement = document.createElement('div');
+            dayElement.className = 'calendar-day border-gray-200 dark:border-gray-700 border rounded flex flex-col items-center relative'; // Added relative positioning
+
+            const dayNumber = document.createElement('div');
+            dayNumber.className = 'day-number';
+            dayNumber.textContent = day;
+            dayElement.appendChild(dayNumber);
+
+            const dateObj = new Date(currentYear, currentMonth, day);
+            const moonData = getMoonPhaseData(dateObj);
+            const lunarPhase = lunarPhases[moonData.phaseIndex];
+
+            const qualityIndicator = document.createElement('div');
+            qualityIndicator.className = `quality-indicator quality-${lunarPhase.quality.toLowerCase()}`;
+            dayElement.appendChild(qualityIndicator);
+
+            const qualityText = document.createElement('div');
+            qualityText.className = 'quality-text';
+            qualityText.textContent = lunarPhase.quality;
+            dayElement.appendChild(qualityText);
+
+            if (loggedDays.has(day)) {
+                const logIndicator = document.createElement('span');
+                logIndicator.className = 'log-indicator';
+                logIndicator.innerHTML = '<i class="fas fa-fish"></i>';
+                dayElement.appendChild(logIndicator);
+            }
+
+            if (currentYear === new Date().getFullYear() && currentMonth === new Date().getMonth() && day === new Date().getDate()) {
+                dayElement.classList.add('ring-2', 'ring-blue-500');
+            }
+
+            dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));
+            calendarDays.appendChild(dayElement);
         }
 
-        dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));
-        calendarDays.appendChild(dayElement);
+        // Apply fade-in
+        calendarDays.classList.add('fade-in');
+        calendarDays.addEventListener('animationend', () => {
+            calendarDays.classList.remove('fade-in');
+        }, { once: true });
+    };
+
+    // If the calendar already has children, fade out before re-rendering
+    if (calendarDays.children.length > 0) {
+        calendarDays.classList.add('fade-out');
+        calendarDays.addEventListener('animationend', async () => {
+            calendarDays.classList.remove('fade-out');
+            await render();
+        }, { once: true });
+    } else {
+        // Initial render, just fade in
+        await render();
     }
 }
 
@@ -1232,11 +1264,11 @@ function openWeatherModal(tripId, weatherId = null) {
         document.getElementById('weather-air-temp').value = '';
     }
 
-    weatherModal.classList.remove('hidden');
+    openModal(weatherModal);
 }
 
 function closeWeatherModal() {
-    document.getElementById('weatherModal').classList.add('hidden');
+    closeModal(document.getElementById('weatherModal'));
     currentEditingTripId = null;
     currentEditingWeatherId = null;
 }
@@ -1367,11 +1399,11 @@ function openFishModal(tripId, fishId = null) {
         document.getElementById('fish-details').value = '';
     }
 
-    fishModal.classList.remove('hidden');
+    openModal(fishModal);
 }
 
 function closeFishModal() {
-    document.getElementById('fishModal').classList.add('hidden');
+    closeModal(document.getElementById('fishModal'));
     currentEditingTripId = null;
     currentEditingFishId = null;
 }

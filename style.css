@@ -50,8 +50,34 @@
     .calendar-day:hover .quality-text {
         opacity: 1;
     }
+body.modal-open {
+    overflow: hidden;
+}
+
     .modal {
-        transition: opacity 0.3s ease-in-out;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s;
+    background-color: rgba(0, 0, 0, 0.5); /* Added for backdrop */
+}
+
+.modal.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal > div { /* This targets the modal content box */
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+}
+
+.modal.is-visible > div {
+    opacity: 1;
+    transform: scale(1);
     }
     .moon-phase-info {
         font-size: 0.85rem;
@@ -73,3 +99,66 @@
         opacity: 0.5;
         cursor: not-allowed;
     }
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+#calendarDays.fade-in {
+    animation: fadeIn 0.15s ease-in-out;
+}
+
+#calendarDays.fade-out {
+    animation: fadeOut 0.15s ease-in-out;
+}
+
+/* Responsive Refinements */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.875rem; /* 30px, Tailwind's 3xl */
+    }
+
+    #currentMonth {
+        font-size: 1.125rem; /* 18px, Tailwind's xl */
+    }
+
+    .modal > div {
+        max-height: 95vh; /* Ensure modal content doesn't go off-screen */
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding-left: 0.75rem; /* smaller horizontal padding */
+        padding-right: 0.75rem;
+    }
+
+    #prevMonth, #nextMonth {
+        padding: 0.5rem 0.75rem; /* Smaller nav buttons */
+        font-size: 0.875rem;
+    }
+
+    .calendar-day {
+        min-height: 65px; /* Reduce day height slightly */
+    }
+
+    h1 {
+        font-size: 1.5rem; /* 24px, Tailwind's 2xl */
+    }
+
+    .day-number {
+        font-size: 1rem;
+    }
+
+    /* Adjust modal padding and width on small screens */
+    .modal > div {
+        margin: 0.5rem;
+        max-width: 100%;
+    }
+}
