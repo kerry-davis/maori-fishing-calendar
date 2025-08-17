@@ -1093,16 +1093,20 @@ async function renderCalendar() {
             calendarDays.appendChild(dayElement);
         }
 
-        // Apply fade-in
+        // Apply fade-in and clean up min-height
         calendarDays.classList.add('fade-in');
         calendarDays.addEventListener('animationend', () => {
             calendarDays.classList.remove('fade-in');
+            calendarDays.style.minHeight = ''; // Clean up inline style
         }, { once: true });
     };
 
     // If the calendar already has children, fade out before re-rendering
     if (calendarDays.children.length > 0) {
+        const currentHeight = calendarDays.offsetHeight;
+        calendarDays.style.minHeight = `${currentHeight}px`; // Set fixed height
         calendarDays.classList.add('fade-out');
+
         calendarDays.addEventListener('animationend', async () => {
             calendarDays.classList.remove('fade-out');
             await render();
