@@ -658,17 +658,17 @@ function setupEventListeners() {
     const closeSettingsModal = document.getElementById('closeSettingsModal');
 
     if (settingsBtn) {
-        settingsBtn.addEventListener('click', () => openModal(settingsModal));
+        settingsBtn.addEventListener('click', () => openModalWithAnimation(settingsModal));
     }
 
     if (closeSettingsModal) {
-        closeSettingsModal.addEventListener('click', () => closeModal(settingsModal));
+        closeSettingsModal.addEventListener('click', () => closeModalWithAnimation(settingsModal));
     }
 
     if (settingsModal) {
         settingsModal.addEventListener('click', (e) => {
             if (e.target === settingsModal) {
-                closeModal(settingsModal);
+                closeModalWithAnimation(settingsModal);
             }
         });
     }
@@ -827,17 +827,17 @@ function setupEventListeners() {
     const searchInput = document.getElementById('search-input');
 
     if (searchLogsBtn) {
-        searchLogsBtn.addEventListener('click', () => openModal(searchModal));
+        searchLogsBtn.addEventListener('click', () => openModalWithAnimation(searchModal));
     }
 
     if (closeSearchModal) {
-        closeSearchModal.addEventListener('click', () => closeModal(searchModal));
+        closeSearchModal.addEventListener('click', () => closeModalWithAnimation(searchModal));
     }
 
     if (searchModal) {
         searchModal.addEventListener('click', (e) => {
             if (e.target === searchModal) {
-                closeModal(searchModal);
+                closeModalWithAnimation(searchModal);
             }
         });
     }
@@ -865,12 +865,12 @@ function setupEventListeners() {
     const closeTripLogModal = document.getElementById('closeTripLogModal');
 
     if (tripLogModal && closeTripLogModal) {
-        closeTripLogModal.addEventListener('click', () => closeModal(tripLogModal));
+        closeTripLogModal.addEventListener('click', () => closeModalWithAnimation(tripLogModal));
 
         tripLogModal.addEventListener('click', (e) => {
             // Close if the backdrop is clicked, but not if an inner element is clicked
             if (e.target === tripLogModal) {
-                closeModal(tripLogModal);
+                closeModalWithAnimation(tripLogModal);
             }
         });
 
@@ -927,7 +927,7 @@ function showTripLogModal() {
     const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     displayTrips(dateStrForDisplay);
 
-    openModal(tripLogModal);
+    openModalWithAnimation(tripLogModal);
 
     const modalContent = tripLogModal.querySelector('.overflow-y-auto');
     if (modalContent) {
@@ -938,7 +938,7 @@ function showTripLogModal() {
 }
 
 // Generic modal handlers
-function openModal(modal) {
+function openModalWithAnimation(modal) {
     if (!modal) return;
     document.body.classList.add('modal-open');
     modal.classList.remove('hidden');
@@ -947,7 +947,7 @@ function openModal(modal) {
     }, 10);
 }
 
-function closeModal(modal) {
+function closeModalWithAnimation(modal) {
     if (!modal) return;
     document.body.classList.remove('modal-open');
     modal.classList.remove('is-visible');
@@ -1010,7 +1010,7 @@ function showModal(day, month, year) {
     });
 
     updateNavigationButtons();
-    openModal(lunarModal);
+    openModalWithAnimation(lunarModal);
 }
 
 function showPreviousDay() {
@@ -1030,7 +1030,7 @@ function updateNavigationButtons() {
 }
 
 function hideModal() {
-    closeModal(lunarModal);
+    closeModalWithAnimation(lunarModal);
     modalCurrentDay = null;
     modalCurrentMonth = null;
     modalCurrentYear = null;
@@ -1264,11 +1264,11 @@ function openWeatherModal(tripId, weatherId = null) {
         document.getElementById('weather-air-temp').value = '';
     }
 
-    openModal(weatherModal);
+    openModalWithAnimation(weatherModal);
 }
 
 function closeWeatherModal() {
-    closeModal(document.getElementById('weatherModal'));
+    closeModalWithAnimation(document.getElementById('weatherModal'));
     currentEditingTripId = null;
     currentEditingWeatherId = null;
 }
@@ -1399,11 +1399,11 @@ function openFishModal(tripId, fishId = null) {
         document.getElementById('fish-details').value = '';
     }
 
-    openModal(fishModal);
+    openModalWithAnimation(fishModal);
 }
 
 function closeFishModal() {
-    closeModal(document.getElementById('fishModal'));
+    closeModalWithAnimation(document.getElementById('fishModal'));
     currentEditingTripId = null;
     currentEditingFishId = null;
 }
