@@ -817,6 +817,47 @@ function setupEventListeners() {
     if (closeFishModalBtn) {
         closeFishModalBtn.addEventListener('click', closeFishModal);
     }
+
+    // Search Modal Listeners
+    const searchLogsBtn = document.getElementById('search-logs-btn');
+    const searchModal = document.getElementById('searchModal');
+    const closeSearchModal = document.getElementById('closeSearchModal');
+    const searchButton = document.getElementById('search-button');
+    const searchInput = document.getElementById('search-input');
+
+    if (searchLogsBtn) {
+        searchLogsBtn.addEventListener('click', () => {
+            searchModal.classList.remove('hidden');
+        });
+    }
+
+    if (closeSearchModal) {
+        closeSearchModal.addEventListener('click', () => {
+            searchModal.classList.add('hidden');
+        });
+    }
+
+    if (searchModal) {
+        searchModal.addEventListener('click', (e) => {
+            if (e.target === searchModal) {
+                searchModal.classList.add('hidden');
+            }
+        });
+    }
+
+    if (searchButton) {
+        searchButton.addEventListener('click', () => {
+            performSearch(searchInput.value);
+        });
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                performSearch(searchInput.value);
+            }
+        });
+    }
 }
 
 function updateCurrentMoonInfo() {
@@ -1385,6 +1426,125 @@ function getLoggedDaysForMonth(startDate, endDate) {
             console.error("Error fetching logged days for month:", event.target.error);
             reject(event.target.error);
         };
+    });
+}
+
+function getAllData(storeName) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("DB not initialized");
+            return;
+        }
+        const transaction = db.transaction([storeName], "readonly");
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function performSearch(query) {
+    const resultsContainer = document.getElementById('search-results-container');
+    resultsContainer.innerHTML = '<p>Searching...</p>';
+    const lowerCaseQuery = query.toLowerCase().trim();
+
+    if (!lowerCaseQuery) {
+        resultsContainer.innerHTML = '<p>Enter a search term to find your catches.</p>';
+        return;
+    }
+
+    try {
+        const allTrips = await getAllData('trips');
+        const allFish = await getAllData('fish_caught');
+
+        const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
+
+        const monthNames = [
+            "january", "february", "march", "april", "may", "june",
+            "july", "august", "september", "october", "november", "december"
+        ];
+
+        const searchMonthIndex = monthNames.indexOf(lowerCaseQuery);
+
+        const results = allFish.map(fish => {
+            const trip = tripsMap.get(fish.tripId);
+            return { ...fish, trip };
+        }).filter(({ trip, species, bait, details }) => {
+            if (!trip) return false;
+
+            // Check for month match
+            if (searchMonthIndex > -1) {
+                const tripMonth = parseInt(trip.date.split('-')[1], 10) - 1;
+                return tripMonth === searchMonthIndex;
+            }
+
+            // Check other text fields
+            const searchableText = [
+                species,
+                bait,
+                details,
+                trip.water,
+                trip.location,
+                trip.notes
+            ].join(' ').toLowerCase();
+
+            return searchableText.includes(lowerCaseQuery);
+        });
+
+        displaySearchResults(results);
+
+    } catch (error) {
+        console.error("Error during search:", error);
+        resultsContainer.innerHTML = '<p class="text-red-500">Error performing search. See console for details.</p>';
+    }
+}
+
+function displaySearchResults(results) {
+    const resultsContainer = document.getElementById('search-results-container');
+    if (results.length === 0) {
+        resultsContainer.innerHTML = '<p>No matching catches found.</p>';
+        return;
+    }
+
+    resultsContainer.innerHTML = ''; // Clear previous results
+
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
+    results.forEach(fish => {
+        const trip = fish.trip;
+        if (!trip) return;
+
+        const resultEl = document.createElement('div');
+        resultEl.className = 'p-4 bg-gray-100 dark:bg-gray-700 rounded-lg shadow';
+
+        // Dates are stored as YYYY-MM-DD, need to parse carefully to avoid timezone issues
+        const dateParts = trip.date.split('-');
+        const tripDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const formattedDate = `${tripDate.getDate()} ${monthNames[tripDate.getMonth()]} ${tripDate.getFullYear()}`;
+
+        let content = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <h4 class="font-bold text-lg">${fish.species}</h4>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">${trip.water || 'N/A'} - ${trip.location || 'N/A'}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">Caught on: ${formattedDate}</p>
+                </div>
+                <div class="text-right">
+                    ${fish.length ? `<span class="text-sm">Length: ${fish.length}</span>` : ''}
+                    ${fish.weight ? `<span class="text-sm ml-2">Weight: ${fish.weight}</span>` : ''}
+                </div>
+            </div>
+            <div class="mt-2 text-sm">
+                ${fish.bait ? `<p><strong>Bait/Lure:</strong> ${fish.bait}</p>` : ''}
+                ${fish.time ? `<p><strong>Time:</strong> ${fish.time}</p>` : ''}
+                ${fish.details ? `<p><strong>Details:</strong> ${fish.details}</p>` : ''}
+            </div>
+        `;
+        resultEl.innerHTML = content;
+        resultsContainer.appendChild(resultEl);
     });
 }
 
