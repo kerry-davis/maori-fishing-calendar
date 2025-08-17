@@ -922,14 +922,15 @@ function showModal(day, month, year) {
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
     displayTrips(dateStrForDisplay);
     updateNavigationButtons();
-
-    const modalContent = lunarModal.querySelector('.overflow-y-auto');
-    if (modalContent) {
-        modalContent.scrollTop = 0;
-    }
-
     lunarModal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
+
+    const modalContent = document.getElementById('modal-scroll-container');
+    if (modalContent) {
+        setTimeout(() => {
+            modalContent.scrollTop = 0;
+        }, 0);
+    }
 }
 
 function showPreviousDay() {
