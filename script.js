@@ -569,6 +569,7 @@ function editTrip(id) {
         document.getElementById('trip-form-title').textContent = 'Editing Trip';
         document.getElementById('save-trip-btn').textContent = 'Update Trip';
         document.getElementById('cancel-edit-trip-btn').classList.remove('hidden');
+        validateTripForm();
     };
 }
 
