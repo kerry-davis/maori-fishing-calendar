@@ -622,6 +622,13 @@ function displayTrips(date) {
                         </div>
                         <button onclick="openWeatherModal(${trip.id})" class="mt-2 text-xs px-2 py-1 bg-blue-500 text-white rounded">Add Weather</button>
                     </div>
+                    <div class="border-t dark:border-gray-700 mt-3 pt-3">
+                        <h6 class="font-semibold mb-2">Fish Caught</h6>
+                        <div id="fish-list-${trip.id}" class="space-y-2">
+                            <p class="text-xs text-gray-500">No fish logged for this trip yet.</p>
+                        </div>
+                        <button onclick="openFishModal(${trip.id})" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
+                    </div>
                     <div class="mt-3 border-t dark:border-gray-700 pt-3">
                         <button onclick="editTrip(${trip.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
                         <button onclick="deleteTrip(${trip.id})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
@@ -630,6 +637,7 @@ function displayTrips(date) {
                 tripEl.innerHTML = content;
                 tripLogList.appendChild(tripEl);
                 displayWeatherForTrip(trip.id);
+                displayFishForTrip(trip.id);
             });
         } else {
             tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
@@ -833,6 +841,16 @@ function setupEventListeners() {
     const closeWeatherModalBtn = document.getElementById('close-weather-modal-btn');
     if (closeWeatherModalBtn) {
         closeWeatherModalBtn.addEventListener('click', closeWeatherModal);
+    }
+
+    const saveFishBtn = document.getElementById('save-fish-btn');
+    if (saveFishBtn) {
+        saveFishBtn.addEventListener('click', saveFish);
+    }
+
+    const closeFishModalBtn = document.getElementById('close-fish-modal-btn');
+    if (closeFishModalBtn) {
+        closeFishModalBtn.addEventListener('click', closeFishModal);
     }
 }
 
@@ -1116,6 +1134,13 @@ function saveWeather() {
         airTemp: document.getElementById('weather-air-temp').value,
     };
 
+    // Validation: Check if at least one field is filled
+    const isDataPresent = Object.values(weatherData).some(value => value && String(value).trim() !== '');
+    if (!isDataPresent) {
+        alert("Please fill in at least one weather detail to save the log.");
+        return;
+    }
+
     const transaction = db.transaction(['weather_logs'], 'readwrite');
     const store = transaction.objectStore('weather_logs');
     let request;
@@ -1187,6 +1212,133 @@ function deleteWeather(weatherId, tripId) {
     };
     request.onerror = (event) => {
         console.error('Error deleting weather log:', event.target.error);
+    };
+}
+
+function openFishModal(tripId, fishId = null) {
+    const fishModal = document.getElementById('fishModal');
+    const modalTitle = document.getElementById('fish-modal-title');
+    currentEditingTripId = tripId;
+    currentEditingFishId = fishId;
+
+    if (fishId) {
+        modalTitle.textContent = 'Edit Fish';
+        const transaction = db.transaction(['fish_caught'], 'readonly');
+        const store = transaction.objectStore('fish_caught');
+        const request = store.get(fishId);
+        request.onsuccess = () => {
+            const data = request.result;
+            document.getElementById('fish-species').value = data.species;
+            document.getElementById('fish-bait').value = data.bait;
+            document.getElementById('fish-length').value = data.length;
+            document.getElementById('fish-weight').value = data.weight;
+            document.getElementById('fish-time').value = data.time;
+            document.getElementById('fish-details').value = data.details;
+        };
+    } else {
+        modalTitle.textContent = 'Add Fish';
+        // Clear form fields
+        document.getElementById('fish-species').value = '';
+        document.getElementById('fish-bait').value = '';
+        document.getElementById('fish-length').value = '';
+        document.getElementById('fish-weight').value = '';
+        document.getElementById('fish-time').value = '';
+        document.getElementById('fish-details').value = '';
+    }
+
+    fishModal.classList.remove('hidden');
+}
+
+function closeFishModal() {
+    document.getElementById('fishModal').classList.add('hidden');
+    currentEditingTripId = null;
+    currentEditingFishId = null;
+}
+
+function saveFish() {
+    if (!currentEditingTripId) return;
+
+    const fishData = {
+        tripId: currentEditingTripId,
+        species: document.getElementById('fish-species').value,
+        bait: document.getElementById('fish-bait').value,
+        length: document.getElementById('fish-length').value,
+        weight: document.getElementById('fish-weight').value,
+        time: document.getElementById('fish-time').value,
+        details: document.getElementById('fish-details').value,
+    };
+
+    if (!fishData.species) {
+        alert("Please enter a species for the fish.");
+        return;
+    }
+
+    const transaction = db.transaction(['fish_caught'], 'readwrite');
+    const store = transaction.objectStore('fish_caught');
+    let request;
+
+    if (currentEditingFishId) {
+        fishData.id = currentEditingFishId;
+        request = store.put(fishData);
+    } else {
+        request = store.add(fishData);
+    }
+
+    request.onsuccess = () => {
+        displayFishForTrip(currentEditingTripId);
+        closeFishModal();
+    };
+    request.onerror = (event) => {
+        console.error('Error saving fish data:', event.target.error);
+    };
+}
+
+function displayFishForTrip(tripId) {
+    const listEl = document.getElementById(`fish-list-${tripId}`);
+    if (!listEl) return;
+
+    const transaction = db.transaction(['fish_caught'], 'readonly');
+    const store = transaction.objectStore('fish_caught');
+    const index = store.index('tripId');
+    const request = index.getAll(tripId);
+
+    request.onsuccess = () => {
+        const fishLogs = request.result;
+        listEl.innerHTML = '';
+        if (fishLogs.length > 0) {
+            fishLogs.forEach(log => {
+                const fishEl = document.createElement('div');
+                fishEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                let content = `<div class="font-semibold">${log.species}</div>`;
+                if(log.length || log.weight) content += `<div>${log.length || ''} / ${log.weight || ''}</div>`;
+                if(log.bait) content += `<div>Bait: ${log.bait}</div>`;
+                if(log.time) content += `<div>Time: ${log.time}</div>`;
+                if(log.details) content += `<div>Details: ${log.details}</div>`;
+
+                content += `
+                    <div class="mt-2">
+                        <button onclick="openFishModal(${tripId}, ${log.id})" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                        <button onclick="deleteFish(${log.id}, ${tripId})" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                    </div>
+                `;
+                fishEl.innerHTML = content;
+                listEl.appendChild(fishEl);
+            });
+        } else {
+            listEl.innerHTML = '<p class="text-xs text-gray-500">No fish logged for this trip yet.</p>';
+        }
+    };
+}
+
+function deleteFish(fishId, tripId) {
+    const transaction = db.transaction(['fish_caught'], 'readwrite');
+    const store = transaction.objectStore('fish_caught');
+    const request = store.delete(fishId);
+    request.onsuccess = () => {
+        displayFishForTrip(tripId);
+    };
+    request.onerror = (event) => {
+        console.error('Error deleting fish log:', event.target.error);
     };
 }
 
