@@ -600,6 +600,7 @@ function deleteTrip(id) {
             console.log("Trip and all associated data deleted successfully.");
             displayTrips(dateToDelete);
             renderCalendar();
+            updateOpenTripLogButton(dateToDelete);
         };
 
         deleteTransaction.onerror = (event) => {
