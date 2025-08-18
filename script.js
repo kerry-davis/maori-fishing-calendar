@@ -980,9 +980,18 @@ function setupEventListeners() {
     const closeAnalyticsModal = document.getElementById('closeAnalyticsModal');
 
     if (analyticsBtn) {
-        analyticsBtn.addEventListener('click', () => {
+        analyticsBtn.addEventListener('click', async () => {
+            const allTrips = await getAllData('trips');
+            const allFish = await getAllData('fish_caught');
+
+            if (allTrips.length === 0 && allFish.length === 0) {
+                alert("No analytics data to display. Please log some fishing trips first!");
+                return;
+            }
+
+            const allWeather = await getAllData('weather_logs');
             openModalWithAnimation(analyticsModal);
-            loadAnalytics();
+            loadAnalytics(allTrips, allWeather, allFish);
         });
     }
 
@@ -1800,25 +1809,11 @@ function displaySearchResults(results) {
     });
 }
 
-async function loadAnalytics() {
+async function loadAnalytics(allTrips, allWeather, allFish) {
     const contentEl = document.getElementById('analytics-content');
     contentEl.innerHTML = '<p class="text-gray-500 dark:text-gray-400">Loading analytics...</p>';
 
     try {
-        const allTrips = await getAllData('trips');
-        const allWeather = await getAllData('weather_logs');
-        const allFish = await getAllData('fish_caught');
-
-        if (allTrips.length === 0 && allFish.length === 0) {
-            contentEl.innerHTML = '<p class="text-center text-gray-500 dark:text-gray-400">No data logged yet. Go fishing and log your trips to see your analytics!</p>';
-            return;
-        }
-
-        // For now, just log the data to the console to verify it's being fetched.
-        console.log("All Trips:", allTrips);
-        console.log("All Weather:", allWeather);
-        console.log("All Fish:", allFish);
-
         contentEl.innerHTML = ''; // Clear loading message
 
         // 1. Performance by Moon Phase
