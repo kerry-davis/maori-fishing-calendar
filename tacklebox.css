@@ -1,0 +1,84 @@
+/* This file will contain the CSS for the Tackle Box and Catch Log features. */
+
+#user-data-section {
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 8px;
+    margin-top: 20px;
+}
+
+.dark #user-data-section {
+    background-color: #1f2937; /* gray-800 */
+}
+
+#tackle-box, #catch-log {
+    margin-bottom: 20px;
+}
+
+#add-gear-form, #log-catch-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+#add-gear-form input, #add-gear-form select, #log-catch-form input, #log-catch-form select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: white;
+}
+
+.dark #add-gear-form input, .dark #add-gear-form select, .dark #log-catch-form input, .dark #log-catch-form select {
+    background-color: #374151; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+    color: #f3f4f6; /* gray-100 */
+}
+
+
+#add-gear-form button, #log-catch-form button {
+    padding: 8px 12px;
+    border: none;
+    background-color: #3b82f6; /* blue-500 */
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#add-gear-form button:hover, #log-catch-form button:hover {
+    background-color: #2563eb; /* blue-600 */
+}
+
+#gear-list, #catch-list {
+    list-style-type: none;
+    padding: 0;
+}
+
+#gear-list li, #catch-list li {
+    background-color: white;
+    padding: 10px;
+    border: 1px solid #ddd;
+    margin-bottom: 5px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.dark #gear-list li, .dark #catch-list li {
+    background-color: #374151; /* gray-700 */
+    border-color: #4b5563; /* gray-600 */
+}
+
+.delete-gear-btn {
+    padding: 5px 10px;
+    border: none;
+    background-color: #ef4444; /* red-500 */
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.delete-gear-btn:hover {
+    background-color: #dc2626; /* red-600 */
+}
