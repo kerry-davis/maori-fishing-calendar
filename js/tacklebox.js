@@ -54,11 +54,14 @@ document.addEventListener('DOMContentLoaded', () => {
         tackleItems.forEach(item => {
             const li = document.createElement('li');
             li.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow';
+
+            const details = [item.brand, item.type, item.color].filter(Boolean).join(' • ');
+
             li.innerHTML = `
                 <div>
                     <p class="font-bold text-lg">${item.name}</p>
                     <p class="text-sm text-gray-600 dark:text-gray-400">
-                        ${item.brand || 'N/A'} • ${item.type} • ${item.color || 'N/A'}
+                        ${details}
                     </p>
                 </div>
                 <div class="actions">
