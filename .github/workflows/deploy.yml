@@ -1,17 +1,19 @@
-name: Deploy Astro Site to GitHub Pages
+name: Build & Deploy Astro to GitHub Pages
 
 on:
   push:
     branches:
-      - feat/rebuild-maori-fishing-calendar
+      - main
   pull_request:
     branches:
-      - feat/rebuild-maori-fishing-calendar
+      - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact-path: ${{ steps.upload-artifact.outputs.path }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -23,20 +25,22 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Build Astro site
         run: npm run build
         env:
           BASE_URL: /maori-fishing-calendar/
 
-      - name: Upload artifact for Pages
+      - name: Upload Pages Artifact
+        id: upload-artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
 
   deploy:
     needs: build
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       pages: write
@@ -47,4 +51,6 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact-path: ./dist
 
