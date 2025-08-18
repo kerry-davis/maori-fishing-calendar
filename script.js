@@ -580,19 +580,64 @@ function editTrip(id) {
 }
 
 function deleteTrip(id) {
-    const transaction = db.transaction(["trips"], "readwrite");
-    const objectStore = transaction.objectStore("trips");
+    // Get the date of the trip before deleting, so we can refresh the UI
+    const getTransaction = db.transaction(["trips"], "readonly");
+    const getObjectStore = getTransaction.objectStore("trips");
+    const getRequest = getObjectStore.get(id);
 
-    const getRequest = objectStore.get(id);
     getRequest.onsuccess = () => {
-        const dateToDelete = getRequest.result.date;
-        const deleteRequest = objectStore.delete(id);
-        deleteRequest.onsuccess = () => {
-            console.log("Trip deleted successfully.");
+        const tripToDelete = getRequest.result;
+        if (!tripToDelete) {
+            console.error("Trip to delete not found:", id);
+            return;
+        }
+        const dateToDelete = tripToDelete.date;
+
+        // Start the delete transaction
+        const deleteTransaction = db.transaction(["trips", "weather_logs", "fish_caught"], "readwrite");
+
+        deleteTransaction.oncomplete = () => {
+            console.log("Trip and all associated data deleted successfully.");
             displayTrips(dateToDelete);
             renderCalendar();
             updateOpenTripLogButton(dateToDelete);
         };
+
+        deleteTransaction.onerror = (event) => {
+            console.error("Error deleting trip and associated data:", event.target.error);
+        };
+
+        // 1. Delete associated weather logs
+        const weatherStore = deleteTransaction.objectStore("weather_logs");
+        const weatherIndex = weatherStore.index("tripId");
+        const weatherRequest = weatherIndex.openCursor(IDBKeyRange.only(id));
+        weatherRequest.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            }
+        };
+
+        // 2. Delete associated fish
+        const fishStore = deleteTransaction.objectStore("fish_caught");
+        const fishIndex = fishStore.index("tripId");
+        const fishRequest = fishIndex.openCursor(IDBKeyRange.only(id));
+        fishRequest.onsuccess = (event) => {
+            const cursor = event.target.result;
+            if (cursor) {
+                cursor.delete();
+                cursor.continue();
+            }
+        };
+
+        // 3. Delete the trip itself
+        const tripsStore = deleteTransaction.objectStore("trips");
+        tripsStore.delete(id);
+    };
+
+    getRequest.onerror = (event) => {
+        console.error("Error fetching trip to delete:", event.target.error);
     };
 }
 
@@ -854,6 +899,44 @@ function setupEventListeners() {
         searchInput.addEventListener('keyup', (e) => {
             if (e.key === 'Enter') {
                 performSearch(searchInput.value);
+            }
+        });
+    }
+
+    // Analytics Modal Listeners
+    const analyticsBtn = document.getElementById('analytics-btn');
+    const analyticsModal = document.getElementById('analyticsModal');
+    const closeAnalyticsModal = document.getElementById('closeAnalyticsModal');
+
+    if (analyticsBtn) {
+        analyticsBtn.addEventListener('click', async () => {
+            try {
+                const allTrips = await getAllData('trips');
+                const allFish = await getAllData('fish_caught');
+
+                if (allTrips.length === 0 && allFish.length === 0) {
+                    alert("No analytics data to display. Please log some fishing trips first!");
+                    return;
+                }
+
+                const allWeather = await getAllData('weather_logs');
+                openModalWithAnimation(analyticsModal);
+                loadAnalytics(allTrips, allWeather, allFish);
+            } catch (error) {
+                console.error("Failed to load analytics:", error);
+                alert("Could not load analytics data. Please check the console for errors.");
+            }
+        });
+    }
+
+    if (closeAnalyticsModal) {
+        closeAnalyticsModal.addEventListener('click', () => closeModalWithAnimation(analyticsModal));
+    }
+
+    if (analyticsModal) {
+        analyticsModal.addEventListener('click', (e) => {
+            if (e.target === analyticsModal) {
+                closeModalWithAnimation(analyticsModal);
             }
         });
     }
