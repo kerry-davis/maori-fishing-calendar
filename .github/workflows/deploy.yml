@@ -52,7 +52,17 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7. Output preview URL if PR
-      - name: Show preview URL
-        if: github.event_name == 'pull_reque
+      # 7. Show preview URL if PR
+      - name: Set preview URL
+        if: github.event_name == 'pull_request'
+        run: echo "PR_PREVIEW_URL=https://${{ github.repository_owner }}.github.io/${{ github.repository }}${{ env.BASE_URL }}" >> $GITHUB_ENV
+
+      # 8. Comment PR with preview URL
+      - name: Comment PR with preview URL
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: "🚀 PR Preview is available here: ${{ env.PR_PREVIEW_URL }}"
 
