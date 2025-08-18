@@ -1,4 +1,4 @@
-name: Deploy GitHub Pages
+name: Build & Deploy Māori Fishing Calendar
 
 on:
   push:
@@ -6,10 +6,12 @@ on:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       # 1. Checkout code
       - name: Checkout repository
@@ -52,7 +54,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7. Show preview URL if PR
+      # 7. Set PR preview URL
       - name: Set preview URL
         if: github.event_name == 'pull_request'
         run: echo "PR_PREVIEW_URL=https://${{ github.repository_owner }}.github.io/${{ github.repository }}${{ env.BASE_URL }}" >> $GITHUB_ENV
