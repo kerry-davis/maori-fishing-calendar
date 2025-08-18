@@ -13,7 +13,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out your repository
+      - name: Check out repository
         uses: actions/checkout@v4
 
       - name: Setup Node.js
@@ -27,12 +27,12 @@ jobs:
       - name: Build Astro site
         run: npm run build
         env:
-            BASE_URL: /maori-fishing-calendar/
+          BASE_URL: "/"   # root deployment
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist
+          path: ./dist   # Astro builds into ./dist by default
 
   deploy:
     needs: build
@@ -47,3 +47,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
