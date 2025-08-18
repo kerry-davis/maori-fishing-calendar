@@ -874,10 +874,7 @@ function setupEventListeners() {
     const searchInput = document.getElementById('search-input');
 
     if (searchLogsBtn) {
-        searchLogsBtn.addEventListener('click', () => {
-            openModalWithAnimation(searchModal);
-            performSearch(''); // Show all results by default
-        });
+        searchLogsBtn.addEventListener('click', () => openModalWithAnimation(searchModal));
     }
 
     if (closeSearchModal) {
@@ -1469,53 +1466,39 @@ function deleteWeather(weatherId, tripId) {
     };
 }
 
-function getTackleData() {
-    try {
-        const data = localStorage.getItem('tacklebox');
-        return data ? JSON.parse(data) : [];
-    } catch (error) {
-        console.error('Error reading from localStorage for tacklebox:', error);
-        return [];
-    }
-}
-
 function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
-    const fishBaitSelect = document.getElementById('fish-bait');
-    const fishBaitOtherInput = document.getElementById('fish-bait-other');
+    const gearSelectionContainer = document.getElementById('fish-gear-selection-container');
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
 
-    // Populate bait/lure dropdown
-    const tackleItems = getTackleData();
-    fishBaitSelect.innerHTML = '<option value="">Select Bait/Lure...</option>';
-    tackleItems.forEach(item => {
-        const option = document.createElement('option');
-        option.value = item.name;
-        option.textContent = `${item.name} (${item.type})`;
-        fishBaitSelect.appendChild(option);
-    });
-    // Add an option for manual input
-    const otherOption = document.createElement('option');
-    otherOption.value = 'other';
-    otherOption.textContent = 'Other (type manually)';
-    fishBaitSelect.appendChild(otherOption);
+    // Dynamically create gear dropdowns
+    gearSelectionContainer.innerHTML = ''; // Clear previous dropdowns
+    const gearTypes = JSON.parse(localStorage.getItem('gearTypes')) || ['Lure', 'Rod', 'Reel'];
+    const tackleItems = JSON.parse(localStorage.getItem('tacklebox')) || [];
 
-    fishBaitOtherInput.classList.add('hidden');
-    fishBaitOtherInput.required = false;
-    fishBaitOtherInput.value = '';
+    gearTypes.forEach(type => {
+        const relevantItems = tackleItems.filter(item => item.type === type);
+        if (relevantItems.length > 0) {
+            const label = document.createElement('label');
+            label.textContent = type;
+            label.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
 
-    fishBaitSelect.addEventListener('change', () => {
-        if (fishBaitSelect.value === 'other') {
-            fishBaitOtherInput.classList.remove('hidden');
-            fishBaitOtherInput.required = true;
-        } else {
-            fishBaitOtherInput.classList.add('hidden');
-            fishBaitOtherInput.required = false;
+            const select = document.createElement('select');
+            select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 mt-1';
+            select.dataset.gearType = type;
+
+            let optionsHtml = '<option value="">None</option>';
+            relevantItems.forEach(item => {
+                optionsHtml += `<option value="${item.id}">${item.name}</option>`;
+            });
+            select.innerHTML = optionsHtml;
+
+            gearSelectionContainer.appendChild(label);
+            gearSelectionContainer.appendChild(select);
         }
     });
-
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
@@ -1525,7 +1508,17 @@ function openFishModal(tripId, fishId = null) {
         request.onsuccess = () => {
             const data = request.result;
             document.getElementById('fish-species').value = data.species;
-            document.getElementById('fish-bait').value = data.bait;
+
+            // Populate gear dropdowns with saved values
+            if (data.gearUsed && Array.isArray(data.gearUsed)) {
+                data.gearUsed.forEach(usedGear => {
+                    const select = gearSelectionContainer.querySelector(`select[data-gear-type="${usedGear.type}"]`);
+                    if (select) {
+                        select.value = usedGear.gearId;
+                    }
+                });
+            }
+
             document.getElementById('fish-length').value = data.length;
             document.getElementById('fish-weight').value = data.weight;
             document.getElementById('fish-time').value = data.time;
@@ -1554,16 +1547,22 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    const fishBaitSelect = document.getElementById('fish-bait');
-    let baitValue = fishBaitSelect.value;
-    if (baitValue === 'other') {
-        baitValue = document.getElementById('fish-bait-other').value;
-    }
+    const gearUsed = [];
+    const gearSelects = document.querySelectorAll('#fish-gear-selection-container select');
+    gearSelects.forEach(select => {
+        if (select.value) {
+            gearUsed.push({
+                type: select.dataset.gearType,
+                gearId: parseInt(select.value, 10),
+                gearName: select.options[select.selectedIndex].text
+            });
+        }
+    });
 
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        bait: baitValue,
+        gearUsed: gearUsed, // New property
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
@@ -1618,7 +1617,10 @@ function displayFishForTrip(tripId) {
                 if (sizeParts.length > 0) {
                     content += `<div>${sizeParts.join(' / ')}</div>`;
                 }
-                if(log.bait) content += `<div>Bait: ${log.bait}</div>`;
+                if (log.gearUsed && log.gearUsed.length > 0) {
+                    const gearList = log.gearUsed.map(g => g.gearName).join(', ');
+                    content += `<div>Gear: ${gearList}</div>`;
+                }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
 
@@ -1847,6 +1849,11 @@ async function performSearch(query) {
     resultsContainer.innerHTML = '<p>Searching...</p>';
     const lowerCaseQuery = query.toLowerCase().trim();
 
+    if (!lowerCaseQuery) {
+        resultsContainer.innerHTML = '<p>Enter a search term to find your catches.</p>';
+        return;
+    }
+
     try {
         const allTrips = await getAllData('trips');
         const allFish = await getAllData('fish_caught');
@@ -1865,9 +1872,6 @@ async function performSearch(query) {
             return { ...fish, trip };
         }).filter(({ trip, species, bait, details }) => {
             if (!trip) return false;
-
-            // If query is empty, return all results
-            if (!lowerCaseQuery) return true;
 
             // Check for month match
             if (searchMonthIndex > -1) {
@@ -1935,7 +1939,7 @@ function displaySearchResults(results) {
                 </div>
             </div>
             <div class="mt-2 text-sm">
-                ${fish.bait ? `<p><strong>Bait/Lure:</strong> ${fish.bait}</p>` : ''}
+                ${fish.gearUsed && fish.gearUsed.length > 0 ? `<p><strong>Gear:</strong> ${fish.gearUsed.map(g => g.gearName).join(', ')}</p>` : ''}
                 ${fish.time ? `<p><strong>Time:</strong> ${fish.time}</p>` : ''}
                 ${fish.details ? `<p><strong>Details:</strong> ${fish.details}</p>` : ''}
             </div>

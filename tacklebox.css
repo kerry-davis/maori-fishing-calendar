@@ -1,7 +1,16 @@
 /* This file will contain the CSS for the Tackle Box modal. */
 
-/* Styles for the gear list items to space out the buttons */
-#gear-list li .actions {
+#gear-type-management {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #e5e7eb;
+}
+
+.dark #gear-type-management {
+    border-color: #374151; /* gray-700 */
+}
+
+#gear-type-list .actions {
     display: flex;
     gap: 8px;
 }

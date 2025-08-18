@@ -269,6 +269,48 @@
     <script src="script.js"></script>
     <script src="js/tacklebox.js"></script>
 
+    <!-- Tackle Box Modal -->
+    <div id="tackleboxModal" class="modal fixed inset-0 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b dark:border-gray-700">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">My Tackle Box</h3>
+                    <button id="closeTackleboxModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <!-- Add/Edit Gear Form -->
+                <form id="add-gear-form" class="mb-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                    <h4 id="tacklebox-form-title" class="text-xl font-semibold mb-3">Add New Gear</h4>
+                    <input type="hidden" id="gear-id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="gear-name" placeholder="Name" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
+                        <input type="text" id="gear-brand" placeholder="Brand" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <select id="gear-type" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></select>
+                        <input type="text" id="gear-color" placeholder="Color" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    </div>
+                    <div class="flex space-x-2 mt-4">
+                        <button type="submit" id="save-gear-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save Gear</button>
+                        <button type="button" id="cancel-edit-gear-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 hidden">Cancel Edit</button>
+                    </div>
+                </form>
+                <ul id="gear-list" class="space-y-3"></ul>
+
+                <!-- Gear Type Management -->
+                <div id="gear-type-management">
+                    <h4 class="text-xl font-semibold mb-3">Manage Gear Types</h4>
+                    <form id="add-gear-type-form" class="flex gap-2 mb-4">
+                        <input type="text" id="gear-type-name" placeholder="New gear type" class="flex-grow p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
+                        <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add Type</button>
+                    </form>
+                    <ul id="gear-type-list" class="space-y-2"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Search Modal -->
     <div id="searchModal" class="modal fixed inset-0 z-50 hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-3xl w-full mx-4 max-h-[90vh] flex flex-col">
@@ -360,10 +402,9 @@
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="fish-modal-title">Add Fish</h3>
                 <div class="space-y-3 text-sm">
                     <input type="text" id="fish-species" placeholder="Species" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    <select id="fish-bait" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                        <!-- Options will be populated by JavaScript -->
-                    </select>
-                    <input type="text" id="fish-bait-other" placeholder="Enter other bait/lure" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 hidden mt-2">
+                    <div id="fish-gear-selection-container" class="space-y-2">
+                        <!-- Gear dropdowns will be populated by JavaScript -->
+                    </div>
                     <input type="text" id="fish-length" placeholder="Length" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <input type="text" id="fish-weight" placeholder="Weight" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <div class="flex items-center">
@@ -426,43 +467,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tackle Box Modal -->
-    <div id="tackleboxModal" class="modal fixed inset-0 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] flex flex-col">
-            <div class="p-6 border-b dark:border-gray-700">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">My Tackle Box</h3>
-                    <button id="closeTackleboxModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="p-6 overflow-y-auto">
-                <form id="add-gear-form" class="mb-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 id="tacklebox-form-title" class="text-xl font-semibold mb-3">Add New Gear</h4>
-                    <input type="hidden" id="gear-id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="gear-name" placeholder="Name" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
-                        <input type="text" id="gear-brand" placeholder="Brand" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                        <select id="gear-type" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                            <option>Lure</option>
-                            <option>Rod</option>
-                            <option>Reel</option>
-                        </select>
-                        <input type="text" id="gear-color" placeholder="Color" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    </div>
-                    <div class="flex space-x-2 mt-4">
-                        <button type="submit" id="save-gear-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save Gear</button>
-                        <button type="button" id="cancel-edit-gear-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 hidden">Cancel Edit</button>
-                    </div>
-                </form>
-                <ul id="gear-list" class="space-y-3">
-                    <!-- Gear items will be dynamically rendered here -->
-                </ul>
             </div>
         </div>
     </div>
