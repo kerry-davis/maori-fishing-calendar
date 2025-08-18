@@ -25,18 +25,16 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ./maori-fishing-calendar
 
       - name: Build Astro site
         run: npm run build
-        working-directory: ./maori-fishing-calendar
         env:
             BASE_URL: /maori-fishing-calendar/
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./maori-fishing-calendar/dist
+          path: ./dist
 
   deploy:
     needs: build
