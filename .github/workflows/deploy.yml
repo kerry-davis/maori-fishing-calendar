@@ -1,70 +1,50 @@
-name: Build & Deploy Māori Fishing Calendar
+name: Deploy Astro Site to GitHub Pages
 
 on:
   push:
     branches:
-      - main
+      - feat/rebuild-maori-fishing-calendar
   pull_request:
-    types: [opened, synchronize, reopened]
+    branches:
+      - feat/rebuild-maori-fishing-calendar
   workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
-
     steps:
-      # 1. Checkout code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
+          cache: 'npm'
 
-      # 3. Install dependencies
       - name: Install dependencies
         run: npm install
-        working-directory: .
 
-      # 4. Set BASE_URL dynamically
-      - name: Set BASE_URL
-        id: base-url
-        run: |
-          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
-            echo "BASE_URL=/"
-          else
-            echo "BASE_URL=/pr-${{ github.event.pull_request.number }}/"
-          fi
-          echo "BASE_URL=$BASE_URL" >> $GITHUB_ENV
-
-      # 5. Build Astro site
       - name: Build Astro site
         run: npm run build
-        working-directory: .
         env:
-          BASE_URL: ${{ env.BASE_URL }}
+          BASE_URL: /maori-fishing-calendar/
 
-      # 6. Deploy to GitHub Pages
-      - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v4
+      - name: Upload artifact for Pages
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./dist
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 7. Set PR preview URL
-      - name: Set preview URL
-        if: github.event_name == 'pull_request'
-        run: echo "PR_PREVIEW_URL=https://${{ github.repository_owner }}.github.io/${{ github.repository }}${{ env.BASE_URL }}" >> $GITHUB_ENV
-
-      # 8. Comment PR with preview URL
-      - name: Comment PR with preview URL
-        if: github.event_name == 'pull_request'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: "🚀 PR Preview is available here: ${{ env.PR_PREVIEW_URL }}"
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
