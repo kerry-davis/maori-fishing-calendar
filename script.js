@@ -1029,13 +1029,6 @@ function showTripLogModal() {
     displayTrips(dateStrForDisplay);
 
     openModalWithAnimation(tripLogModal);
-
-    const modalContent = tripLogModal.querySelector('.overflow-y-auto');
-    if (modalContent) {
-        setTimeout(() => {
-            modalContent.scrollTop = 0;
-        }, 0);
-    }
 }
 
 // Generic modal handlers
@@ -1046,6 +1039,15 @@ function openModalWithAnimation(modal) {
     setTimeout(() => { // Ensures display property is set before transition starts
         modal.classList.add('is-visible');
     }, 10);
+
+    // Reset scroll position of the scrollable container inside the modal
+    const scrollContainer = modal.querySelector('.overflow-y-auto');
+    if (scrollContainer) {
+        // Use setTimeout to ensure the element is visible and scrollable before resetting.
+        setTimeout(() => {
+            scrollContainer.scrollTop = 0;
+        }, 0);
+    }
 }
 
 function closeModalWithAnimation(modal) {
