@@ -874,7 +874,10 @@ function setupEventListeners() {
     const searchInput = document.getElementById('search-input');
 
     if (searchLogsBtn) {
-        searchLogsBtn.addEventListener('click', () => openModalWithAnimation(searchModal));
+        searchLogsBtn.addEventListener('click', () => {
+            openModalWithAnimation(searchModal);
+            performSearch(''); // Show all results by default
+        });
     }
 
     if (closeSearchModal) {
@@ -1466,11 +1469,53 @@ function deleteWeather(weatherId, tripId) {
     };
 }
 
+function getTackleData() {
+    try {
+        const data = localStorage.getItem('tacklebox');
+        return data ? JSON.parse(data) : [];
+    } catch (error) {
+        console.error('Error reading from localStorage for tacklebox:', error);
+        return [];
+    }
+}
+
 function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
+    const fishBaitSelect = document.getElementById('fish-bait');
+    const fishBaitOtherInput = document.getElementById('fish-bait-other');
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
+
+    // Populate bait/lure dropdown
+    const tackleItems = getTackleData();
+    fishBaitSelect.innerHTML = '<option value="">Select Bait/Lure...</option>';
+    tackleItems.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item.name;
+        option.textContent = `${item.name} (${item.type})`;
+        fishBaitSelect.appendChild(option);
+    });
+    // Add an option for manual input
+    const otherOption = document.createElement('option');
+    otherOption.value = 'other';
+    otherOption.textContent = 'Other (type manually)';
+    fishBaitSelect.appendChild(otherOption);
+
+    fishBaitOtherInput.classList.add('hidden');
+    fishBaitOtherInput.required = false;
+    fishBaitOtherInput.value = '';
+
+    fishBaitSelect.addEventListener('change', () => {
+        if (fishBaitSelect.value === 'other') {
+            fishBaitOtherInput.classList.remove('hidden');
+            fishBaitOtherInput.required = true;
+        } else {
+            fishBaitOtherInput.classList.add('hidden');
+            fishBaitOtherInput.required = false;
+        }
+    });
+
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
@@ -1509,10 +1554,16 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
+    const fishBaitSelect = document.getElementById('fish-bait');
+    let baitValue = fishBaitSelect.value;
+    if (baitValue === 'other') {
+        baitValue = document.getElementById('fish-bait-other').value;
+    }
+
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        bait: document.getElementById('fish-bait').value,
+        bait: baitValue,
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
@@ -1796,11 +1847,6 @@ async function performSearch(query) {
     resultsContainer.innerHTML = '<p>Searching...</p>';
     const lowerCaseQuery = query.toLowerCase().trim();
 
-    if (!lowerCaseQuery) {
-        resultsContainer.innerHTML = '<p>Enter a search term to find your catches.</p>';
-        return;
-    }
-
     try {
         const allTrips = await getAllData('trips');
         const allFish = await getAllData('fish_caught');
@@ -1819,6 +1865,9 @@ async function performSearch(query) {
             return { ...fish, trip };
         }).filter(({ trip, species, bait, details }) => {
             if (!trip) return false;
+
+            // If query is empty, return all results
+            if (!lowerCaseQuery) return true;
 
             // Check for month match
             if (searchMonthIndex > -1) {

@@ -2,141 +2,178 @@ document.addEventListener('DOMContentLoaded', () => {
     // ---
     // Helper functions for localStorage
     // ---
-    const getData = (key) => {
+    const getTackleData = () => {
         try {
-            const data = localStorage.getItem(key);
+            const data = localStorage.getItem('tacklebox');
             return data ? JSON.parse(data) : [];
         } catch (error) {
-            console.error(`Error reading from localStorage for key "${key}":`, error);
+            console.error('Error reading from localStorage for tacklebox:', error);
             return [];
         }
     };
 
-    const saveData = (key, data) => {
+    const saveTackleData = (data) => {
         try {
-            localStorage.setItem(key, JSON.stringify(data));
+            localStorage.setItem('tacklebox', JSON.stringify(data));
         } catch (error) {
-            console.error(`Error saving to localStorage for key "${key}":`, error);
+            console.error('Error saving to localStorage for tacklebox:', error);
         }
     };
 
     // ---
     // Global state variables
     // ---
-    let tackleItems = getData('tacklebox');
-    let loggedCatches = getData('catches');
+    let tackleItems = getTackleData();
+    let editingGearId = null;
 
     // ---
     // DOM element references
     // ---
+    const tackleboxModal = document.getElementById('tackleboxModal');
+    const openTackleboxBtn = document.getElementById('tacklebox-btn');
+    const closeTackleboxBtn = document.getElementById('closeTackleboxModal');
+
     const addGearForm = document.getElementById('add-gear-form');
     const gearList = document.getElementById('gear-list');
+    const gearIdInput = document.getElementById('gear-id');
     const gearNameInput = document.getElementById('gear-name');
     const gearBrandInput = document.getElementById('gear-brand');
     const gearTypeInput = document.getElementById('gear-type');
     const gearColorInput = document.getElementById('gear-color');
+    const saveGearBtn = document.getElementById('save-gear-btn');
+    const cancelEditGearBtn = document.getElementById('cancel-edit-gear-btn');
+    const formTitle = document.getElementById('tacklebox-form-title');
 
-    const logCatchForm = document.getElementById('log-catch-form');
-    const catchList = document.getElementById('catch-list');
-    const catchSpeciesInput = document.getElementById('catch-species');
-    const catchLengthInput = document.getElementById('catch-length');
-    const gearSelectDropdown = document.getElementById('gear-select-dropdown');
 
     // ---
-    // Rendering functions
+    // Functions
     // ---
+
     const renderGear = () => {
         gearList.innerHTML = '';
         tackleItems.forEach(item => {
             const li = document.createElement('li');
-            li.className = 'flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-700 rounded';
+            li.className = 'flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg shadow';
             li.innerHTML = `
                 <div>
-                    <span class="font-bold">${item.name}</span> (${item.brand}, ${item.type}, ${item.color})
+                    <p class="font-bold text-lg">${item.name}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-400">
+                        ${item.brand || 'N/A'} • ${item.type} • ${item.color || 'N/A'}
+                    </p>
                 </div>
-                <button data-id="${item.id}" class="delete-gear-btn text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                <div class="actions">
+                    <button data-id="${item.id}" class="edit-gear-btn px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Edit</button>
+                    <button data-id="${item.id}" class="delete-gear-btn px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Delete</button>
+                </div>
             `;
             gearList.appendChild(li);
         });
     };
 
-    const renderCatches = () => {
-        catchList.innerHTML = '';
-        loggedCatches.forEach(item => {
-            const gearUsed = tackleItems.find(gear => gear.id === item.gearId);
-            const gearName = gearUsed ? gearUsed.name : 'Unknown Gear';
-            const li = document.createElement('li');
-            li.className = 'p-2 bg-gray-100 dark:bg-gray-700 rounded';
-            li.innerHTML = `
-                <span class="font-bold">${item.species}</span> - ${item.length}, caught with ${gearName}
-            `;
-            catchList.appendChild(li);
-        });
+    const openModal = () => {
+        if (tackleboxModal) {
+            tackleboxModal.classList.remove('hidden');
+            // This is a simplified version of the main script's modal animation
+            tackleboxModal.classList.add('is-visible');
+        }
     };
 
-    const populateGearDropdown = () => {
-        gearSelectDropdown.innerHTML = '<option value="">Select Gear...</option>';
-        tackleItems.forEach(item => {
-            const option = document.createElement('option');
-            option.value = item.id;
-            option.textContent = item.name;
-            gearSelectDropdown.appendChild(option);
-        });
+    const closeModal = () => {
+        if (tackleboxModal) {
+            tackleboxModal.classList.remove('is-visible');
+            tackleboxModal.classList.add('hidden');
+        }
+    };
+
+    const resetForm = () => {
+        addGearForm.reset();
+        editingGearId = null;
+        gearIdInput.value = '';
+        formTitle.textContent = 'Add New Gear';
+        saveGearBtn.textContent = 'Save Gear';
+        cancelEditGearBtn.classList.add('hidden');
+    };
+
+    const editGear = (id) => {
+        const gearToEdit = tackleItems.find(item => item.id === id);
+        if (gearToEdit) {
+            editingGearId = id;
+            gearIdInput.value = gearToEdit.id;
+            gearNameInput.value = gearToEdit.name;
+            gearBrandInput.value = gearToEdit.brand;
+            gearTypeInput.value = gearToEdit.type;
+            gearColorInput.value = gearToEdit.color;
+
+            formTitle.textContent = 'Edit Gear';
+            saveGearBtn.textContent = 'Update Gear';
+            cancelEditGearBtn.classList.remove('hidden');
+        }
     };
 
     // ---
     // Event Listeners
     // ---
+    if (openTackleboxBtn) {
+        openTackleboxBtn.addEventListener('click', () => {
+            renderGear();
+            openModal();
+        });
+    }
 
-    // Add Gear
+    if (closeTackleboxBtn) {
+        closeTackleboxBtn.addEventListener('click', closeModal);
+    }
+
+    // Also close modal if clicking on the backdrop
+    if (tackleboxModal) {
+        tackleboxModal.addEventListener('click', (e) => {
+            if (e.target === tackleboxModal) {
+                closeModal();
+            }
+        });
+    }
+
     addGearForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const newGear = {
-            id: Date.now(),
+        const gearData = {
+            // Use existing ID for updates, or create new one for new items
+            id: editingGearId || Date.now(),
             name: gearNameInput.value,
             brand: gearBrandInput.value,
             type: gearTypeInput.value,
             color: gearColorInput.value,
         };
-        tackleItems.push(newGear);
-        saveData('tacklebox', tackleItems);
+
+        if (editingGearId) {
+            // Update existing item
+            tackleItems = tackleItems.map(item => item.id === editingGearId ? gearData : item);
+        } else {
+            // Add new item
+            tackleItems.push(gearData);
+        }
+
+        saveTackleData(tackleItems);
         renderGear();
-        populateGearDropdown();
-        addGearForm.reset();
+        resetForm();
     });
 
-    // Log Catch
-    logCatchForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const newCatch = {
-            id: Date.now(),
-            species: catchSpeciesInput.value,
-            length: catchLengthInput.value,
-            gearId: parseInt(gearSelectDropdown.value, 10),
-        };
-        loggedCatches.push(newCatch);
-        saveData('catches', loggedCatches);
-        renderCatches();
-        logCatchForm.reset();
-    });
+    cancelEditGearBtn.addEventListener('click', resetForm);
 
-    // Delete Gear (using event delegation)
     gearList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-gear-btn')) {
-            const gearId = parseInt(e.target.dataset.id, 10);
-            tackleItems = tackleItems.filter(item => item.id !== gearId);
-            saveData('tacklebox', tackleItems);
-            renderGear();
-            populateGearDropdown();
-            // Also need to re-render catches in case the deleted gear was used
-            renderCatches();
+        const target = e.target;
+        const id = parseInt(target.dataset.id, 10);
+
+        if (target.classList.contains('edit-gear-btn')) {
+            editGear(id);
+        }
+
+        if (target.classList.contains('delete-gear-btn')) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                tackleItems = tackleItems.filter(item => item.id !== id);
+                saveTackleData(tackleItems);
+                renderGear();
+            }
         }
     });
 
-    // ---
-    // Initial Render
-    // ---
-    renderGear();
-    renderCatches();
-    populateGearDropdown();
 });
