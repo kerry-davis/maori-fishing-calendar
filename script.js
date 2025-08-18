@@ -482,6 +482,7 @@ function saveTrip() {
         clearTripForm();
         displayTrips(date);
         renderCalendar();
+        updateOpenTripLogButton(date);
         const successMsg = document.getElementById('save-trip-success-msg');
         successMsg.classList.remove('hidden');
         setTimeout(() => {
@@ -1115,6 +1116,19 @@ function checkIfTripsExist(date, callback) {
     };
 }
 
+function updateOpenTripLogButton(dateStr) {
+    checkIfTripsExist(dateStr, (tripsExist) => {
+        const openTripLogBtn = document.getElementById('open-trip-log-btn');
+        if (openTripLogBtn) {
+            if (tripsExist) {
+                openTripLogBtn.innerHTML = '<i class="fas fa-book-open mr-2"></i> View / Manage Trip Log';
+            } else {
+                openTripLogBtn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Create Trip Log';
+            }
+        }
+    });
+}
+
 function showTripLogModal() {
     const tripLogModal = document.getElementById('tripLogModal');
     if (!tripLogModal) return;
@@ -1194,16 +1208,7 @@ function showModal(day, month, year) {
     }
 
     const dateStrForDisplay = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-    checkIfTripsExist(dateStrForDisplay, (tripsExist) => {
-        const openTripLogBtn = document.getElementById('open-trip-log-btn');
-        if (openTripLogBtn) {
-            if (tripsExist) {
-                openTripLogBtn.innerHTML = '<i class="fas fa-book-open mr-2"></i> View / Manage Trip Log';
-            } else {
-                openTripLogBtn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Create Trip Log';
-            }
-        }
-    });
+    updateOpenTripLogButton(dateStrForDisplay);
 
     updateNavigationButtons();
     openModalWithAnimation(lunarModal);
