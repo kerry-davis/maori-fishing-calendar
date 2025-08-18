@@ -384,8 +384,40 @@
                 </div>
             </div>
             <div id="analytics-content" class="p-6 overflow-y-auto space-y-8">
-                <!-- Analytics content will be injected here -->
-                <p class="text-gray-500 dark:text-gray-400">Loading analytics...</p>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Performance by Moon Phase</h4>
+                    <canvas id="moon-phase-chart"></canvas>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Catch Breakdown</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div>
+                            <h5 class="font-semibold mb-2 text-center">By Species</h5>
+                            <canvas id="species-chart"></canvas>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold mb-2 text-center">By Location</h5>
+                            <canvas id="location-chart"></canvas>
+                        </div>
+                        <div class="md:col-span-2">
+                            <h5 class="font-semibold mb-2 text-center">By Weather Condition</h5>
+                            <canvas id="weather-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-xl font-semibold mb-4">Personal Bests</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                        <div id="personal-best-fish" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <p class="font-bold text-lg">Largest Fish</p>
+                            <p>Loading...</p>
+                        </div>
+                        <div id="personal-best-trip" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <p class="font-bold text-lg">Most Fish in a Trip</p>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

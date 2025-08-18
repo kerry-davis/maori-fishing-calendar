@@ -1642,6 +1642,150 @@ function getAllData(storeName) {
     });
 }
 
+let activeCharts = {};
+
+function destroyActiveCharts() {
+    Object.values(activeCharts).forEach(chart => chart.destroy());
+    activeCharts = {};
+}
+
+function loadAnalytics(allTrips, allWeather, allFish) {
+    destroyActiveCharts(); // Clear previous charts
+
+    // 1. Performance by Moon Phase
+    const moonPhaseData = {};
+    allTrips.forEach(trip => {
+        const date = new Date(trip.date);
+        const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
+        const fishCount = parseInt(trip.totalFish, 10) || 0;
+        if (moonPhaseData[moonPhase]) {
+            moonPhaseData[moonPhase].trips++;
+            moonPhaseData[moonPhase].fish += fishCount;
+        } else {
+            moonPhaseData[moonPhase] = { trips: 1, fish: fishCount };
+        }
+    });
+
+    const moonLabels = Object.keys(moonPhaseData);
+    const avgFishPerTrip = moonLabels.map(phase => {
+        const data = moonPhaseData[phase];
+        return data.trips > 0 ? (data.fish / data.trips).toFixed(2) : 0;
+    });
+
+    const moonPhaseCtx = document.getElementById('moon-phase-chart').getContext('2d');
+    activeCharts.moonPhase = new Chart(moonPhaseCtx, {
+        type: 'bar',
+        data: {
+            labels: moonLabels,
+            datasets: [{
+                label: 'Average Fish Per Trip',
+                data: avgFishPerTrip,
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+
+    // 2. Catch Breakdown
+    const speciesData = {};
+    const locationData = {};
+    allFish.forEach(fish => {
+        // Species
+        const species = fish.species || 'Unknown';
+        speciesData[species] = (speciesData[species] || 0) + 1;
+        // Location
+        const trip = allTrips.find(t => t.id === fish.tripId);
+        if (trip) {
+            const location = trip.location || 'Unknown';
+            locationData[location] = (locationData[location] || 0) + 1;
+        }
+    });
+
+    const speciesCtx = document.getElementById('species-chart').getContext('2d');
+    activeCharts.species = new Chart(speciesCtx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(speciesData),
+            datasets: [{
+                data: Object.values(speciesData),
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+            }]
+        }
+    });
+
+    const locationCtx = document.getElementById('location-chart').getContext('2d');
+    activeCharts.location = new Chart(locationCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(locationData),
+            datasets: [{
+                label: 'Fish Caught',
+                data: Object.values(locationData),
+                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+
+
+    // Weather Breakdown
+    const weatherData = {};
+    allWeather.forEach(weather => {
+        const condition = weather.sky || 'Unknown';
+        const tripFish = allFish.filter(f => f.tripId === weather.tripId).length;
+        weatherData[condition] = (weatherData[condition] || 0) + tripFish;
+    });
+
+    const weatherCtx = document.getElementById('weather-chart').getContext('2d');
+    activeCharts.weather = new Chart(weatherCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(weatherData),
+            datasets: [{
+                label: 'Total Fish Caught',
+                data: Object.values(weatherData),
+                backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                borderColor: 'rgba(153, 102, 255, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: { scales: { y: { beginAtZero: true } } }
+    });
+
+
+    // 3. Personal Bests
+    const bestFishEl = document.getElementById('personal-best-fish');
+    const bestTripEl = document.getElementById('personal-best-trip');
+
+    let largestFish = { weight: 0, length: 0, species: 'N/A' };
+    allFish.forEach(fish => {
+        const weight = parseFloat(fish.weight) || 0;
+        if (weight > largestFish.weight) {
+            largestFish = fish;
+        }
+    });
+    bestFishEl.innerHTML = `
+        <p class="font-bold text-lg">Largest Fish</p>
+        <p>${largestFish.species} (${largestFish.weight || 'N/A'} kg, ${largestFish.length || 'N/A'} cm)</p>
+    `;
+
+    let mostFishTrip = { totalFish: 0, date: 'N/A' };
+    allTrips.forEach(trip => {
+        const total = parseInt(trip.totalFish, 10) || 0;
+        if (total > mostFishTrip.totalFish) {
+            mostFishTrip = trip;
+        }
+    });
+    bestTripEl.innerHTML = `
+        <p class="font-bold text-lg">Most Fish in a Trip</p>
+        <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
+    `;
+}
+
 async function performSearch(query) {
     const resultsContainer = document.getElementById('search-results-container');
     resultsContainer.innerHTML = '<p>Searching...</p>';
