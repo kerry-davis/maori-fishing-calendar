@@ -914,8 +914,11 @@ function setupEventListeners() {
                 const allTrips = await getAllData('trips');
                 const allFish = await getAllData('fish_caught');
 
-                if (allTrips.length === 0 && allFish.length === 0) {
-                    alert("No analytics data to display. Please log some fishing trips first!");
+                const hasFishData = allFish.length > 0;
+                const hasTripFishCount = allTrips.some(trip => parseInt(trip.totalFish, 10) > 0);
+
+                if (!hasFishData && !hasTripFishCount) {
+                    alert("No fish have been logged. Analytics requires catch data to be displayed.");
                     return;
                 }
 
