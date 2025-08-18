@@ -3,10 +3,10 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - feat/rebuild-maori-fishing-calendar   # your PR branch
   pull_request:
     branches:
-      - main
+      - feat/rebuild-maori-fishing-calendar
   workflow_dispatch:
 
 jobs:
@@ -23,16 +23,18 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        working-directory: .   # root
 
       - name: Build Astro site
         run: npm run build
+        working-directory: .   # root
         env:
           BASE_URL: "/"   # root deployment
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./dist   # Astro builds into ./dist by default
+          path: ./dist   # Astro builds here by default
 
   deploy:
     needs: build
