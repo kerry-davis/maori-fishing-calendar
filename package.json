@@ -11,5 +11,9 @@
   },
   "dependencies": {
     "astro": "^4.5.0"
+  },
+  "devDependencies": {
+    "@astrojs/preact": "^4.1.0",
+    "preact": "^10.27.0"
   }
 }
