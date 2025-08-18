@@ -1,52 +1,58 @@
-name: Deploy to GitHub Pages
+name: Deploy GitHub Pages
 
 on:
   push:
     branches:
-      - feat/rebuild-maori-fishing-calendar   # your PR branch
+      - main
   pull_request:
-    branches:
-      - feat/rebuild-maori-fishing-calendar
-  workflow_dispatch:
+    types: [opened, synchronize, reopened]
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
+      # 1. Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Node.js
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '18'
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: npm install
-        working-directory: .   # root
+        working-directory: .
 
+      # 4. Set BASE_URL dynamically
+      - name: Set BASE_URL
+        id: base-url
+        run: |
+          if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "BASE_URL=/"
+          else
+            echo "BASE_URL=/pr-${{ github.event.pull_request.number }}/"
+          fi
+          echo "BASE_URL=$BASE_URL" >> $GITHUB_ENV
+
+      # 5. Build Astro site
       - name: Build Astro site
         run: npm run build
-        working-directory: .   # root
+        working-directory: .
         env:
-          BASE_URL: "/"   # root deployment
+          BASE_URL: ${{ env.BASE_URL }}
 
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist   # Astro builds here by default
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
+      # 6. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          path: ./dist
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 7. Output preview URL if PR
+      - name: Show preview URL
+        if: github.event_name == 'pull_reque
 
