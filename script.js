@@ -1008,7 +1008,9 @@ function setupEventListeners() {
 }
 
 function updateCurrentMoonInfo() {
-    const moonData = getMoonPhaseData(new Date());
+    const today = new Date();
+    const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const moonData = getMoonPhaseData(todayAtMidnight);
     const lunarPhase = lunarPhases[moonData.phaseIndex];
     currentMoonPhase.textContent = lunarPhase.name;
     currentMoonAge.textContent = `Moon age: ${moonData.moonAge.toFixed(1)} days`;
