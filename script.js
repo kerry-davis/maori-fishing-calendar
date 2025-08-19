@@ -1495,45 +1495,55 @@ function openFishModal(tripId, fishId = null) {
 
     const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
 
-    if (tacklebox.length > 0) {
-        // Create dropdown
-        const select = document.createElement('select');
-        select.id = 'fish-gear-select';
-        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100';
+    const gearLabel = document.createElement('label');
+    gearLabel.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
+    gearLabel.textContent = 'Gear / Lure Used';
+    gearContainer.appendChild(gearLabel);
 
-        const defaultOption = document.createElement('option');
-        defaultOption.value = '';
-        defaultOption.textContent = 'Select Gear or Lure';
-        select.appendChild(defaultOption);
+    if (tacklebox.length > 0) {
+        const checkboxContainer = document.createElement('div');
+        checkboxContainer.id = 'fish-gear-checkbox-container';
+        checkboxContainer.className = 'space-y-2 p-2 border rounded dark:border-gray-500 max-h-32 overflow-y-auto';
 
         tacklebox.forEach(gear => {
-            const option = document.createElement('option');
-            option.value = gear.name; // Keep the value simple for saving
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center';
 
-            // Build the detailed display text
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `gear-${gear.id}`;
+            checkbox.name = 'fish-gear';
+            checkbox.value = gear.name;
+            checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600';
+
+            const label = document.createElement('label');
+            label.htmlFor = `gear-${gear.id}`;
+            label.className = 'ml-2 block text-sm text-gray-900 dark:text-gray-300';
+
             const details = [];
             if (gear.brand) details.push(gear.brand);
             if (gear.type) details.push(gear.type);
             if (gear.color) details.push(gear.color);
-
             let displayText = gear.name;
             if (details.length > 0) {
                 displayText += ` (${details.join(', ')})`;
             }
+            label.textContent = displayText;
 
-            option.textContent = displayText;
-            select.appendChild(option);
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            checkboxContainer.appendChild(itemDiv);
         });
-        gearContainer.appendChild(select);
-    } else {
-        // Create text input as a fallback
-        const input = document.createElement('input');
-        input.type = 'text';
-        input.id = 'fish-bait'; // Keep original id for save function
-        input.placeholder = 'Bait/Lure Used';
-        input.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500';
-        gearContainer.appendChild(input);
+        gearContainer.appendChild(checkboxContainer);
     }
+
+    // Add a text input for bait/lure not in tacklebox, or if tacklebox is empty
+    const baitInput = document.createElement('input');
+    baitInput.type = 'text';
+    baitInput.id = 'fish-bait';
+    baitInput.placeholder = 'Other Bait/Lure (e.g., live bait)';
+    baitInput.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 mt-2';
+    gearContainer.appendChild(baitInput);
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
@@ -1542,28 +1552,42 @@ function openFishModal(tripId, fishId = null) {
         const request = store.get(fishId);
         request.onsuccess = () => {
             const data = request.result;
-            document.getElementById('fish-species').value = data.species;
+            if (!data) return;
 
-            // Set value for either dropdown or input
-            const gearInput = document.getElementById('fish-gear-select') || document.getElementById('fish-bait');
-            if (gearInput) {
-                gearInput.value = data.bait || '';
+            document.getElementById('fish-species').value = data.species || '';
+            document.getElementById('fish-length').value = data.length || '';
+            document.getElementById('fish-weight').value = data.weight || '';
+            document.getElementById('fish-time').value = data.time || '';
+            document.getElementById('fish-details').value = data.details || '';
+
+            // Handle populating gear checkboxes and text field
+            const gearUsed = data.gear || (data.bait ? [data.bait] : []);
+            const customBaits = [];
+
+            gearUsed.forEach(gearName => {
+                // Use CSS.escape to handle special characters in gear names
+                const checkbox = document.querySelector(`input[name="fish-gear"][value="${CSS.escape(gearName)}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                } else {
+                    customBaits.push(gearName);
+                }
+            });
+
+            const otherBaitInput = document.getElementById('fish-bait');
+            if (otherBaitInput) {
+                otherBaitInput.value = customBaits.join(', ');
             }
-
-            document.getElementById('fish-length').value = data.length;
-            document.getElementById('fish-weight').value = data.weight;
-            document.getElementById('fish-time').value = data.time;
-            document.getElementById('fish-details').value = data.details;
         };
     } else {
         modalTitle.textContent = 'Add Fish';
-        // Clear form fields
+        // Clear form fields for adding a new fish
         document.getElementById('fish-species').value = '';
-        // The gear input is already cleared or set to default by recreating it
         document.getElementById('fish-length').value = '';
         document.getElementById('fish-weight').value = '';
         document.getElementById('fish-time').value = '';
         document.getElementById('fish-details').value = '';
+        // Checkboxes and bait input are already cleared because the modal is recreated
     }
 
     openModalWithAnimation(fishModal);
@@ -1578,13 +1602,20 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    const gearInput = document.getElementById('fish-gear-select') || document.getElementById('fish-bait');
-    const baitValue = gearInput ? gearInput.value : '';
+    // Get selected gear from checkboxes
+    const selectedGear = [...document.querySelectorAll('input[name="fish-gear"]:checked')].map(cb => cb.value);
+
+    // Get value from the "other bait" text input
+    const otherBaitInput = document.getElementById('fish-bait');
+    const otherBaitValue = otherBaitInput ? otherBaitInput.value.trim() : '';
+    if (otherBaitValue) {
+        selectedGear.push(otherBaitValue);
+    }
 
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        bait: baitValue,
+        gear: selectedGear, // Use the new 'gear' property
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
@@ -1639,7 +1670,11 @@ function displayFishForTrip(tripId) {
                 if (sizeParts.length > 0) {
                     content += `<div>${sizeParts.join(' / ')}</div>`;
                 }
-                if(log.bait) content += `<div>Bait: ${log.bait}</div>`;
+                if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
+                    content += `<div>Bait/Lure: ${log.gear.join(', ')}</div>`;
+                } else if (log.bait) { // Backward compatibility
+                    content += `<div>Bait/Lure: ${log.bait}</div>`;
+                }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
 
