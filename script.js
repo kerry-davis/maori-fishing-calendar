@@ -1487,8 +1487,41 @@ function deleteWeather(weatherId, tripId) {
 function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
+    const gearContainer = document.getElementById('fish-gear-container');
+    gearContainer.innerHTML = ''; // Clear previous content
+
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
+
+    const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+
+    if (tacklebox.length > 0) {
+        // Create dropdown
+        const select = document.createElement('select');
+        select.id = 'fish-gear-select';
+        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100';
+
+        const defaultOption = document.createElement('option');
+        defaultOption.value = '';
+        defaultOption.textContent = 'Select Gear or Lure';
+        select.appendChild(defaultOption);
+
+        tacklebox.forEach(gear => {
+            const option = document.createElement('option');
+            option.value = gear.name;
+            option.textContent = gear.name;
+            select.appendChild(option);
+        });
+        gearContainer.appendChild(select);
+    } else {
+        // Create text input as a fallback
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'fish-bait'; // Keep original id for save function
+        input.placeholder = 'Bait/Lure Used';
+        input.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500';
+        gearContainer.appendChild(input);
+    }
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
@@ -1498,7 +1531,13 @@ function openFishModal(tripId, fishId = null) {
         request.onsuccess = () => {
             const data = request.result;
             document.getElementById('fish-species').value = data.species;
-            document.getElementById('fish-bait').value = data.bait;
+
+            // Set value for either dropdown or input
+            const gearInput = document.getElementById('fish-gear-select') || document.getElementById('fish-bait');
+            if (gearInput) {
+                gearInput.value = data.bait || '';
+            }
+
             document.getElementById('fish-length').value = data.length;
             document.getElementById('fish-weight').value = data.weight;
             document.getElementById('fish-time').value = data.time;
@@ -1508,7 +1547,7 @@ function openFishModal(tripId, fishId = null) {
         modalTitle.textContent = 'Add Fish';
         // Clear form fields
         document.getElementById('fish-species').value = '';
-        document.getElementById('fish-bait').value = '';
+        // The gear input is already cleared or set to default by recreating it
         document.getElementById('fish-length').value = '';
         document.getElementById('fish-weight').value = '';
         document.getElementById('fish-time').value = '';
@@ -1527,10 +1566,13 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
+    const gearInput = document.getElementById('fish-gear-select') || document.getElementById('fish-bait');
+    const baitValue = gearInput ? gearInput.value : '';
+
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        bait: document.getElementById('fish-bait').value,
+        bait: baitValue,
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
