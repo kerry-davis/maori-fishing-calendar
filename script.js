@@ -1502,6 +1502,10 @@ function openFishModal(tripId, fishId = null) {
         }
     });
 
+    if (gearSelectionContainer.innerHTML === '') {
+        gearSelectionContainer.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400">No gear in your Tackle Box. Add some gear to select it here.</p>`;
+    }
+
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
         const transaction = db.transaction(['fish_caught'], 'readonly');
