@@ -1854,6 +1854,18 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
     // 1. Performance by Moon Phase
+    const totalFish = allTrips.reduce((sum, trip) => sum + (parseInt(trip.totalFish, 10) || 0), 0);
+    const overallAverage = allTrips.length > 0 ? totalFish / allTrips.length : 0;
+
+    const moonPhaseChartEl = document.getElementById('moon-phase-chart');
+    const moonPhaseSection = moonPhaseChartEl.parentElement;
+
+    if (overallAverage > 1) {
+        moonPhaseSection.style.display = '';
+    } else {
+        moonPhaseSection.style.display = 'none';
+    }
+
     const moonPhaseData = {};
     allTrips.forEach(trip => {
         const date = new Date(trip.date);
