@@ -901,7 +901,8 @@ function setupEventListeners() {
     const fishModal = document.getElementById('fishModal');
     if (fishModal) {
         fishModal.addEventListener('click', (e) => {
-            if (e.target.id === 'open-gear-modal-btn') {
+            const openBtn = e.target.closest('#open-gear-modal-btn');
+            if (openBtn) {
                 openGearSelectionModal();
             }
         });
