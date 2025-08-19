@@ -1504,7 +1504,7 @@ function openFishModal(tripId, fishId = null) {
         const select = document.createElement('select');
         select.id = 'fish-gear-select';
         select.multiple = true;
-        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 h-32';
+        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 h-24';
 
         // Sort tacklebox alphabetically
         tacklebox.sort((a, b) => a.name.localeCompare(b.name));
