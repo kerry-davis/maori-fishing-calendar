@@ -1,0 +1,9 @@
+/* This file will contain the CSS for the Tackle Box modal. */
+
+#tacklebox-details-forms > form {
+    display: none; /* Hide forms by default */
+}
+
+#tacklebox-details-forms > form.active {
+    display: block;
+}
