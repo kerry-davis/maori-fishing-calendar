@@ -55,7 +55,7 @@ let modalCurrentDay = null;
 let modalCurrentMonth = null;
 let modalCurrentYear = null;
 
-let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalCloseBtn, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
+let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -640,7 +640,6 @@ function initDOMElements() {
     nextMonthButton = document.getElementById('nextMonth');
     lunarModal = document.getElementById('lunarModal');
     closeModal = document.getElementById('closeModal');
-    modalCloseBtn = document.getElementById('modalCloseBtn');
     modalTitle = document.getElementById('modalTitle');
     modalSummary = document.getElementById('modalSummary');
     modalDate = document.getElementById('modalDate');
@@ -770,7 +769,6 @@ function setupEventListeners() {
         renderCalendar();
     });
     closeModal.addEventListener('click', hideModal);
-    modalCloseBtn.addEventListener('click', hideModal);
     lunarModal.addEventListener('click', handleModalClicks);
 
     modalPrevDay.addEventListener('click', showPreviousDay);
