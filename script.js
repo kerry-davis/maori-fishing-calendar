@@ -534,7 +534,7 @@ function displayTrips(date) {
                         <div id="fish-list-${trip.id}" class="space-y-2">
                             <!-- Fish logs will be displayed here -->
                         </div>
-                        <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
+                        <button data-action="add-fish" data-trip-id="${trip.id}" class="add-fish-btn mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
                     </div>
                     <div class="mt-3 border-t dark:border-gray-700 pt-3">
                         <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
@@ -543,6 +543,15 @@ function displayTrips(date) {
                 `;
                 tripEl.innerHTML = content;
                 tripLogList.appendChild(tripEl);
+
+                // Add direct event listener to the "Add Fish" button
+                const addFishBtn = tripEl.querySelector('.add-fish-btn');
+                if (addFishBtn) {
+                    addFishBtn.addEventListener('click', () => {
+                        openFishModal(trip.id);
+                    });
+                }
+
                 displayWeatherForTrip(trip.id);
                 displayFishForTrip(trip.id);
             });
@@ -678,7 +687,6 @@ function handleTripLogClicks(e) {
     if (action === 'edit-weather') openWeatherModal(tripId, parseInt(target.dataset.weatherId, 10));
     if (action === 'delete-weather') deleteWeather(parseInt(target.dataset.weatherId, 10), tripId);
 
-    if (action === 'add-fish') openFishModal(tripId);
     if (action === 'edit-fish') openFishModal(tripId, parseInt(target.dataset.fishId, 10));
     if (action === 'delete-fish') deleteFish(parseInt(target.dataset.fishId, 10), tripId);
 
