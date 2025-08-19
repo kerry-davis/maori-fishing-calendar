@@ -79,6 +79,9 @@ body.modal-open {
     opacity: 1;
     transform: scale(1);
     }
+    .modal-close-button {
+        z-index: 60;
+    }
     .moon-phase-info {
         font-size: 0.85rem;
         color: #6b7280;
