@@ -898,6 +898,15 @@ function setupEventListeners() {
         saveFishBtn.addEventListener('click', saveFish);
     }
 
+    const fishModal = document.getElementById('fishModal');
+    if (fishModal) {
+        fishModal.addEventListener('click', (e) => {
+            if (e.target.id === 'open-gear-modal-btn') {
+                openGearSelectionModal();
+            }
+        });
+    }
+
     const closeFishModalBtn = document.getElementById('close-fish-modal-btn');
     if (closeFishModalBtn) {
         closeFishModalBtn.addEventListener('click', closeFishModal);
@@ -1561,7 +1570,6 @@ function openFishModal(tripId, fishId = null) {
     openGearModalBtn.id = 'open-gear-modal-btn';
     openGearModalBtn.textContent = 'Select...';
     openGearModalBtn.className = 'px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition';
-    openGearModalBtn.addEventListener('click', openGearSelectionModal);
     gearDisplayWrapper.appendChild(openGearModalBtn);
 
     gearContainer.appendChild(gearDisplayWrapper);
