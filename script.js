@@ -1123,6 +1123,7 @@ function showModal(day, month, year) {
     modalQuality.className = `inline-block px-2 py-1 rounded text-white text-sm font-bold mt-1 quality-${lunarPhase.quality.toLowerCase()}`;
     modalMoonAge.textContent = `Moon age: ${moonData.moonAge.toFixed(1)} days`;
     modalMoonIllumination.textContent = `Illumination: ${(moonData.illumination * 100).toFixed(1)}%`;
+    document.getElementById('modalMaoriMoonPhase').textContent = lunarPhase.name;
 
     const locationInput = document.getElementById('location-input');
     if (userLocation && userLocation.name) {
@@ -1967,18 +1968,49 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         locationChartParent.style.display = '';
         const locationCtx = locationChartEl.getContext('2d');
         activeCharts.location = new Chart(locationCtx, {
-            type: 'bar',
+            type: 'pie',
             data: {
                 labels: locationKeys,
                 datasets: [{
                     label: 'Fish Caught',
                     data: Object.values(locationData),
-                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    borderWidth: 1
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
                 }]
-            },
-            options: { scales: { y: { beginAtZero: true } } }
+            }
+        });
+    }
+
+    // Gear Breakdown
+    const gearData = {};
+    allFish.forEach(fish => {
+        if (fish.gear && fish.gear.length > 0) {
+            fish.gear.forEach(gearName => {
+                const name = gearName || 'Unknown';
+                gearData[name] = (gearData[name] || 0) + 1;
+            });
+        }
+    });
+
+    const gearChartEl = document.getElementById('gear-chart');
+    const gearChartParent = gearChartEl.parentElement;
+    const gearKeys = Object.keys(gearData);
+    let isGearDataAvailable = true;
+
+    if (gearKeys.length === 0 || (gearKeys.length === 1 && gearKeys[0] === 'Unknown')) {
+        gearChartParent.style.display = 'none';
+        isGearDataAvailable = false;
+    } else {
+        gearChartParent.style.display = '';
+        const gearCtx = gearChartEl.getContext('2d');
+        activeCharts.gear = new Chart(gearCtx, {
+            type: 'pie',
+            data: {
+                labels: gearKeys,
+                datasets: [{
+                    data: Object.values(gearData),
+                    backgroundColor: ['#FF9F40', '#FFCD56', '#4BC0C0', '#9966FF', '#C9CBCF', '#FF6384'],
+                }]
+            }
         });
     }
 
@@ -2022,7 +2054,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     // Hide the entire "Catch Breakdown" section if no data is available for any chart
     const catchBreakdownSection = document.getElementById('catch-breakdown-section');
-    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable) {
+    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable && !isGearDataAvailable) {
         catchBreakdownSection.style.display = 'none';
     } else {
         catchBreakdownSection.style.display = '';
