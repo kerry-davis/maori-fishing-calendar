@@ -1854,6 +1854,18 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
     // 1. Performance by Moon Phase
+    const totalFish = allTrips.reduce((sum, trip) => sum + (parseInt(trip.totalFish, 10) || 0), 0);
+    const overallAverage = allTrips.length > 0 ? totalFish / allTrips.length : 0;
+
+    const moonPhaseChartEl = document.getElementById('moon-phase-chart');
+    const moonPhaseSection = moonPhaseChartEl.parentElement;
+
+    if (overallAverage > 1) {
+        moonPhaseSection.style.display = '';
+    } else {
+        moonPhaseSection.style.display = 'none';
+    }
+
     const moonPhaseData = {};
     allTrips.forEach(trip => {
         const date = new Date(trip.date);
@@ -1904,33 +1916,55 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         }
     });
 
-    const speciesCtx = document.getElementById('species-chart').getContext('2d');
-    activeCharts.species = new Chart(speciesCtx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(speciesData),
-            datasets: [{
-                data: Object.values(speciesData),
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
-            }]
-        }
-    });
+    const speciesChartEl = document.getElementById('species-chart');
+    const speciesChartParent = speciesChartEl.parentElement;
+    const speciesKeys = Object.keys(speciesData);
+    let isSpeciesDataAvailable = true;
 
-    const locationCtx = document.getElementById('location-chart').getContext('2d');
-    activeCharts.location = new Chart(locationCtx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(locationData),
-            datasets: [{
-                label: 'Fish Caught',
-                data: Object.values(locationData),
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
+    if (speciesKeys.length === 0 || (speciesKeys.length === 1 && speciesKeys[0] === 'Unknown')) {
+        speciesChartParent.style.display = 'none';
+        isSpeciesDataAvailable = false;
+    } else {
+        speciesChartParent.style.display = '';
+        const speciesCtx = speciesChartEl.getContext('2d');
+        activeCharts.species = new Chart(speciesCtx, {
+            type: 'pie',
+            data: {
+                labels: speciesKeys,
+                datasets: [{
+                    data: Object.values(speciesData),
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+                }]
+            }
+        });
+    }
+
+    const locationChartEl = document.getElementById('location-chart');
+    const locationChartParent = locationChartEl.parentElement;
+    const locationKeys = Object.keys(locationData);
+    let isLocationDataAvailable = true;
+
+    if (locationKeys.length === 0 || (locationKeys.length === 1 && locationKeys[0] === 'Unknown')) {
+        locationChartParent.style.display = 'none';
+        isLocationDataAvailable = false;
+    } else {
+        locationChartParent.style.display = '';
+        const locationCtx = locationChartEl.getContext('2d');
+        activeCharts.location = new Chart(locationCtx, {
+            type: 'bar',
+            data: {
+                labels: locationKeys,
+                datasets: [{
+                    label: 'Fish Caught',
+                    data: Object.values(locationData),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
 
 
     // Weather Breakdown
@@ -1938,53 +1972,96 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     allWeather.forEach(weather => {
         const condition = weather.sky || 'Unknown';
         const tripFish = allFish.filter(f => f.tripId === weather.tripId).length;
-        weatherData[condition] = (weatherData[condition] || 0) + tripFish;
+        if(tripFish > 0) { // Only count conditions where fish were caught
+             weatherData[condition] = (weatherData[condition] || 0) + tripFish;
+        }
     });
 
-    const weatherCtx = document.getElementById('weather-chart').getContext('2d');
-    activeCharts.weather = new Chart(weatherCtx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(weatherData),
-            datasets: [{
-                label: 'Total Fish Caught',
-                data: Object.values(weatherData),
-                backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                borderColor: 'rgba(153, 102, 255, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
+    const weatherChartEl = document.getElementById('weather-chart');
+    const weatherChartParent = weatherChartEl.parentElement;
+    const weatherKeys = Object.keys(weatherData);
+    let isWeatherDataAvailable = true;
+
+    if (weatherKeys.length === 0 || (weatherKeys.length === 1 && weatherKeys[0] === 'Unknown')) {
+        weatherChartParent.style.display = 'none';
+        isWeatherDataAvailable = false;
+    } else {
+        weatherChartParent.style.display = '';
+        const weatherCtx = weatherChartEl.getContext('2d');
+        activeCharts.weather = new Chart(weatherCtx, {
+            type: 'bar',
+            data: {
+                labels: weatherKeys,
+                datasets: [{
+                    label: 'Total Fish Caught',
+                    data: Object.values(weatherData),
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // Hide the entire "Catch Breakdown" section if no data is available for any chart
+    const catchBreakdownSection = document.getElementById('catch-breakdown-section');
+    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable) {
+        catchBreakdownSection.style.display = 'none';
+    } else {
+        catchBreakdownSection.style.display = '';
+    }
 
 
     // 3. Personal Bests
     const bestFishEl = document.getElementById('personal-best-fish');
     const bestTripEl = document.getElementById('personal-best-trip');
+    const personalBestsSection = bestFishEl.parentElement.parentElement;
 
-    let largestFish = { weight: 0, length: 0, species: 'N/A' };
+    let largestFish = null;
     allFish.forEach(fish => {
         const weight = parseFloat(fish.weight) || 0;
-        if (weight > largestFish.weight) {
-            largestFish = fish;
+        const length = parseFloat(fish.length) || 0;
+        if (weight > 0 || length > 0) {
+            if (!largestFish || weight > (parseFloat(largestFish.weight) || 0) || (weight === (parseFloat(largestFish.weight) || 0) && length > (parseFloat(largestFish.length) || 0))) {
+                largestFish = fish;
+            }
         }
     });
-    bestFishEl.innerHTML = `
-        <p class="font-bold text-lg">Largest Fish</p>
-        <p>${largestFish.species} (${largestFish.weight || 'N/A'} kg, ${largestFish.length || 'N/A'} cm)</p>
-    `;
 
-    let mostFishTrip = { totalFish: 0, date: 'N/A' };
+    let mostFishTrip = null;
     allTrips.forEach(trip => {
         const total = parseInt(trip.totalFish, 10) || 0;
-        if (total > mostFishTrip.totalFish) {
+        if (total > 0 && (!mostFishTrip || total > (parseInt(mostFishTrip.totalFish, 10) || 0))) {
             mostFishTrip = trip;
         }
     });
-    bestTripEl.innerHTML = `
-        <p class="font-bold text-lg">Most Fish in a Trip</p>
-        <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
-    `;
+
+    if (largestFish) {
+        bestFishEl.innerHTML = `
+            <p class="font-bold text-lg">Largest Fish</p>
+            <p>${largestFish.species} (${largestFish.weight || 'N/A'}, ${largestFish.length || 'N/A'})</p>
+        `;
+        bestFishEl.style.display = '';
+    } else {
+        bestFishEl.style.display = 'none';
+    }
+
+    if (mostFishTrip) {
+        bestTripEl.innerHTML = `
+            <p class="font-bold text-lg">Most Fish in a Trip</p>
+            <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
+        `;
+        bestTripEl.style.display = '';
+    } else {
+        bestTripEl.style.display = 'none';
+    }
+
+    if (largestFish || mostFishTrip) {
+        personalBestsSection.style.display = '';
+    } else {
+        personalBestsSection.style.display = 'none';
+    }
 }
 
 async function performSearch(query) {
