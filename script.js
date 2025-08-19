@@ -1530,7 +1530,6 @@ function openFishModal(tripId, fishId = null) {
         modalTitle.textContent = 'Add Fish';
         // Clear form fields
         document.getElementById('fish-species').value = '';
-        document.getElementById('fish-bait').value = '';
         document.getElementById('fish-length').value = '';
         document.getElementById('fish-weight').value = '';
         document.getElementById('fish-time').value = '';
