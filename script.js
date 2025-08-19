@@ -873,26 +873,31 @@ function setupEventListeners() {
     }
 
     const exportBtn = document.getElementById('export-data-btn');
+    // ADDED CHECK: Ensure the export button exists before adding a listener.
     if (exportBtn) {
         exportBtn.addEventListener('click', exportData);
     }
 
     const importInput = document.getElementById('import-file-input');
+    // ADDED CHECK: Ensure the import input exists.
     if (importInput) {
         importInput.addEventListener('change', importData);
     }
 
     const saveWeatherBtn = document.getElementById('save-weather-btn');
+    // ADDED CHECK: Ensure the save weather button exists.
     if (saveWeatherBtn) {
         saveWeatherBtn.addEventListener('click', saveWeather);
     }
 
     const closeWeatherModalBtn = document.getElementById('close-weather-modal-btn');
+    // ADDED CHECK: Ensure the close weather modal button exists.
     if (closeWeatherModalBtn) {
         closeWeatherModalBtn.addEventListener('click', closeWeatherModal);
     }
 
     const saveFishBtn = document.getElementById('save-fish-btn');
+    // ADDED CHECK: Ensure the save fish button exists.
     if (saveFishBtn) {
         saveFishBtn.addEventListener('click', saveFish);
     }
@@ -908,6 +913,7 @@ function setupEventListeners() {
     }
 
     const closeFishModalBtn = document.getElementById('close-fish-modal-btn');
+    // ADDED CHECK: Ensure the close fish modal button exists.
     if (closeFishModalBtn) {
         closeFishModalBtn.addEventListener('click', closeFishModal);
     }
