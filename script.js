@@ -1497,28 +1497,21 @@ function openFishModal(tripId, fishId = null) {
 
     const gearLabel = document.createElement('label');
     gearLabel.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
-    gearLabel.textContent = 'Gear / Lure Used';
+    gearLabel.textContent = 'Gear / Lure Used (hold Ctrl/Cmd to select multiple)';
     gearContainer.appendChild(gearLabel);
 
     if (tacklebox.length > 0) {
-        const checkboxContainer = document.createElement('div');
-        checkboxContainer.id = 'fish-gear-checkbox-container';
-        checkboxContainer.className = 'space-y-2 p-2 border rounded dark:border-gray-500 max-h-32 overflow-y-auto';
+        const select = document.createElement('select');
+        select.id = 'fish-gear-select';
+        select.multiple = true;
+        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 h-32';
+
+        // Sort tacklebox alphabetically
+        tacklebox.sort((a, b) => a.name.localeCompare(b.name));
 
         tacklebox.forEach(gear => {
-            const itemDiv = document.createElement('div');
-            itemDiv.className = 'flex items-center';
-
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.id = `gear-${gear.id}`;
-            checkbox.name = 'fish-gear';
-            checkbox.value = gear.name;
-            checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600';
-
-            const label = document.createElement('label');
-            label.htmlFor = `gear-${gear.id}`;
-            label.className = 'ml-2 block text-sm text-gray-900 dark:text-gray-300';
+            const option = document.createElement('option');
+            option.value = gear.name;
 
             const details = [];
             if (gear.brand) details.push(gear.brand);
@@ -1528,13 +1521,10 @@ function openFishModal(tripId, fishId = null) {
             if (details.length > 0) {
                 displayText += ` (${details.join(', ')})`;
             }
-            label.textContent = displayText;
-
-            itemDiv.appendChild(checkbox);
-            itemDiv.appendChild(label);
-            checkboxContainer.appendChild(itemDiv);
+            option.textContent = displayText;
+            select.appendChild(option);
         });
-        gearContainer.appendChild(checkboxContainer);
+        gearContainer.appendChild(select);
     }
 
     // Add a text input for bait/lure not in tacklebox, or if tacklebox is empty
@@ -1560,19 +1550,31 @@ function openFishModal(tripId, fishId = null) {
             document.getElementById('fish-time').value = data.time || '';
             document.getElementById('fish-details').value = data.details || '';
 
-            // Handle populating gear checkboxes and text field
+            // Handle populating gear dropdown and text field
             const gearUsed = data.gear || (data.bait ? [data.bait] : []);
             const customBaits = [];
 
-            gearUsed.forEach(gearName => {
-                // Use CSS.escape to handle special characters in gear names
-                const checkbox = document.querySelector(`input[name="fish-gear"][value="${CSS.escape(gearName)}"]`);
-                if (checkbox) {
-                    checkbox.checked = true;
-                } else {
-                    customBaits.push(gearName);
-                }
-            });
+            const selectElement = document.getElementById('fish-gear-select');
+
+            if (selectElement) {
+                const gearUsedSet = new Set(gearUsed);
+                [...selectElement.options].forEach(option => {
+                    if (gearUsedSet.has(option.value)) {
+                        option.selected = true;
+                    }
+                });
+
+                // Find items that were not in the select options
+                gearUsed.forEach(gearName => {
+                    const optionExists = [...selectElement.options].some(opt => opt.value === gearName);
+                    if (!optionExists) {
+                        customBaits.push(gearName);
+                    }
+                });
+            } else {
+                // If there is no dropdown, all gear is custom
+                customBaits.push(...gearUsed);
+            }
 
             const otherBaitInput = document.getElementById('fish-bait');
             if (otherBaitInput) {
@@ -1602,8 +1604,12 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    // Get selected gear from checkboxes
-    const selectedGear = [...document.querySelectorAll('input[name="fish-gear"]:checked')].map(cb => cb.value);
+    // Get selected gear from multi-select dropdown
+    const selectElement = document.getElementById('fish-gear-select');
+    let selectedGear = [];
+    if (selectElement) {
+        selectedGear = [...selectElement.selectedOptions].map(option => option.value);
+    }
 
     // Get value from the "other bait" text input
     const otherBaitInput = document.getElementById('fish-bait');
