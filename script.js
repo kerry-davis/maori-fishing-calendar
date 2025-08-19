@@ -665,12 +665,7 @@ function initCalendar() {
     });
 }
 
-function handleModalClicks(e) {
-    if (e.target === lunarModal) {
-        hideModal();
-        return;
-    }
-
+function handleTripLogClicks(e) {
     const target = e.target.closest('button');
     if (!target) return;
 
@@ -732,7 +727,6 @@ function setupEventListeners() {
     });
     closeModal.addEventListener('click', hideModal);
     modalCloseBtn.addEventListener('click', hideModal);
-    lunarModal.addEventListener('click', handleModalClicks);
 
     modalPrevDay.addEventListener('click', showPreviousDay);
     modalNextDay.addEventListener('click', showNextDay);
@@ -962,7 +956,7 @@ function setupEventListeners() {
             }
         });
 
-        tripLogModal.addEventListener('click', handleModalClicks);
+        tripLogModal.addEventListener('click', handleTripLogClicks);
     }
 }
 

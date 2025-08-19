@@ -50,6 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const addGearTypeForm = document.getElementById('add-gear-type-form');
     const gearTypeNameInput = document.getElementById('gear-type-name');
     const gearTypeList = document.getElementById('gear-type-list');
+    const editingGearTypeNameInput = document.getElementById('editing-gear-type-name');
+    const addGearTypeBtn = document.getElementById('add-gear-type-btn');
+    const cancelEditGearTypeBtn = document.getElementById('cancel-edit-gear-type-btn');
 
     // ---
     // Functions
@@ -70,11 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
         gearTypes.forEach(type => {
             const li = document.createElement('li');
             li.className = 'flex justify-between items-center p-2 bg-gray-200 dark:bg-gray-600 rounded';
-            li.textContent = type;
-            // For now, we only add a delete button. Edit can be added later if needed.
             li.innerHTML = `
                 <span>${type}</span>
-                <button data-type="${type}" class="delete-gear-type-btn text-xs px-2 py-1 bg-red-600 text-white rounded">Delete</button>
+                <div class="actions">
+                    <button data-type="${type}" class="edit-gear-type-btn text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                    <button data-type="${type}" class="delete-gear-type-btn text-xs px-2 py-1 bg-red-600 text-white rounded">Delete</button>
+                </div>
             `;
             gearTypeList.appendChild(li);
         });
@@ -196,23 +200,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const resetGearTypeForm = () => {
+        addGearTypeForm.reset();
+        editingGearTypeNameInput.value = '';
+        addGearTypeBtn.textContent = 'Add Type';
+        cancelEditGearTypeBtn.classList.add('hidden');
+    };
+
     addGearTypeForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        const newType = gearTypeNameInput.value.trim();
-        if (newType && !gearTypes.includes(newType)) {
-            gearTypes.push(newType);
-            saveToStorage('gearTypes', gearTypes);
-            renderGearTypes();
-            gearTypeNameInput.value = '';
+        const newTypeName = gearTypeNameInput.value.trim();
+        const oldTypeName = editingGearTypeNameInput.value;
+
+        if (!newTypeName) return;
+
+        if (oldTypeName) { // We are editing
+            // Update gear types array
+            gearTypes = gearTypes.map(type => type === oldTypeName ? newTypeName : type);
+            // Update items in tacklebox
+            tackleItems = tackleItems.map(item => {
+                if (item.type === oldTypeName) {
+                    return { ...item, type: newTypeName };
+                }
+                return item;
+            });
+            saveToStorage('tacklebox', tackleItems);
+        } else { // We are adding
+            if (!gearTypes.includes(newTypeName)) {
+                gearTypes.push(newTypeName);
+            }
         }
+
+        saveToStorage('gearTypes', gearTypes);
+        renderGearTypes();
+        renderGear(); // In case item types were updated
+        resetGearTypeForm();
     });
 
+    cancelEditGearTypeBtn.addEventListener('click', resetGearTypeForm);
+
     gearTypeList.addEventListener('click', (e) => {
-        if (e.target.classList.contains('delete-gear-type-btn')) {
-            const typeToDelete = e.target.dataset.type;
-            if (confirm(`Are you sure you want to delete the "${typeToDelete}" type? This will also remove any gear of this type.`)) {
-                gearTypes = gearTypes.filter(type => type !== typeToDelete);
-                tackleItems = tackleItems.filter(item => item.type !== typeToDelete);
+        const target = e.target;
+        const typeName = target.dataset.type;
+
+        if (target.classList.contains('edit-gear-type-btn')) {
+            gearTypeNameInput.value = typeName;
+            editingGearTypeNameInput.value = typeName;
+            addGearTypeBtn.textContent = 'Update Type';
+            cancelEditGearTypeBtn.classList.remove('hidden');
+            gearTypeNameInput.focus();
+        }
+
+        if (target.classList.contains('delete-gear-type-btn')) {
+            if (confirm(`Are you sure you want to delete the "${typeName}" type? This will also remove any gear of this type.`)) {
+                gearTypes = gearTypes.filter(type => type !== typeName);
+                tackleItems = tackleItems.filter(item => item.type !== typeName);
                 saveToStorage('gearTypes', gearTypes);
                 saveToStorage('tacklebox', tackleItems);
                 renderGearTypes();

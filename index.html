@@ -303,7 +303,9 @@
                     <h4 class="text-xl font-semibold mb-3">Manage Gear Types</h4>
                     <form id="add-gear-type-form" class="flex gap-2 mb-4">
                         <input type="text" id="gear-type-name" placeholder="New gear type" class="flex-grow p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
-                        <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add Type</button>
+                        <input type="hidden" id="editing-gear-type-name">
+                        <button type="submit" id="add-gear-type-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add Type</button>
+                        <button type="button" id="cancel-edit-gear-type-btn" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 hidden">Cancel</button>
                     </form>
                     <ul id="gear-type-list" class="space-y-2"></ul>
                 </div>
