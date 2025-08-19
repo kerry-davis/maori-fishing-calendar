@@ -1904,33 +1904,55 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         }
     });
 
-    const speciesCtx = document.getElementById('species-chart').getContext('2d');
-    activeCharts.species = new Chart(speciesCtx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(speciesData),
-            datasets: [{
-                data: Object.values(speciesData),
-                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
-            }]
-        }
-    });
+    const speciesChartEl = document.getElementById('species-chart');
+    const speciesChartParent = speciesChartEl.parentElement;
+    const speciesKeys = Object.keys(speciesData);
+    let isSpeciesDataAvailable = true;
 
-    const locationCtx = document.getElementById('location-chart').getContext('2d');
-    activeCharts.location = new Chart(locationCtx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(locationData),
-            datasets: [{
-                label: 'Fish Caught',
-                data: Object.values(locationData),
-                backgroundColor: 'rgba(75, 192, 192, 0.6)',
-                borderColor: 'rgba(75, 192, 192, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
+    if (speciesKeys.length === 0 || (speciesKeys.length === 1 && speciesKeys[0] === 'Unknown')) {
+        speciesChartParent.style.display = 'none';
+        isSpeciesDataAvailable = false;
+    } else {
+        speciesChartParent.style.display = '';
+        const speciesCtx = speciesChartEl.getContext('2d');
+        activeCharts.species = new Chart(speciesCtx, {
+            type: 'pie',
+            data: {
+                labels: speciesKeys,
+                datasets: [{
+                    data: Object.values(speciesData),
+                    backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40'],
+                }]
+            }
+        });
+    }
+
+    const locationChartEl = document.getElementById('location-chart');
+    const locationChartParent = locationChartEl.parentElement;
+    const locationKeys = Object.keys(locationData);
+    let isLocationDataAvailable = true;
+
+    if (locationKeys.length === 0 || (locationKeys.length === 1 && locationKeys[0] === 'Unknown')) {
+        locationChartParent.style.display = 'none';
+        isLocationDataAvailable = false;
+    } else {
+        locationChartParent.style.display = '';
+        const locationCtx = locationChartEl.getContext('2d');
+        activeCharts.location = new Chart(locationCtx, {
+            type: 'bar',
+            data: {
+                labels: locationKeys,
+                datasets: [{
+                    label: 'Fish Caught',
+                    data: Object.values(locationData),
+                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
 
 
     // Weather Breakdown
@@ -1938,24 +1960,45 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     allWeather.forEach(weather => {
         const condition = weather.sky || 'Unknown';
         const tripFish = allFish.filter(f => f.tripId === weather.tripId).length;
-        weatherData[condition] = (weatherData[condition] || 0) + tripFish;
+        if(tripFish > 0) { // Only count conditions where fish were caught
+             weatherData[condition] = (weatherData[condition] || 0) + tripFish;
+        }
     });
 
-    const weatherCtx = document.getElementById('weather-chart').getContext('2d');
-    activeCharts.weather = new Chart(weatherCtx, {
-        type: 'bar',
-        data: {
-            labels: Object.keys(weatherData),
-            datasets: [{
-                label: 'Total Fish Caught',
-                data: Object.values(weatherData),
-                backgroundColor: 'rgba(153, 102, 255, 0.6)',
-                borderColor: 'rgba(153, 102, 255, 1)',
-                borderWidth: 1
-            }]
-        },
-        options: { scales: { y: { beginAtZero: true } } }
-    });
+    const weatherChartEl = document.getElementById('weather-chart');
+    const weatherChartParent = weatherChartEl.parentElement;
+    const weatherKeys = Object.keys(weatherData);
+    let isWeatherDataAvailable = true;
+
+    if (weatherKeys.length === 0 || (weatherKeys.length === 1 && weatherKeys[0] === 'Unknown')) {
+        weatherChartParent.style.display = 'none';
+        isWeatherDataAvailable = false;
+    } else {
+        weatherChartParent.style.display = '';
+        const weatherCtx = weatherChartEl.getContext('2d');
+        activeCharts.weather = new Chart(weatherCtx, {
+            type: 'bar',
+            data: {
+                labels: weatherKeys,
+                datasets: [{
+                    label: 'Total Fish Caught',
+                    data: Object.values(weatherData),
+                    backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    // Hide the entire "Catch Breakdown" section if no data is available for any chart
+    const catchBreakdownSection = document.getElementById('catch-breakdown-section');
+    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable) {
+        catchBreakdownSection.style.display = 'none';
+    } else {
+        catchBreakdownSection.style.display = '';
+    }
 
 
     // 3. Personal Bests
