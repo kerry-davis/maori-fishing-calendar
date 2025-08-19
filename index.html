@@ -234,6 +234,26 @@
         </div>
     </div>
 
+    <!-- Gear Selection Modal -->
+    <div id="gearSelectionModal" class="modal fixed inset-0 z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b dark:border-gray-700">
+                <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Select Gear</h3>
+            </div>
+            <div class="p-6">
+                <input type="text" id="gear-search-input" placeholder="Search gear..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400">
+            </div>
+            <div id="gear-checklist-container" class="p-6 pt-0 overflow-y-auto">
+                <!-- Checkboxes will be populated here by script -->
+            </div>
+            <div class="p-6 border-t dark:border-gray-700 mt-auto">
+                <div class="flex justify-end">
+                    <button id="done-select-gear-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Done</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Trip Log Modal -->
     <div id="tripLogModal" class="modal fixed inset-0 z-50 hidden">
         <div id="trip-log-scroll-container" class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">

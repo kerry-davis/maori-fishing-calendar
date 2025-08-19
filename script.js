@@ -46,6 +46,7 @@ let currentTripId = null;
 let currentEditingTripId = null; // For sub-modals (weather, fish)
 let currentEditingWeatherId = null;
 let currentEditingFishId = null;
+let tempSelectedGear = [];
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -717,6 +718,42 @@ function setupEventListeners() {
             if (e.target === settingsModal) {
                 closeModalWithAnimation(settingsModal);
             }
+        });
+    }
+
+    const gearSelectionModal = document.getElementById('gearSelectionModal');
+    if (gearSelectionModal) {
+        gearSelectionModal.addEventListener('click', (e) => {
+            if (e.target === gearSelectionModal) {
+                // Clicking the backdrop should not save changes, it should just close.
+                // The tempSelectedGear is only updated on "Done" click.
+                closeModalWithAnimation(gearSelectionModal);
+            }
+        });
+    }
+
+    const doneSelectGearBtn = document.getElementById('done-select-gear-btn');
+    if (doneSelectGearBtn) {
+        doneSelectGearBtn.addEventListener('click', () => {
+            const selectedCheckboxes = document.querySelectorAll('#gear-checklist-container input[type="checkbox"]:checked');
+            tempSelectedGear = [...selectedCheckboxes].map(cb => cb.value);
+            updateSelectedGearDisplay();
+            closeModalWithAnimation(document.getElementById('gearSelectionModal'));
+        });
+    }
+
+    const gearSearchInput = document.getElementById('gear-search-input');
+    if (gearSearchInput) {
+        gearSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            document.querySelectorAll('#gear-checklist-container .gear-item').forEach(item => {
+                const label = item.querySelector('label');
+                if (label.textContent.toLowerCase().includes(searchTerm)) {
+                    item.style.display = 'flex';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
         });
     }
 
@@ -1484,6 +1521,17 @@ function deleteWeather(weatherId, tripId) {
     };
 }
 
+function updateSelectedGearDisplay() {
+    const displayEl = document.getElementById('selected-gear-display');
+    if (displayEl) {
+        if (tempSelectedGear && tempSelectedGear.length > 0) {
+            displayEl.textContent = tempSelectedGear.join(', ');
+        } else {
+            displayEl.textContent = 'None selected';
+        }
+    }
+}
+
 function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
@@ -1492,42 +1540,34 @@ function openFishModal(tripId, fishId = null) {
 
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
+    tempSelectedGear = []; // Reset on open
 
-    const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
-
+    // --- New UI for gear selection ---
     const gearLabel = document.createElement('label');
     gearLabel.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
-    gearLabel.textContent = 'Gear / Lure Used (hold Ctrl/Cmd to select multiple)';
+    gearLabel.textContent = 'Gear / Lure Used';
     gearContainer.appendChild(gearLabel);
 
-    if (tacklebox.length > 0) {
-        const select = document.createElement('select');
-        select.id = 'fish-gear-select';
-        select.multiple = true;
-        select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 h-24';
+    const gearDisplayWrapper = document.createElement('div');
+    gearDisplayWrapper.className = 'flex items-center space-x-2';
 
-        // Sort tacklebox alphabetically
-        tacklebox.sort((a, b) => a.name.localeCompare(b.name));
+    const selectedGearDisplay = document.createElement('div');
+    selectedGearDisplay.id = 'selected-gear-display';
+    selectedGearDisplay.className = 'w-full p-2 border rounded bg-gray-100 dark:bg-gray-700 dark:border-gray-600 text-sm min-h-[38px]';
+    gearDisplayWrapper.appendChild(selectedGearDisplay);
 
-        tacklebox.forEach(gear => {
-            const option = document.createElement('option');
-            option.value = gear.name;
+    const openGearModalBtn = document.createElement('button');
+    openGearModalBtn.type = 'button';
+    openGearModalBtn.id = 'open-gear-modal-btn';
+    openGearModalBtn.textContent = 'Select...';
+    openGearModalBtn.className = 'px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition';
+    openGearModalBtn.addEventListener('click', openGearSelectionModal);
+    gearDisplayWrapper.appendChild(openGearModalBtn);
 
-            const details = [];
-            if (gear.brand) details.push(gear.brand);
-            if (gear.type) details.push(gear.type);
-            if (gear.color) details.push(gear.color);
-            let displayText = gear.name;
-            if (details.length > 0) {
-                displayText += ` (${details.join(', ')})`;
-            }
-            option.textContent = displayText;
-            select.appendChild(option);
-        });
-        gearContainer.appendChild(select);
-    }
+    gearContainer.appendChild(gearDisplayWrapper);
+    // --- End of new UI ---
 
-    // Add a text input for bait/lure not in tacklebox, or if tacklebox is empty
+    // Add a text input for bait/lure not in tacklebox
     const baitInput = document.createElement('input');
     baitInput.type = 'text';
     baitInput.id = 'fish-bait';
@@ -1550,31 +1590,20 @@ function openFishModal(tripId, fishId = null) {
             document.getElementById('fish-time').value = data.time || '';
             document.getElementById('fish-details').value = data.details || '';
 
-            // Handle populating gear dropdown and text field
             const gearUsed = data.gear || (data.bait ? [data.bait] : []);
+            const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+            const tackleboxGearNames = new Set(tacklebox.map(g => g.name));
             const customBaits = [];
 
-            const selectElement = document.getElementById('fish-gear-select');
+            gearUsed.forEach(gearName => {
+                if (tackleboxGearNames.has(gearName)) {
+                    tempSelectedGear.push(gearName);
+                } else {
+                    customBaits.push(gearName);
+                }
+            });
 
-            if (selectElement) {
-                const gearUsedSet = new Set(gearUsed);
-                [...selectElement.options].forEach(option => {
-                    if (gearUsedSet.has(option.value)) {
-                        option.selected = true;
-                    }
-                });
-
-                // Find items that were not in the select options
-                gearUsed.forEach(gearName => {
-                    const optionExists = [...selectElement.options].some(opt => opt.value === gearName);
-                    if (!optionExists) {
-                        customBaits.push(gearName);
-                    }
-                });
-            } else {
-                // If there is no dropdown, all gear is custom
-                customBaits.push(...gearUsed);
-            }
+            updateSelectedGearDisplay();
 
             const otherBaitInput = document.getElementById('fish-bait');
             if (otherBaitInput) {
@@ -1583,13 +1612,12 @@ function openFishModal(tripId, fishId = null) {
         };
     } else {
         modalTitle.textContent = 'Add Fish';
-        // Clear form fields for adding a new fish
         document.getElementById('fish-species').value = '';
         document.getElementById('fish-length').value = '';
         document.getElementById('fish-weight').value = '';
         document.getElementById('fish-time').value = '';
         document.getElementById('fish-details').value = '';
-        // Checkboxes and bait input are already cleared because the modal is recreated
+        updateSelectedGearDisplay();
     }
 
     openModalWithAnimation(fishModal);
@@ -1601,27 +1629,73 @@ function closeFishModal() {
     currentEditingFishId = null;
 }
 
+function openGearSelectionModal() {
+    const gearModal = document.getElementById('gearSelectionModal');
+    const checklistContainer = document.getElementById('gear-checklist-container');
+    checklistContainer.innerHTML = ''; // Clear old content
+
+    const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+    tacklebox.sort((a, b) => a.name.localeCompare(b.name));
+
+    const gearUsedSet = new Set(tempSelectedGear);
+
+    if (tacklebox.length > 0) {
+        tacklebox.forEach(gear => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'flex items-center gear-item'; // Add a class for searching
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `gear-select-${gear.id}`;
+            checkbox.name = 'gear-selection';
+            checkbox.value = gear.name;
+            checkbox.className = 'h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600';
+            if (gearUsedSet.has(gear.name)) {
+                checkbox.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.htmlFor = `gear-select-${gear.id}`;
+            label.className = 'ml-2 block text-sm text-gray-900 dark:text-gray-300';
+
+            const details = [];
+            if (gear.brand) details.push(gear.brand);
+            if (gear.type) details.push(gear.type);
+            if (gear.color) details.push(gear.color);
+            let displayText = gear.name;
+            if (details.length > 0) {
+                displayText += ` (${details.join(', ')})`;
+            }
+            label.textContent = displayText;
+
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            checklistContainer.appendChild(itemDiv);
+        });
+    } else {
+        checklistContainer.innerHTML = '<p class="text-sm text-gray-500">Your tackle box is empty. Add items in the Tackle Box section.</p>';
+    }
+
+    openModalWithAnimation(gearModal);
+}
+
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    // Get selected gear from multi-select dropdown
-    const selectElement = document.getElementById('fish-gear-select');
-    let selectedGear = [];
-    if (selectElement) {
-        selectedGear = [...selectElement.selectedOptions].map(option => option.value);
-    }
+    // The tacklebox gear is already in `tempSelectedGear` from the modal selection
+    const finalGear = [...tempSelectedGear];
 
-    // Get value from the "other bait" text input
+    // Get value from the "other bait" text input and add it
     const otherBaitInput = document.getElementById('fish-bait');
     const otherBaitValue = otherBaitInput ? otherBaitInput.value.trim() : '';
     if (otherBaitValue) {
-        selectedGear.push(otherBaitValue);
+        finalGear.push(otherBaitValue);
     }
 
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        gear: selectedGear, // Use the new 'gear' property
+        gear: finalGear,
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
