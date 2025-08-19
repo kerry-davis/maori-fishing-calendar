@@ -55,26 +55,7 @@ let modalCurrentDay = null;
 let modalCurrentMonth = null;
 let modalCurrentYear = null;
 
-const calendarDays = document.getElementById('calendarDays');
-const currentMonthElement = document.getElementById('currentMonth');
-const prevMonthButton = document.getElementById('prevMonth');
-const nextMonthButton = document.getElementById('nextMonth');
-const lunarModal = document.getElementById('lunarModal');
-const closeModal = document.getElementById('closeModal');
-const modalCloseBtn = document.getElementById('modalCloseBtn');
-const modalTitle = document.getElementById('modalTitle');
-const modalSummary = document.getElementById('modalSummary');
-const modalDate = document.getElementById('modalDate');
-const modalQuality = document.getElementById('modalQuality');
-const modalMoonAge = document.getElementById('modalMoonAge');
-const modalMoonIllumination = document.getElementById('modalMoonIllumination');
-const majorBites = document.getElementById('majorBites');
-const minorBites = document.getElementById('minorBites');
-const modalPrevDay = document.getElementById('modalPrevDay');
-const modalNextDay = document.getElementById('modalNextDay');
-const currentMoonPhase = document.getElementById('currentMoonPhase');
-const currentMoonAge = document.getElementById('currentMoonAge');
-const currentMoonIllumination = document.getElementById('currentMoonIllumination');
+let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalCloseBtn, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -652,7 +633,31 @@ function updateLocationDisplay() {
     }
 }
 
+function initDOMElements() {
+    calendarDays = document.getElementById('calendarDays');
+    currentMonthElement = document.getElementById('currentMonth');
+    prevMonthButton = document.getElementById('prevMonth');
+    nextMonthButton = document.getElementById('nextMonth');
+    lunarModal = document.getElementById('lunarModal');
+    closeModal = document.getElementById('closeModal');
+    modalCloseBtn = document.getElementById('modalCloseBtn');
+    modalTitle = document.getElementById('modalTitle');
+    modalSummary = document.getElementById('modalSummary');
+    modalDate = document.getElementById('modalDate');
+    modalQuality = document.getElementById('modalQuality');
+    modalMoonAge = document.getElementById('modalMoonAge');
+    modalMoonIllumination = document.getElementById('modalMoonIllumination');
+    majorBites = document.getElementById('majorBites');
+    minorBites = document.getElementById('minorBites');
+    modalPrevDay = document.getElementById('modalPrevDay');
+    modalNextDay = document.getElementById('modalNextDay');
+    currentMoonPhase = document.getElementById('currentMoonPhase');
+    currentMoonAge = document.getElementById('currentMoonAge');
+    currentMoonIllumination = document.getElementById('currentMoonIllumination');
+}
+
 function initCalendar() {
+    initDOMElements();
     loadLocation();
     setupEventListeners();
     setupTheme();
@@ -2229,7 +2234,7 @@ document.addEventListener('DOMContentLoaded', initCalendar);
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
