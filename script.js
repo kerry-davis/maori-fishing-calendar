@@ -1,4 +1,3 @@
-
 const lunarPhases = [
     { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
     { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing.", biteQualities: ["poor", "average", "poor", "poor"] },
@@ -55,26 +54,7 @@ let modalCurrentDay = null;
 let modalCurrentMonth = null;
 let modalCurrentYear = null;
 
-const calendarDays = document.getElementById('calendarDays');
-const currentMonthElement = document.getElementById('currentMonth');
-const prevMonthButton = document.getElementById('prevMonth');
-const nextMonthButton = document.getElementById('nextMonth');
-const lunarModal = document.getElementById('lunarModal');
-const closeModal = document.getElementById('closeModal');
-const modalCloseBtn = document.getElementById('modalCloseBtn');
-const modalTitle = document.getElementById('modalTitle');
-const modalSummary = document.getElementById('modalSummary');
-const modalDate = document.getElementById('modalDate');
-const modalQuality = document.getElementById('modalQuality');
-const modalMoonAge = document.getElementById('modalMoonAge');
-const modalMoonIllumination = document.getElementById('modalMoonIllumination');
-const majorBites = document.getElementById('majorBites');
-const minorBites = document.getElementById('minorBites');
-const modalPrevDay = document.getElementById('modalPrevDay');
-const modalNextDay = document.getElementById('modalNextDay');
-const currentMoonPhase = document.getElementById('currentMoonPhase');
-const currentMoonAge = document.getElementById('currentMoonAge');
-const currentMoonIllumination = document.getElementById('currentMoonIllumination');
+let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
 
 const monthNames = [
     "January", "February", "March", "April", "May", "June",
@@ -652,7 +632,30 @@ function updateLocationDisplay() {
     }
 }
 
+function initDOMElements() {
+    calendarDays = document.getElementById('calendarDays');
+    currentMonthElement = document.getElementById('currentMonth');
+    prevMonthButton = document.getElementById('prevMonth');
+    nextMonthButton = document.getElementById('nextMonth');
+    lunarModal = document.getElementById('lunarModal');
+    closeModal = document.getElementById('closeModal');
+    modalTitle = document.getElementById('modalTitle');
+    modalSummary = document.getElementById('modalSummary');
+    modalDate = document.getElementById('modalDate');
+    modalQuality = document.getElementById('modalQuality');
+    modalMoonAge = document.getElementById('modalMoonAge');
+    modalMoonIllumination = document.getElementById('modalMoonIllumination');
+    majorBites = document.getElementById('majorBites');
+    minorBites = document.getElementById('minorBites');
+    modalPrevDay = document.getElementById('modalPrevDay');
+    modalNextDay = document.getElementById('modalNextDay');
+    currentMoonPhase = document.getElementById('currentMoonPhase');
+    currentMoonAge = document.getElementById('currentMoonAge');
+    currentMoonIllumination = document.getElementById('currentMoonIllumination');
+}
+
 function initCalendar() {
+    initDOMElements();
     loadLocation();
     setupEventListeners();
     setupTheme();
@@ -765,7 +768,6 @@ function setupEventListeners() {
         renderCalendar();
     });
     closeModal.addEventListener('click', hideModal);
-    modalCloseBtn.addEventListener('click', hideModal);
     lunarModal.addEventListener('click', handleModalClicks);
 
     modalPrevDay.addEventListener('click', showPreviousDay);
@@ -871,26 +873,31 @@ function setupEventListeners() {
     }
 
     const exportBtn = document.getElementById('export-data-btn');
+    // ADDED CHECK: Ensure the export button exists before adding a listener.
     if (exportBtn) {
         exportBtn.addEventListener('click', exportData);
     }
 
     const importInput = document.getElementById('import-file-input');
+    // ADDED CHECK: Ensure the import input exists.
     if (importInput) {
         importInput.addEventListener('change', importData);
     }
 
     const saveWeatherBtn = document.getElementById('save-weather-btn');
+    // ADDED CHECK: Ensure the save weather button exists.
     if (saveWeatherBtn) {
         saveWeatherBtn.addEventListener('click', saveWeather);
     }
 
     const closeWeatherModalBtn = document.getElementById('close-weather-modal-btn');
+    // ADDED CHECK: Ensure the close weather modal button exists.
     if (closeWeatherModalBtn) {
         closeWeatherModalBtn.addEventListener('click', closeWeatherModal);
     }
 
     const saveFishBtn = document.getElementById('save-fish-btn');
+    // ADDED CHECK: Ensure the save fish button exists.
     if (saveFishBtn) {
         saveFishBtn.addEventListener('click', saveFish);
     }
@@ -906,6 +913,7 @@ function setupEventListeners() {
     }
 
     const closeFishModalBtn = document.getElementById('close-fish-modal-btn');
+    // ADDED CHECK: Ensure the close fish modal button exists.
     if (closeFishModalBtn) {
         closeFishModalBtn.addEventListener('click', closeFishModal);
     }
@@ -1008,7 +1016,9 @@ function setupEventListeners() {
 }
 
 function updateCurrentMoonInfo() {
-    const moonData = getMoonPhaseData(new Date());
+    const today = new Date();
+    const todayAtMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const moonData = getMoonPhaseData(todayAtMidnight);
     const lunarPhase = lunarPhases[moonData.phaseIndex];
     currentMoonPhase.textContent = lunarPhase.name;
     currentMoonAge.textContent = `Moon age: ${moonData.moonAge.toFixed(1)} days`;
@@ -1884,7 +1894,8 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     const moonPhaseData = {};
     allTrips.forEach(trip => {
-        const date = new Date(trip.date);
+        const dateParts = trip.date.split('-');
+        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
         const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
         const fishCount = fishCountByTrip[trip.id] || 0;
         if (moonPhaseData[moonPhase]) {
@@ -2020,9 +2031,43 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         });
     }
 
+    // Gear Breakdown
+    const gearData = {};
+    allFish.forEach(fish => {
+        if (fish.gear && fish.gear.length > 0) {
+            fish.gear.forEach(gearName => {
+                const name = gearName || 'Unknown';
+                gearData[name] = (gearData[name] || 0) + 1;
+            });
+        }
+    });
+
+    const gearChartEl = document.getElementById('gear-chart');
+    const gearChartParent = gearChartEl.parentElement;
+    const gearKeys = Object.keys(gearData);
+    let isGearDataAvailable = true;
+
+    if (gearKeys.length === 0 || (gearKeys.length === 1 && gearKeys[0] === 'Unknown')) {
+        gearChartParent.style.display = 'none';
+        isGearDataAvailable = false;
+    } else {
+        gearChartParent.style.display = '';
+        const gearCtx = gearChartEl.getContext('2d');
+        activeCharts.gear = new Chart(gearCtx, {
+            type: 'pie',
+            data: {
+                labels: gearKeys,
+                datasets: [{
+                    data: Object.values(gearData),
+                    backgroundColor: ['#FF9F40', '#FFCD56', '#4BC0C0', '#9966FF', '#C9CBCF', '#FF6384'],
+                }]
+            }
+        });
+    }
+
     // Hide the entire "Catch Breakdown" section if no data is available for any chart
     const catchBreakdownSection = document.getElementById('catch-breakdown-section');
-    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable) {
+    if (!isSpeciesDataAvailable && !isLocationDataAvailable && !isWeatherDataAvailable && !isGearDataAvailable) {
         catchBreakdownSection.style.display = 'none';
     } else {
         catchBreakdownSection.style.display = '';
@@ -2190,9 +2235,11 @@ function displaySearchResults(results) {
 
 document.addEventListener('DOMContentLoaded', initCalendar);
 
+// --- NEW CODE (Correct) ---
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').then(registration => {
+    // Corrected the path to be relative.
+    navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);

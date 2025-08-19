@@ -48,13 +48,15 @@
             <!-- Calendar Navigation -->
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <button id="prevMonth" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-                        <i class="fas fa-chevron-left"></i> Previous
-                    </button>
                     <h2 id="currentMonth" class="text-xl font-semibold text-gray-800 dark:text-gray-100"></h2>
-                    <button id="nextMonth" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
-                        Next <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <div class="flex space-x-2">
+                        <button id="prevMonth" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <button id="nextMonth" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Calendar Grid -->
@@ -120,20 +122,28 @@
 
     <!-- Modal for Lunar Phase Information -->
     <div id="lunarModal" class="modal fixed inset-0 z-50 hidden">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div class="p-6">
                 <!-- Modal Header with Navigation -->
                 <div class="flex justify-between items-center mb-4">
+                    <!-- Left Button -->
                     <button id="modalPrevDay" class="nav-button px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition">
                         <i class="fas fa-chevron-left"></i>
                     </button>
+                    <!-- Center Content -->
                     <div class="flex-1 text-center">
                         <h3 id="modalTitle" class="text-2xl font-bold text-gray-800 dark:text-gray-100"></h3>
                         <p id="modalSummary" class="text-sm text-gray-500 dark:text-gray-400 mt-1"></p>
                     </div>
-                    <button id="modalNextDay" class="nav-button px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
+                    <!-- Right-side Buttons Group -->
+                    <div class="flex items-center space-x-2">
+                        <button id="modalNextDay" class="nav-button px-3 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                            <i class="fas fa-times text-xl"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <div class="flex items-center mb-4">
@@ -219,15 +229,6 @@
                 <div class="border-t dark:border-gray-700 pt-4 mt-4">
                     <button id="open-trip-log-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
                         <i class="fas fa-book-open mr-2"></i> View / Manage Trip Log
-                    </button>
-                </div>
-
-                <div class="mt-6 flex justify-between items-center">
-                    <button id="modalCloseBtn" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">
-                        Close
-                    </button>
-                    <button id="closeModal" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                        <i class="fas fa-times text-xl"></i>
                     </button>
                 </div>
             </div>
@@ -491,6 +492,10 @@
                         <div>
                             <h5 class="font-semibold mb-2 text-center">By Location</h5>
                             <canvas id="location-chart"></canvas>
+                        </div>
+                        <div>
+                            <h5 class="font-semibold mb-2 text-center">By Gear</h5>
+                            <canvas id="gear-chart"></canvas>
                         </div>
                         <div class="md:col-span-2">
                             <h5 class="font-semibold mb-2 text-center">By Weather Condition</h5>
