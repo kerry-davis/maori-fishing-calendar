@@ -534,7 +534,7 @@ function displayTrips(date) {
                         <div id="fish-list-${trip.id}" class="space-y-2">
                             <!-- Fish logs will be displayed here -->
                         </div>
-                        <button data-action="add-fish" data-trip-id="${trip.id}" class="add-fish-btn mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
+                        <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
                     </div>
                     <div class="mt-3 border-t dark:border-gray-700 pt-3">
                         <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
@@ -543,15 +543,6 @@ function displayTrips(date) {
                 `;
                 tripEl.innerHTML = content;
                 tripLogList.appendChild(tripEl);
-
-                // Add direct event listener to the "Add Fish" button
-                const addFishBtn = tripEl.querySelector('.add-fish-btn');
-                if (addFishBtn) {
-                    addFishBtn.addEventListener('click', () => {
-                        openFishModal(trip.id);
-                    });
-                }
-
                 displayWeatherForTrip(trip.id);
                 displayFishForTrip(trip.id);
             });
@@ -674,7 +665,12 @@ function initCalendar() {
     });
 }
 
-function handleTripLogClicks(e) {
+function handleModalClicks(e) {
+    if (e.target === lunarModal) {
+        hideModal();
+        return;
+    }
+
     const target = e.target.closest('button');
     if (!target) return;
 
@@ -687,6 +683,7 @@ function handleTripLogClicks(e) {
     if (action === 'edit-weather') openWeatherModal(tripId, parseInt(target.dataset.weatherId, 10));
     if (action === 'delete-weather') deleteWeather(parseInt(target.dataset.weatherId, 10), tripId);
 
+    if (action === 'add-fish') openFishModal(tripId);
     if (action === 'edit-fish') openFishModal(tripId, parseInt(target.dataset.fishId, 10));
     if (action === 'delete-fish') deleteFish(parseInt(target.dataset.fishId, 10), tripId);
 
@@ -735,6 +732,7 @@ function setupEventListeners() {
     });
     closeModal.addEventListener('click', hideModal);
     modalCloseBtn.addEventListener('click', hideModal);
+    lunarModal.addEventListener('click', handleModalClicks);
 
     modalPrevDay.addEventListener('click', showPreviousDay);
     modalNextDay.addEventListener('click', showNextDay);
@@ -964,7 +962,7 @@ function setupEventListeners() {
             }
         });
 
-        tripLogModal.addEventListener('click', handleTripLogClicks);
+        tripLogModal.addEventListener('click', handleModalClicks);
     }
 }
 
@@ -1216,7 +1214,10 @@ async function renderCalendar() {
 function exportData() {
     console.log("Exporting data...");
     const storesToExport = ["trips", "weather_logs", "fish_caught"];
-    const exportData = {};
+    const exportData = {
+        indexedDB: {},
+        localStorage: {}
+    };
     const transaction = db.transaction(storesToExport, "readonly");
     let promises = [];
 
@@ -1237,6 +1238,10 @@ function exportData() {
     });
 
     Promise.all(promises).then(() => {
+        // Get data from localStorage
+        exportData.localStorage.tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+        exportData.localStorage.gearTypes = JSON.parse(localStorage.getItem('gearTypes') || '[]');
+
         const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
         const downloadAnchorNode = document.createElement('a');
         downloadAnchorNode.setAttribute("href", dataStr);
@@ -1264,14 +1269,27 @@ function importData(event) {
             const data = JSON.parse(e.target.result);
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
-            // Basic validation
-            if (typeof data !== 'object' || data === null || !storesToImport.every(store => Array.isArray(data[store]))) {
-                 throw new Error("Invalid data format: does not contain the required arrays (trips, weather_logs, fish_caught).");
+            // Basic validation for the new structure
+            if (typeof data !== 'object' || data === null || !data.indexedDB || !data.localStorage) {
+                 throw new Error("Invalid data format: must contain 'indexedDB' and 'localStorage' properties.");
             }
 
-            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data.`);
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data, including your tackle box.`);
             if (confirmed) {
-                console.log("Import confirmed. Clearing old data...");
+                // Clear localStorage
+                localStorage.removeItem('tacklebox');
+                localStorage.removeItem('gearTypes');
+
+                // Import localStorage data
+                if (data.localStorage.tacklebox) {
+                    localStorage.setItem('tacklebox', JSON.stringify(data.localStorage.tacklebox));
+                }
+                if (data.localStorage.gearTypes) {
+                    localStorage.setItem('gearTypes', JSON.stringify(data.localStorage.gearTypes));
+                }
+
+                // Clear and import IndexedDB data
+                console.log("Import confirmed. Clearing old IndexedDB data...");
                 const transaction = db.transaction(storesToImport, "readwrite");
                 let clearPromises = [];
                 let totalImportCount = 0;
@@ -1287,15 +1305,15 @@ function importData(event) {
                 });
 
                 Promise.all(clearPromises).then(() => {
-                    console.log("Old data cleared. Starting import...");
+                    console.log("Old IndexedDB data cleared. Starting import...");
                     const importTransaction = db.transaction(storesToImport, "readwrite");
+                    const dbData = data.indexedDB;
 
                     storesToImport.forEach(storeName => {
-                        const storeData = data[storeName];
-                        if (storeData) {
+                        const storeData = dbData[storeName];
+                        if (storeData && Array.isArray(storeData)) {
                             const objectStore = importTransaction.objectStore(storeName);
                             storeData.forEach(item => {
-                                // Using put() preserves the IDs from the import file
                                 objectStore.put(item);
                                 totalImportCount++;
                             });
@@ -1303,18 +1321,16 @@ function importData(event) {
                     });
 
                     importTransaction.oncomplete = () => {
-                        const message = `Successfully imported ${totalImportCount} items from "${filename}".`;
+                        const message = `Successfully imported ${totalImportCount} log items and your tackle box from "${filename}".`;
                         console.log(message);
                         alert(message);
                         renderCalendar();
-                        if (!lunarModal.classList.contains('hidden')) {
-                            hideModal();
-                        }
-                        document.getElementById('settingsModal').classList.add('hidden');
+                        // Force reload to ensure all components are aware of the new data
+                        window.location.reload();
                     };
 
                     importTransaction.onerror = (event) => {
-                        console.error("Error during data import:", event.target.error);
+                        console.error("Error during IndexedDB data import:", event.target.error);
                         alert("An error occurred during import. Data may be partially imported.");
                     };
 
@@ -1471,40 +1487,8 @@ function deleteWeather(weatherId, tripId) {
 function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
-    const gearSelectionContainer = document.getElementById('fish-gear-selection-container');
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
-
-    // Dynamically create gear dropdowns
-    gearSelectionContainer.innerHTML = ''; // Clear previous dropdowns
-    const gearTypes = JSON.parse(localStorage.getItem('gearTypes')) || ['Lure', 'Rod', 'Reel'];
-    const tackleItems = JSON.parse(localStorage.getItem('tacklebox')) || [];
-
-    gearTypes.forEach(type => {
-        const relevantItems = tackleItems.filter(item => item.type === type);
-        if (relevantItems.length > 0) {
-            const label = document.createElement('label');
-            label.textContent = type;
-            label.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300';
-
-            const select = document.createElement('select');
-            select.className = 'w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 mt-1';
-            select.dataset.gearType = type;
-
-            let optionsHtml = '<option value="">None</option>';
-            relevantItems.forEach(item => {
-                optionsHtml += `<option value="${item.id}">${item.name}</option>`;
-            });
-            select.innerHTML = optionsHtml;
-
-            gearSelectionContainer.appendChild(label);
-            gearSelectionContainer.appendChild(select);
-        }
-    });
-
-    if (gearSelectionContainer.innerHTML === '') {
-        gearSelectionContainer.innerHTML = `<p class="text-sm text-gray-500 dark:text-gray-400">No gear in your Tackle Box. Add some gear to select it here.</p>`;
-    }
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
@@ -1514,17 +1498,7 @@ function openFishModal(tripId, fishId = null) {
         request.onsuccess = () => {
             const data = request.result;
             document.getElementById('fish-species').value = data.species;
-
-            // Populate gear dropdowns with saved values
-            if (data.gearUsed && Array.isArray(data.gearUsed)) {
-                data.gearUsed.forEach(usedGear => {
-                    const select = gearSelectionContainer.querySelector(`select[data-gear-type="${usedGear.type}"]`);
-                    if (select) {
-                        select.value = usedGear.gearId;
-                    }
-                });
-            }
-
+            document.getElementById('fish-bait').value = data.bait;
             document.getElementById('fish-length').value = data.length;
             document.getElementById('fish-weight').value = data.weight;
             document.getElementById('fish-time').value = data.time;
@@ -1534,6 +1508,7 @@ function openFishModal(tripId, fishId = null) {
         modalTitle.textContent = 'Add Fish';
         // Clear form fields
         document.getElementById('fish-species').value = '';
+        document.getElementById('fish-bait').value = '';
         document.getElementById('fish-length').value = '';
         document.getElementById('fish-weight').value = '';
         document.getElementById('fish-time').value = '';
@@ -1552,22 +1527,10 @@ function closeFishModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    const gearUsed = [];
-    const gearSelects = document.querySelectorAll('#fish-gear-selection-container select');
-    gearSelects.forEach(select => {
-        if (select.value) {
-            gearUsed.push({
-                type: select.dataset.gearType,
-                gearId: parseInt(select.value, 10),
-                gearName: select.options[select.selectedIndex].text
-            });
-        }
-    });
-
     const fishData = {
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value,
-        gearUsed: gearUsed, // New property
+        bait: document.getElementById('fish-bait').value,
         length: document.getElementById('fish-length').value,
         weight: document.getElementById('fish-weight').value,
         time: document.getElementById('fish-time').value,
@@ -1622,10 +1585,7 @@ function displayFishForTrip(tripId) {
                 if (sizeParts.length > 0) {
                     content += `<div>${sizeParts.join(' / ')}</div>`;
                 }
-                if (log.gearUsed && log.gearUsed.length > 0) {
-                    const gearList = log.gearUsed.map(g => g.gearName).join(', ');
-                    content += `<div>Gear: ${gearList}</div>`;
-                }
+                if(log.bait) content += `<div>Bait: ${log.bait}</div>`;
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
 
@@ -1944,7 +1904,7 @@ function displaySearchResults(results) {
                 </div>
             </div>
             <div class="mt-2 text-sm">
-                ${fish.gearUsed && fish.gearUsed.length > 0 ? `<p><strong>Gear:</strong> ${fish.gearUsed.map(g => g.gearName).join(', ')}</p>` : ''}
+                ${fish.bait ? `<p><strong>Bait/Lure:</strong> ${fish.bait}</p>` : ''}
                 ${fish.time ? `<p><strong>Time:</strong> ${fish.time}</p>` : ''}
                 ${fish.details ? `<p><strong>Details:</strong> ${fish.details}</p>` : ''}
             </div>

@@ -1,16 +1,9 @@
 /* This file will contain the CSS for the Tackle Box modal. */
 
-#gear-type-management {
-    margin-top: 2rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
+#tacklebox-details-forms > form {
+    display: none; /* Hide forms by default */
 }
 
-.dark #gear-type-management {
-    border-color: #374151; /* gray-700 */
-}
-
-#gear-type-list .actions {
-    display: flex;
-    gap: 8px;
+#tacklebox-details-forms > form.active {
+    display: block;
 }

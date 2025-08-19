@@ -281,33 +281,56 @@
                 </div>
             </div>
             <div class="p-6 overflow-y-auto">
-                <!-- Add/Edit Gear Form -->
-                <form id="add-gear-form" class="mb-6 bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 id="tacklebox-form-title" class="text-xl font-semibold mb-3">Add New Gear</h4>
-                    <input type="hidden" id="gear-id">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input type="text" id="gear-name" placeholder="Name" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
-                        <input type="text" id="gear-brand" placeholder="Brand" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                        <select id="gear-type" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></select>
-                        <input type="text" id="gear-color" placeholder="Color" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left side: Dropdowns and Add buttons -->
+                    <div>
+                        <div class="mb-4">
+                            <label for="gear-item-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Edit Existing Gear</label>
+                            <select id="gear-item-select" class="mt-1 block w-full p-2 border rounded-md"></select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="gear-type-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Edit Existing Gear Type</label>
+                            <select id="gear-type-select" class="mt-1 block w-full p-2 border rounded-md"></select>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="add-new-gear-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Add New Gear</button>
+                            <button id="add-new-type-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add New Type</button>
+                        </div>
                     </div>
-                    <div class="flex space-x-2 mt-4">
-                        <button type="submit" id="save-gear-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Save Gear</button>
-                        <button type="button" id="cancel-edit-gear-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 hidden">Cancel Edit</button>
-                    </div>
-                </form>
-                <ul id="gear-list" class="space-y-3"></ul>
 
-                <!-- Gear Type Management -->
-                <div id="gear-type-management">
-                    <h4 class="text-xl font-semibold mb-3">Manage Gear Types</h4>
-                    <form id="add-gear-type-form" class="flex gap-2 mb-4">
-                        <input type="text" id="gear-type-name" placeholder="New gear type" class="flex-grow p-2 border rounded dark:bg-gray-600 dark:border-gray-500" required>
-                        <input type="hidden" id="editing-gear-type-name">
-                        <button type="submit" id="add-gear-type-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add Type</button>
-                        <button type="button" id="cancel-edit-gear-type-btn" class="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 hidden">Cancel</button>
-                    </form>
-                    <ul id="gear-type-list" class="space-y-2"></ul>
+                    <!-- Right side: Details and Forms -->
+                    <div id="tacklebox-details-forms" class="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                        <!-- Gear Add/Edit Form -->
+                        <form id="gear-form">
+                            <h4 id="gear-form-title" class="text-xl font-semibold mb-3"></h4>
+                            <input type="hidden" id="gear-id">
+                            <div class="space-y-3">
+                                <input type="text" id="gear-name" placeholder="Name" class="w-full p-2 border rounded" required>
+                                <input type="text" id="gear-brand" placeholder="Brand" class="w-full p-2 border rounded">
+                                <select id="gear-form-type-select" class="w-full p-2 border rounded"></select>
+                                <input type="text" id="gear-color" placeholder="Color" class="w-full p-2 border rounded">
+                            </div>
+                            <div class="flex space-x-2 mt-4">
+                                <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded">Save</button>
+                                <button type="button" id="delete-gear-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded hidden">Delete</button>
+                            </div>
+                        </form>
+                        <!-- Gear Type Add/Edit Form -->
+                        <form id="gear-type-form">
+                            <h4 id="gear-type-form-title" class="text-xl font-semibold mb-3"></h4>
+                            <input type="hidden" id="editing-gear-type-name">
+                            <div class="space-y-3">
+                                <input type="text" id="gear-type-name" placeholder="Gear type name" class="w-full p-2 border rounded" required>
+                            </div>
+                            <div class="flex space-x-2 mt-4">
+                                <button type="submit" class="flex-1 px-4 py-2 bg-green-500 text-white rounded">Save</button>
+                                <button type="button" id="delete-gear-type-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded hidden">Delete</button>
+                            </div>
+                        </form>
+                        <div id="tacklebox-placeholder" class="text-center text-gray-500">
+                            <p>Select an item or type to view details, or add a new one.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -404,9 +427,7 @@
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="fish-modal-title">Add Fish</h3>
                 <div class="space-y-3 text-sm">
                     <input type="text" id="fish-species" placeholder="Species" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    <div id="fish-gear-selection-container" class="space-y-2">
-                        <!-- Gear dropdowns will be populated by JavaScript -->
-                    </div>
+                    <input type="text" id="fish-bait" placeholder="Bait/Lure Used" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <input type="text" id="fish-length" placeholder="Length" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <input type="text" id="fish-weight" placeholder="Weight" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                     <div class="flex items-center">
