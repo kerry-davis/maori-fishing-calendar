@@ -432,7 +432,6 @@ function validateTripForm() {
         document.getElementById('trip-water'),
         document.getElementById('trip-location'),
         document.getElementById('trip-hours'),
-        document.getElementById('trip-total-fish'),
         document.getElementById('trip-companions'),
         document.getElementById('trip-best-times')
     ];
@@ -445,7 +444,6 @@ function clearTripForm() {
     document.getElementById('trip-water').value = '';
     document.getElementById('trip-location').value = '';
     document.getElementById('trip-hours').value = '';
-    document.getElementById('trip-total-fish').value = '';
     document.getElementById('trip-companions').value = '';
     document.getElementById('trip-best-times').value = '';
     currentTripId = null;
@@ -462,7 +460,6 @@ function saveTrip() {
         water: document.getElementById('trip-water').value,
         location: document.getElementById('trip-location').value,
         hours: document.getElementById('trip-hours').value,
-        totalFish: document.getElementById('trip-total-fish').value,
         companions: document.getElementById('trip-companions').value,
         notes: document.getElementById('trip-best-times').value,
     };
@@ -518,11 +515,15 @@ function displayTrips(date) {
                 }
                 let content = `<div class="font-bold text-base mb-2">${title}</div>`;
                 if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
-                if(trip.totalFish) content += `<p><strong>Total Fish Caught:</strong> ${trip.totalFish}</p>`;
+                content += `<p><strong>Total Fish Caught:</strong> <span id="fish-count-${trip.id}">0</span></p>`;
                 if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
                 if(trip.notes) content += `<p><strong>Notes:</strong> ${trip.notes}</p>`;
 
                 content += `
+                    <div class="mt-3 pt-3">
+                        <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
+                        <button data-action="delete-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
+                    </div>
                     <div class="border-t dark:border-gray-700 mt-3 pt-3">
                         <h6 class="font-semibold mb-2">Weather Conditions</h6>
                         <div id="weather-list-${trip.id}" class="space-y-2">
@@ -537,15 +538,12 @@ function displayTrips(date) {
                         </div>
                         <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-purple-500 text-white rounded">Add Fish</button>
                     </div>
-                    <div class="mt-3 border-t dark:border-gray-700 pt-3">
-                        <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
-                        <button data-action="delete-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
-                    </div>
                 `;
                 tripEl.innerHTML = content;
                 tripLogList.appendChild(tripEl);
                 displayWeatherForTrip(trip.id);
                 displayFishForTrip(trip.id);
+                updateFishCountForTrip(trip.id);
             });
         } else {
             tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
@@ -563,7 +561,6 @@ function editTrip(id) {
         document.getElementById('trip-water').value = trip.water;
         document.getElementById('trip-location').value = trip.location;
         document.getElementById('trip-hours').value = trip.hours;
-        document.getElementById('trip-total-fish').value = trip.totalFish;
         document.getElementById('trip-companions').value = trip.companions;
         document.getElementById('trip-best-times').value = trip.notes;
 
@@ -793,7 +790,7 @@ function setupEventListeners() {
 
     const tripInputs = [
         'trip-water', 'trip-location', 'trip-hours',
-        'trip-total-fish', 'trip-companions', 'trip-best-times'
+        'trip-companions', 'trip-best-times'
     ];
     tripInputs.forEach(id => {
         const input = document.getElementById(id);
@@ -961,10 +958,7 @@ function setupEventListeners() {
                 const allTrips = await getAllData('trips');
                 const allFish = await getAllData('fish_caught');
 
-                const hasFishData = allFish.length > 0;
-                const hasTripFishCount = allTrips.some(trip => parseInt(trip.totalFish, 10) > 0);
-
-                if (!hasFishData && !hasTripFishCount) {
+                if (allFish.length === 0) {
                     alert("No fish have been logged. Analytics requires catch data to be displayed.");
                     return;
                 }
@@ -1736,6 +1730,24 @@ function saveFish() {
     };
 }
 
+function updateFishCountForTrip(tripId) {
+    const countEl = document.getElementById(`fish-count-${tripId}`);
+    if (!countEl) return;
+
+    const transaction = db.transaction(['fish_caught'], 'readonly');
+    const store = transaction.objectStore('fish_caught');
+    const index = store.index('tripId');
+    const request = index.count(tripId);
+
+    request.onsuccess = () => {
+        countEl.textContent = request.result;
+    };
+    request.onerror = (event) => {
+        console.error('Error counting fish:', event.target.error);
+        countEl.textContent = 'N/A';
+    };
+}
+
 function displayFishForTrip(tripId) {
     const listEl = document.getElementById(`fish-list-${tripId}`);
     if (!listEl) return;
@@ -1779,6 +1791,7 @@ function displayFishForTrip(tripId) {
         } else {
             listEl.innerHTML = '<p class="text-xs text-gray-500">No fish logged for this trip yet.</p>';
         }
+        updateFishCountForTrip(tripId);
     };
 }
 
@@ -1854,13 +1867,16 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
     // 1. Performance by Moon Phase
-    const totalFish = allTrips.reduce((sum, trip) => sum + (parseInt(trip.totalFish, 10) || 0), 0);
-    const overallAverage = allTrips.length > 0 ? totalFish / allTrips.length : 0;
+    const fishCountByTrip = allFish.reduce((acc, fish) => {
+        acc[fish.tripId] = (acc[fish.tripId] || 0) + 1;
+        return acc;
+    }, {});
 
+    const totalFish = Object.values(fishCountByTrip).reduce((sum, count) => sum + count, 0);
     const moonPhaseChartEl = document.getElementById('moon-phase-chart');
     const moonPhaseSection = moonPhaseChartEl.parentElement;
 
-    if (overallAverage > 1) {
+    if (totalFish > 0) {
         moonPhaseSection.style.display = '';
     } else {
         moonPhaseSection.style.display = 'none';
@@ -1870,7 +1886,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     allTrips.forEach(trip => {
         const date = new Date(trip.date);
         const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
-        const fishCount = parseInt(trip.totalFish, 10) || 0;
+        const fishCount = fishCountByTrip[trip.id] || 0;
         if (moonPhaseData[moonPhase]) {
             moonPhaseData[moonPhase].trips++;
             moonPhaseData[moonPhase].fish += fishCount;
@@ -2030,9 +2046,11 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     });
 
     let mostFishTrip = null;
+    let maxFish = 0;
     allTrips.forEach(trip => {
-        const total = parseInt(trip.totalFish, 10) || 0;
-        if (total > 0 && (!mostFishTrip || total > (parseInt(mostFishTrip.totalFish, 10) || 0))) {
+        const total = fishCountByTrip[trip.id] || 0;
+        if (total > 0 && total > maxFish) {
+            maxFish = total;
             mostFishTrip = trip;
         }
     });
@@ -2048,9 +2066,10 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     }
 
     if (mostFishTrip) {
+        const fishCount = fishCountByTrip[mostFishTrip.id] || 0;
         bestTripEl.innerHTML = `
             <p class="font-bold text-lg">Most Fish in a Trip</p>
-            <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
+            <p>${fishCount} fish on ${mostFishTrip.date}</p>
         `;
         bestTripEl.style.display = '';
     } else {
