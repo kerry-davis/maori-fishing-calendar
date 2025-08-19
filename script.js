@@ -958,10 +958,7 @@ function setupEventListeners() {
                 const allTrips = await getAllData('trips');
                 const allFish = await getAllData('fish_caught');
 
-                const hasFishData = allFish.length > 0;
-                const hasTripFishCount = allTrips.some(trip => parseInt(trip.totalFish, 10) > 0);
-
-                if (!hasFishData && !hasTripFishCount) {
+                if (allFish.length === 0) {
                     alert("No fish have been logged. Analytics requires catch data to be displayed.");
                     return;
                 }
@@ -1876,12 +1873,10 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     }, {});
 
     const totalFish = Object.values(fishCountByTrip).reduce((sum, count) => sum + count, 0);
-    const overallAverage = allTrips.length > 0 ? totalFish / allTrips.length : 0;
-
     const moonPhaseChartEl = document.getElementById('moon-phase-chart');
     const moonPhaseSection = moonPhaseChartEl.parentElement;
 
-    if (overallAverage > 1) {
+    if (totalFish > 0) {
         moonPhaseSection.style.display = '';
     } else {
         moonPhaseSection.style.display = 'none';
