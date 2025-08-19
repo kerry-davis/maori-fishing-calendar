@@ -1961,30 +1961,52 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     // 3. Personal Bests
     const bestFishEl = document.getElementById('personal-best-fish');
     const bestTripEl = document.getElementById('personal-best-trip');
+    const personalBestsSection = bestFishEl.parentElement.parentElement;
 
-    let largestFish = { weight: 0, length: 0, species: 'N/A' };
+    let largestFish = null;
     allFish.forEach(fish => {
         const weight = parseFloat(fish.weight) || 0;
-        if (weight > largestFish.weight) {
-            largestFish = fish;
+        const length = parseFloat(fish.length) || 0;
+        if (weight > 0 || length > 0) {
+            if (!largestFish || weight > (parseFloat(largestFish.weight) || 0) || (weight === (parseFloat(largestFish.weight) || 0) && length > (parseFloat(largestFish.length) || 0))) {
+                largestFish = fish;
+            }
         }
     });
-    bestFishEl.innerHTML = `
-        <p class="font-bold text-lg">Largest Fish</p>
-        <p>${largestFish.species} (${largestFish.weight || 'N/A'} kg, ${largestFish.length || 'N/A'} cm)</p>
-    `;
 
-    let mostFishTrip = { totalFish: 0, date: 'N/A' };
+    let mostFishTrip = null;
     allTrips.forEach(trip => {
         const total = parseInt(trip.totalFish, 10) || 0;
-        if (total > mostFishTrip.totalFish) {
+        if (total > 0 && (!mostFishTrip || total > (parseInt(mostFishTrip.totalFish, 10) || 0))) {
             mostFishTrip = trip;
         }
     });
-    bestTripEl.innerHTML = `
-        <p class="font-bold text-lg">Most Fish in a Trip</p>
-        <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
-    `;
+
+    if (largestFish) {
+        bestFishEl.innerHTML = `
+            <p class="font-bold text-lg">Largest Fish</p>
+            <p>${largestFish.species} (${largestFish.weight || 'N/A'} kg, ${largestFish.length || 'N/A'} cm)</p>
+        `;
+        bestFishEl.style.display = '';
+    } else {
+        bestFishEl.style.display = 'none';
+    }
+
+    if (mostFishTrip) {
+        bestTripEl.innerHTML = `
+            <p class="font-bold text-lg">Most Fish in a Trip</p>
+            <p>${mostFishTrip.totalFish} fish on ${mostFishTrip.date}</p>
+        `;
+        bestTripEl.style.display = '';
+    } else {
+        bestTripEl.style.display = 'none';
+    }
+
+    if (largestFish || mostFishTrip) {
+        personalBestsSection.style.display = '';
+    } else {
+        personalBestsSection.style.display = 'none';
+    }
 }
 
 async function performSearch(query) {
