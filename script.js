@@ -1508,8 +1508,20 @@ function openFishModal(tripId, fishId = null) {
 
         tacklebox.forEach(gear => {
             const option = document.createElement('option');
-            option.value = gear.name;
-            option.textContent = gear.name;
+            option.value = gear.name; // Keep the value simple for saving
+
+            // Build the detailed display text
+            const details = [];
+            if (gear.brand) details.push(gear.brand);
+            if (gear.type) details.push(gear.type);
+            if (gear.color) details.push(gear.color);
+
+            let displayText = gear.name;
+            if (details.length > 0) {
+                displayText += ` (${details.join(', ')})`;
+            }
+
+            option.textContent = displayText;
             select.appendChild(option);
         });
         gearContainer.appendChild(select);
