@@ -1853,19 +1853,26 @@ function getLoggedDaysForMonth(startDate, endDate) {
         const objectStore = transaction.objectStore("trips");
         const index = objectStore.index("date");
 
-        const start = startDate.toISOString().slice(0, 10);
-        const end = endDate.toISOString().slice(0, 10);
-        const range = IDBKeyRange.bound(start, end);
+        // Timezone-safe method to create YYYY-MM-DD strings
+        const startStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}`;
+        const endStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
+        const range = IDBKeyRange.bound(startStr, endStr);
 
         const request = index.getAll(range);
         const loggedDays = new Set();
 
         request.onsuccess = () => {
+            const expectedMonth = startDate.getMonth();
             request.result.forEach(log => {
-                // Manually parse the date string to avoid timezone issues.
-                // log.date is 'YYYY-MM-DD'. We want the DD part.
-                const day = parseInt(log.date.split('-')[2], 10);
-                loggedDays.add(day);
+                if (log && log.date) {
+                    // Defensive check: Ensure the log's month matches the expected month.
+                    // The date is stored as 'YYYY-MM-DD'. Splitting gives [YYYY, MM, DD].
+                    const logMonth = parseInt(log.date.split('-')[1], 10) - 1; // month is 1-indexed in string
+                    if (logMonth === expectedMonth) {
+                        const day = parseInt(log.date.split('-')[2], 10);
+                        loggedDays.add(day);
+                    }
+                }
             });
             resolve(loggedDays);
         };
