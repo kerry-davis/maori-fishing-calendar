@@ -1302,7 +1302,7 @@ function exportData() {
         const request = objectStore.getAll();
         const promise = new Promise((resolve, reject) => {
             request.onsuccess = () => {
-                exportData[storeName] = request.result;
+                exportData.indexedDB[storeName] = request.result;
                 resolve();
             };
             request.onerror = (event) => {
@@ -1346,8 +1346,8 @@ function importData(event) {
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
             // Basic validation for the new structure
-            if (typeof data !== 'object' || data === null || !data.indexedDB || !data.localStorage) {
-                 throw new Error("Invalid data format: must contain 'indexedDB' and 'localStorage' properties.");
+            if (typeof data !== 'object' || data === null || typeof data.indexedDB !== 'object' || typeof data.localStorage !== 'object') {
+                 throw new Error("Invalid data format: 'indexedDB' and 'localStorage' properties must be objects.");
             }
 
             const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data, including your tackle box.`);
@@ -1383,7 +1383,8 @@ function importData(event) {
                 Promise.all(clearPromises).then(() => {
                     console.log("Old IndexedDB data cleared. Starting import...");
                     const importTransaction = db.transaction(storesToImport, "readwrite");
-                    const dbData = data.indexedDB;
+                    // Handle both old (flat) and new (nested under indexedDB) formats
+                    const dbData = Object.keys(data.indexedDB).length > 0 ? data.indexedDB : data;
 
                     storesToImport.forEach(storeName => {
                         const storeData = dbData[storeName];
