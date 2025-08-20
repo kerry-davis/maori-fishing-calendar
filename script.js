@@ -1017,7 +1017,18 @@ function setupEventListeners() {
     // Swipe gestures for calendar
     const calendarContainer = document.querySelector('#calendarDays');
     if (calendarContainer) {
-        addSwipeListeners(calendarContainer, () => nextMonthButton.click(), () => prevMonthButton.click());
+        addSwipeListeners(calendarContainer,
+            () => { // onSwipeLeft
+                currentMonth++;
+                if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+                renderCalendar();
+            },
+            () => { // onSwipeRight
+                currentMonth--;
+                if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+                renderCalendar();
+            }
+        );
     }
 
     // Swipe gestures for modal
@@ -2250,23 +2261,31 @@ function displaySearchResults(results) {
 function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
     let touchstartX = 0;
     let touchendX = 0;
-    const threshold = 50; // Minimum distance for a swipe
+    const threshold = 100; // Increased threshold for better gesture distinction
 
     element.addEventListener('touchstart', (e) => {
-        touchstartX = e.changedTouches[0].screenX;
+        // Only track the first touch
+        if (e.touches.length === 1) {
+            touchstartX = e.touches[0].screenX;
+        }
     }, { passive: true });
 
     element.addEventListener('touchend', (e) => {
-        touchendX = e.changedTouches[0].screenX;
-        const swipeDistance = touchendX - touchstartX;
+        // Ensure it's the end of the first touch
+        if (touchstartX !== 0 && e.changedTouches.length === 1) {
+            touchendX = e.changedTouches[0].screenX;
+            const swipeDistance = touchendX - touchstartX;
 
-        if (Math.abs(swipeDistance) >= threshold) {
-            if (swipeDistance < 0) {
-                onSwipeLeft();
-            } else {
-                onSwipeRight();
+            if (Math.abs(swipeDistance) >= threshold) {
+                if (swipeDistance < 0) {
+                    onSwipeLeft(); // Swiped left
+                } else {
+                    onSwipeRight(); // Swiped right
+                }
             }
         }
+        // Reset touchstartX after the gesture is handled
+        touchstartX = 0;
     }, { passive: true });
 }
 
