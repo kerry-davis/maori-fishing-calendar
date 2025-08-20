@@ -1853,8 +1853,8 @@ function getLoggedDaysForMonth(startDate, endDate) {
         const objectStore = transaction.objectStore("trips");
         const index = objectStore.index("date");
 
-        const start = startDate.toISOString().slice(0, 10);
-        const end = endDate.toISOString().slice(0, 10);
+        const start = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}`;
+        const end = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
         const range = IDBKeyRange.bound(start, end);
 
         const request = index.getAll(range);
