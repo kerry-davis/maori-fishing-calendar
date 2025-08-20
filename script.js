@@ -1013,6 +1013,20 @@ function setupEventListeners() {
 
         tripLogModal.addEventListener('click', handleModalClicks);
     }
+
+    // Swipe gestures for calendar
+    const calendarContainer = document.querySelector('#calendarDays');
+    if (calendarContainer) {
+        addSwipeListeners(calendarContainer, () => nextMonthButton.click(), () => prevMonthButton.click());
+    }
+
+    // Swipe gestures for modal
+    if (lunarModal) {
+        const modalContent = lunarModal.querySelector('.relative');
+        if (modalContent) {
+            addSwipeListeners(modalContent, showNextDay, showPreviousDay);
+        }
+    }
 }
 
 function updateCurrentMoonInfo() {
@@ -2231,6 +2245,29 @@ function displaySearchResults(results) {
         resultEl.innerHTML = content;
         resultsContainer.appendChild(resultEl);
     });
+}
+
+function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
+    let touchstartX = 0;
+    let touchendX = 0;
+    const threshold = 50; // Minimum distance for a swipe
+
+    element.addEventListener('touchstart', (e) => {
+        touchstartX = e.changedTouches[0].screenX;
+    }, { passive: true });
+
+    element.addEventListener('touchend', (e) => {
+        touchendX = e.changedTouches[0].screenX;
+        const swipeDistance = touchendX - touchstartX;
+
+        if (Math.abs(swipeDistance) >= threshold) {
+            if (swipeDistance < 0) {
+                onSwipeLeft();
+            } else {
+                onSwipeRight();
+            }
+        }
+    }, { passive: true });
 }
 
 document.addEventListener('DOMContentLoaded', initCalendar);
