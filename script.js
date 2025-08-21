@@ -1715,7 +1715,7 @@ function openGearSelectionModal() {
             const details = [];
             if (gear.brand) details.push(gear.brand);
             if (gear.type) details.push(gear.type);
-            if (gear.color) details.push(gear.color);
+            if (gear.colour) details.push(gear.colour);
             let displayText = gear.name;
             if (details.length > 0) {
                 displayText += ` (${details.join(', ')})`;
