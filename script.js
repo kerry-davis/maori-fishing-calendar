@@ -495,7 +495,7 @@ function displayTrips(date) {
                 }
                 let content = `<div class="font-bold text-base mb-2">${title}</div>`;
                 if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
-                content += `<p><strong>Total Fish Caught:</strong> <span id="fish-count-${trip.id}">0</span></p>`;
+                content += `<p><strong># Fish Caught:</strong> <span id="fish-count-${trip.id}">0</span></p>`;
                 if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
                 if(trip.notes) content += `<p><strong>Notes:</strong> ${trip.notes}</p>`;
 
@@ -512,7 +512,7 @@ function displayTrips(date) {
                         <button data-action="add-weather" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-blue-500 text-white rounded">Add Weather</button>
                     </div>
                     <div class="border-t dark:border-gray-700 mt-3 pt-3">
-                        <h6 class="font-semibold mb-2">Fish Caught</h6>
+                        <h6 class="font-semibold mb-2"># Fish Caught</h6>
                         <div id="fish-list-${trip.id}" class="space-y-2">
                             <!-- Fish logs will be displayed here -->
                         </div>
@@ -2007,7 +2007,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         data: {
             labels: moonLabels,
             datasets: [{
-                label: 'Total Fish Caught',
+                label: '# Fish Caught',
                 data: totalFishPerPhase,
                 backgroundColor: 'rgba(54, 162, 235, 0.6)',
                 borderColor: 'rgba(54, 162, 235, 1)',
@@ -2071,7 +2071,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
             data: {
                 labels: locationKeys,
                 datasets: [{
-                    label: 'Fish Caught',
+                    label: '# Fish Caught',
                     data: Object.values(locationData),
                     backgroundColor: 'rgba(75, 192, 192, 0.6)',
                     borderColor: 'rgba(75, 192, 192, 1)',
@@ -2109,7 +2109,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
             data: {
                 labels: weatherKeys,
                 datasets: [{
-                    label: 'Total Fish Caught',
+                    label: '# Fish Caught',
                     data: Object.values(weatherData),
                     backgroundColor: 'rgba(153, 102, 255, 0.6)',
                     borderColor: 'rgba(153, 102, 255, 1)',
