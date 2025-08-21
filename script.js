@@ -991,6 +991,13 @@ function setupEventListeners() {
                 closeModalWithAnimation(analyticsModal);
             }
         });
+        const analyticsContent = analyticsModal.querySelector('.bg-white');
+        if (analyticsContent) {
+            addSwipeListeners(analyticsContent,
+                () => closeModalWithAnimation(analyticsModal),
+                () => closeModalWithAnimation(analyticsModal)
+            );
+        }
     }
 
     const openTripLogBtn = document.getElementById('open-trip-log-btn');
@@ -1012,6 +1019,14 @@ function setupEventListeners() {
         });
 
         tripLogModal.addEventListener('click', handleModalClicks);
+
+        const tripLogContent = tripLogModal.querySelector('#trip-log-scroll-container');
+        if (tripLogContent) {
+            addSwipeListeners(tripLogContent,
+                () => closeModalWithAnimation(tripLogModal),
+                () => closeModalWithAnimation(tripLogModal)
+            );
+        }
     }
 
     // Swipe gestures for calendar
@@ -1940,9 +1955,9 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     });
 
     const moonLabels = Object.keys(moonPhaseData);
-    const avgFishPerTrip = moonLabels.map(phase => {
+    const totalFishPerPhase = moonLabels.map(phase => {
         const data = moonPhaseData[phase];
-        return data.trips > 0 ? (data.fish / data.trips).toFixed(2) : 0;
+        return data.fish;
     });
 
     const moonPhaseCtx = document.getElementById('moon-phase-chart').getContext('2d');
@@ -1951,8 +1966,8 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         data: {
             labels: moonLabels,
             datasets: [{
-                label: 'Average Fish Per Trip',
-                data: avgFishPerTrip,
+                label: 'Total Fish Caught',
+                data: totalFishPerPhase,
                 backgroundColor: 'rgba(54, 162, 235, 0.6)',
                 borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
@@ -2109,16 +2124,23 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     // 3. Personal Bests
     const bestFishEl = document.getElementById('personal-best-fish');
+    const bestLongestFishEl = document.getElementById('personal-best-longest-fish');
     const bestTripEl = document.getElementById('personal-best-trip');
     const personalBestsSection = bestFishEl.parentElement.parentElement;
 
     let largestFish = null;
+    let longestFish = null;
     allFish.forEach(fish => {
         const weight = parseFloat(fish.weight) || 0;
         const length = parseFloat(fish.length) || 0;
         if (weight > 0 || length > 0) {
             if (!largestFish || weight > (parseFloat(largestFish.weight) || 0) || (weight === (parseFloat(largestFish.weight) || 0) && length > (parseFloat(largestFish.length) || 0))) {
                 largestFish = fish;
+            }
+        }
+        if (length > 0) {
+            if (!longestFish || length > (parseFloat(longestFish.length) || 0)) {
+                longestFish = fish;
             }
         }
     });
@@ -2143,18 +2165,31 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         bestFishEl.style.display = 'none';
     }
 
+    if (longestFish) {
+        bestLongestFishEl.innerHTML = `
+            <p class="font-bold text-lg">Longest Fish</p>
+            <p>${longestFish.species} (${longestFish.length || 'N/A'})</p>
+        `;
+        bestLongestFishEl.style.display = '';
+    } else {
+        bestLongestFishEl.style.display = 'none';
+    }
+
     if (mostFishTrip) {
         const fishCount = fishCountByTrip[mostFishTrip.id] || 0;
+        const dateParts = mostFishTrip.date.split('-');
+        const tripDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const formattedDate = `${tripDate.getDate()} ${monthNames[tripDate.getMonth()]} ${tripDate.getFullYear()}`;
         bestTripEl.innerHTML = `
             <p class="font-bold text-lg">Most Fish in a Trip</p>
-            <p>${fishCount} fish on ${mostFishTrip.date}</p>
+            <p>${fishCount} fish on ${formattedDate}</p>
         `;
         bestTripEl.style.display = '';
     } else {
         bestTripEl.style.display = 'none';
     }
 
-    if (largestFish || mostFishTrip) {
+    if (largestFish || longestFish || mostFishTrip) {
         personalBestsSection.style.display = '';
     } else {
         personalBestsSection.style.display = 'none';
