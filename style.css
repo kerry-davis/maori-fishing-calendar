@@ -31,11 +31,13 @@
     right: 4px;
     font-size: 0.6rem;
     color: #3b82f6; /* Blue-500 */
+    animation: fish-pulse 2s ease-in-out infinite;
 }
 
 .dark .log-indicator {
     color: #60a5fa; /* Blue-400 */
 }
+
     .quality-excellent { background-color: #10b981; }
     .quality-good { background-color: #3b82f6; }
     .quality-average { background-color: #f59e0b; }
@@ -163,5 +165,17 @@ body.modal-open {
     .modal > div {
         margin: 0.5rem;
         max-width: 100%;
+    }
+}
+
+@keyframes fish-pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.2);
+    }
+    100% {
+        transform: scale(1);
     }
 }
