@@ -1985,7 +1985,6 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     // Update total counts with animation
     animateCountUp(document.getElementById('total-fish-caught'), allFish.length);
-    animateCountUp(document.getElementById('total-trips-logged'), allTrips.length);
 
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
