@@ -437,11 +437,11 @@ function saveTrip() {
     const date = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     const tripData = {
         date: date,
-        water: document.getElementById('trip-water').value,
-        location: document.getElementById('trip-location').value,
+        water: document.getElementById('trip-water').value.trim(),
+        location: document.getElementById('trip-location').value.trim(),
         hours: document.getElementById('trip-hours').value,
-        companions: document.getElementById('trip-companions').value,
-        notes: document.getElementById('trip-best-times').value,
+        companions: document.getElementById('trip-companions').value.trim(),
+        notes: document.getElementById('trip-best-times').value.trim(),
     };
 
     const transaction = db.transaction(["trips"], "readwrite");
@@ -1357,7 +1357,31 @@ function importData(event) {
 
     reader.onload = function(e) {
         try {
-            const data = JSON.parse(e.target.result);
+            let data = JSON.parse(e.target.result);
+
+            // Helper function to recursively trim strings in an object/array
+            const trimObjectStrings = (obj) => {
+                if (obj === null || typeof obj !== 'object') {
+                    // For primitive values, return as is, except for strings which we trim
+                    return typeof obj === 'string' ? obj.trim() : obj;
+                }
+
+                if (Array.isArray(obj)) {
+                    // If it's an array, map over its elements
+                    return obj.map(trimObjectStrings);
+                }
+
+                // If it's an object, create a new object with trimmed string values
+                const newObj = {};
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        newObj[key] = trimObjectStrings(obj[key]);
+                    }
+                }
+                return newObj;
+            };
+
+            data = trimObjectStrings(data);
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
             // Basic validation for the new structure
@@ -1506,7 +1530,7 @@ function saveWeather() {
         timeOfDay: document.getElementById('weather-time-of-day').value,
         sky: document.getElementById('weather-sky').value,
         windCondition: document.getElementById('weather-wind-condition').value,
-        windDirection: document.getElementById('weather-wind-direction').value,
+        windDirection: document.getElementById('weather-wind-direction').value.trim(),
         waterTemp: document.getElementById('weather-water-temp').value,
         airTemp: document.getElementById('weather-air-temp').value,
     };
@@ -1765,12 +1789,12 @@ function saveFish() {
 
     const fishData = {
         tripId: currentEditingTripId,
-        species: document.getElementById('fish-species').value,
+        species: document.getElementById('fish-species').value.trim(),
         gear: finalGear,
-        length: document.getElementById('fish-length').value,
-        weight: document.getElementById('fish-weight').value,
+        length: document.getElementById('fish-length').value.trim(),
+        weight: document.getElementById('fish-weight').value.trim(),
         time: document.getElementById('fish-time').value,
-        details: document.getElementById('fish-details').value,
+        details: document.getElementById('fish-details').value.trim(),
     };
 
     if (!fishData.species) {
