@@ -31,8 +31,11 @@
     right: 4px;
     font-size: 0.6rem;
     color: #3b82f6; /* Blue-500 */
-    animation: fish-pulse 2s ease-in-out infinite;
+}
+
+.log-indicator i {
     display: inline-block;
+    animation: fish-pulse 2s ease-in-out infinite;
 }
 
 .dark .log-indicator {
