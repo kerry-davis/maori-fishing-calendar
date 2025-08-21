@@ -1373,7 +1373,14 @@ function importData(event) {
 
                 // Import localStorage data
                 if (data.localStorage.tacklebox) {
-                    localStorage.setItem('tacklebox', JSON.stringify(data.localStorage.tacklebox));
+                    const tackleboxData = data.localStorage.tacklebox;
+                    tackleboxData.forEach(item => {
+                        if (item.hasOwnProperty('color')) {
+                            item.colour = item.color;
+                            delete item.color;
+                        }
+                    });
+                    localStorage.setItem('tacklebox', JSON.stringify(tackleboxData));
                 }
                 if (data.localStorage.gearTypes) {
                     localStorage.setItem('gearTypes', JSON.stringify(data.localStorage.gearTypes));
@@ -1403,6 +1410,16 @@ function importData(event) {
 
                     storesToImport.forEach(storeName => {
                         const storeData = dbData[storeName];
+
+                        // Data migration for sky conditions
+                        if (storeName === 'weather_logs' && storeData) {
+                            storeData.forEach(log => {
+                                if (log.sky === 'Part Cloud') {
+                                    log.sky = 'Partly Cloudy';
+                                }
+                            });
+                        }
+
                         if (storeData && Array.isArray(storeData)) {
                             const objectStore = importTransaction.objectStore(storeName);
                             storeData.forEach(item => {
