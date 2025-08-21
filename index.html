@@ -328,7 +328,7 @@
                                 <input type="text" id="gear-name" placeholder="Name" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400" required>
                                 <input type="text" id="gear-brand" placeholder="Brand" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
                                 <select id="gear-form-type-select" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100"></select>
-                                <input type="text" id="gear-color" placeholder="Color" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
+                                <input type="text" id="gear-colour" placeholder="Colour" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
                             </div>
                             <div class="flex space-x-2 mt-4">
                                 <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded">Save</button>
@@ -417,7 +417,7 @@
                     <select id="weather-sky" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <option value="">Select Sky Conditions</option>
                         <option value="Sunny">Sunny</option>
-                        <option value="Part Cloud">Part Cloud</option>
+                        <option value="Partly Cloudy">Partly Cloudy</option>
                         <option value="Overcast">Overcast</option>
                         <option value="Rain">Rain</option>
                     </select>
@@ -505,9 +505,13 @@
                 </div>
                 <div>
                     <h4 class="text-xl font-semibold mb-4">Personal Bests</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
                         <div id="personal-best-fish" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                            <p class="font-bold text-lg">Largest Fish</p>
+                            <p class="font-bold text-lg">Heaviest Fish</p>
+                            <p>Loading...</p>
+                        </div>
+                        <div id="personal-best-longest-fish" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                            <p class="font-bold text-lg">Longest Fish</p>
                             <p>Loading...</p>
                         </div>
                         <div id="personal-best-trip" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">

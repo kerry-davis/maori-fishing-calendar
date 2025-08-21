@@ -437,11 +437,11 @@ function saveTrip() {
     const date = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     const tripData = {
         date: date,
-        water: document.getElementById('trip-water').value,
-        location: document.getElementById('trip-location').value,
+        water: document.getElementById('trip-water').value.trim(),
+        location: document.getElementById('trip-location').value.trim(),
         hours: document.getElementById('trip-hours').value,
-        companions: document.getElementById('trip-companions').value,
-        notes: document.getElementById('trip-best-times').value,
+        companions: document.getElementById('trip-companions').value.trim(),
+        notes: document.getElementById('trip-best-times').value.trim(),
     };
 
     const transaction = db.transaction(["trips"], "readwrite");
@@ -991,6 +991,13 @@ function setupEventListeners() {
                 closeModalWithAnimation(analyticsModal);
             }
         });
+        const analyticsContent = analyticsModal.querySelector('.bg-white');
+        if (analyticsContent) {
+            addSwipeListeners(analyticsContent,
+                () => closeModalWithAnimation(analyticsModal),
+                () => closeModalWithAnimation(analyticsModal)
+            );
+        }
     }
 
     const openTripLogBtn = document.getElementById('open-trip-log-btn');
@@ -1012,6 +1019,14 @@ function setupEventListeners() {
         });
 
         tripLogModal.addEventListener('click', handleModalClicks);
+
+        const tripLogContent = tripLogModal.querySelector('#trip-log-scroll-container');
+        if (tripLogContent) {
+            addSwipeListeners(tripLogContent,
+                () => closeModalWithAnimation(tripLogModal),
+                () => closeModalWithAnimation(tripLogModal)
+            );
+        }
     }
 
     // Swipe gestures for calendar
@@ -1342,7 +1357,31 @@ function importData(event) {
 
     reader.onload = function(e) {
         try {
-            const data = JSON.parse(e.target.result);
+            let data = JSON.parse(e.target.result);
+
+            // Helper function to recursively trim strings in an object/array
+            const trimObjectStrings = (obj) => {
+                if (obj === null || typeof obj !== 'object') {
+                    // For primitive values, return as is, except for strings which we trim
+                    return typeof obj === 'string' ? obj.trim() : obj;
+                }
+
+                if (Array.isArray(obj)) {
+                    // If it's an array, map over its elements
+                    return obj.map(trimObjectStrings);
+                }
+
+                // If it's an object, create a new object with trimmed string values
+                const newObj = {};
+                for (const key in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+                        newObj[key] = trimObjectStrings(obj[key]);
+                    }
+                }
+                return newObj;
+            };
+
+            data = trimObjectStrings(data);
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
             // Basic validation for the new structure
@@ -1358,7 +1397,14 @@ function importData(event) {
 
                 // Import localStorage data
                 if (data.localStorage.tacklebox) {
-                    localStorage.setItem('tacklebox', JSON.stringify(data.localStorage.tacklebox));
+                    const tackleboxData = data.localStorage.tacklebox;
+                    tackleboxData.forEach(item => {
+                        if (item.hasOwnProperty('color')) {
+                            item.colour = item.color;
+                            delete item.color;
+                        }
+                    });
+                    localStorage.setItem('tacklebox', JSON.stringify(tackleboxData));
                 }
                 if (data.localStorage.gearTypes) {
                     localStorage.setItem('gearTypes', JSON.stringify(data.localStorage.gearTypes));
@@ -1388,6 +1434,16 @@ function importData(event) {
 
                     storesToImport.forEach(storeName => {
                         const storeData = dbData[storeName];
+
+                        // Data migration for sky conditions
+                        if (storeName === 'weather_logs' && storeData) {
+                            storeData.forEach(log => {
+                                if (log.sky === 'Part Cloud') {
+                                    log.sky = 'Partly Cloudy';
+                                }
+                            });
+                        }
+
                         if (storeData && Array.isArray(storeData)) {
                             const objectStore = importTransaction.objectStore(storeName);
                             storeData.forEach(item => {
@@ -1474,7 +1530,7 @@ function saveWeather() {
         timeOfDay: document.getElementById('weather-time-of-day').value,
         sky: document.getElementById('weather-sky').value,
         windCondition: document.getElementById('weather-wind-condition').value,
-        windDirection: document.getElementById('weather-wind-direction').value,
+        windDirection: document.getElementById('weather-wind-direction').value.trim(),
         waterTemp: document.getElementById('weather-water-temp').value,
         airTemp: document.getElementById('weather-air-temp').value,
     };
@@ -1700,7 +1756,7 @@ function openGearSelectionModal() {
             const details = [];
             if (gear.brand) details.push(gear.brand);
             if (gear.type) details.push(gear.type);
-            if (gear.color) details.push(gear.color);
+            if (gear.colour) details.push(gear.colour);
             let displayText = gear.name;
             if (details.length > 0) {
                 displayText += ` (${details.join(', ')})`;
@@ -1733,12 +1789,12 @@ function saveFish() {
 
     const fishData = {
         tripId: currentEditingTripId,
-        species: document.getElementById('fish-species').value,
+        species: document.getElementById('fish-species').value.trim(),
         gear: finalGear,
-        length: document.getElementById('fish-length').value,
-        weight: document.getElementById('fish-weight').value,
+        length: document.getElementById('fish-length').value.trim(),
+        weight: document.getElementById('fish-weight').value.trim(),
         time: document.getElementById('fish-time').value,
-        details: document.getElementById('fish-details').value,
+        details: document.getElementById('fish-details').value.trim(),
     };
 
     if (!fishData.species) {
@@ -1940,9 +1996,9 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     });
 
     const moonLabels = Object.keys(moonPhaseData);
-    const avgFishPerTrip = moonLabels.map(phase => {
+    const totalFishPerPhase = moonLabels.map(phase => {
         const data = moonPhaseData[phase];
-        return data.trips > 0 ? (data.fish / data.trips).toFixed(2) : 0;
+        return data.fish;
     });
 
     const moonPhaseCtx = document.getElementById('moon-phase-chart').getContext('2d');
@@ -1951,8 +2007,8 @@ function loadAnalytics(allTrips, allWeather, allFish) {
         data: {
             labels: moonLabels,
             datasets: [{
-                label: 'Average Fish Per Trip',
-                data: avgFishPerTrip,
+                label: 'Total Fish Caught',
+                data: totalFishPerPhase,
                 backgroundColor: 'rgba(54, 162, 235, 0.6)',
                 borderColor: 'rgba(54, 162, 235, 1)',
                 borderWidth: 1
@@ -2109,16 +2165,23 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     // 3. Personal Bests
     const bestFishEl = document.getElementById('personal-best-fish');
+    const bestLongestFishEl = document.getElementById('personal-best-longest-fish');
     const bestTripEl = document.getElementById('personal-best-trip');
     const personalBestsSection = bestFishEl.parentElement.parentElement;
 
     let largestFish = null;
+    let longestFish = null;
     allFish.forEach(fish => {
         const weight = parseFloat(fish.weight) || 0;
         const length = parseFloat(fish.length) || 0;
         if (weight > 0 || length > 0) {
             if (!largestFish || weight > (parseFloat(largestFish.weight) || 0) || (weight === (parseFloat(largestFish.weight) || 0) && length > (parseFloat(largestFish.length) || 0))) {
                 largestFish = fish;
+            }
+        }
+        if (length > 0) {
+            if (!longestFish || length > (parseFloat(longestFish.length) || 0)) {
+                longestFish = fish;
             }
         }
     });
@@ -2135,26 +2198,39 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     if (largestFish) {
         bestFishEl.innerHTML = `
-            <p class="font-bold text-lg">Largest Fish</p>
-            <p>${largestFish.species} (${largestFish.weight || 'N/A'}, ${largestFish.length || 'N/A'})</p>
+            <p class="font-bold text-lg">Heaviest Fish</p>
+            <p>${largestFish.species} (${largestFish.weight || 'N/A'})</p>
         `;
         bestFishEl.style.display = '';
     } else {
         bestFishEl.style.display = 'none';
     }
 
+    if (longestFish) {
+        bestLongestFishEl.innerHTML = `
+            <p class="font-bold text-lg">Longest Fish</p>
+            <p>${longestFish.species} (${longestFish.length || 'N/A'})</p>
+        `;
+        bestLongestFishEl.style.display = '';
+    } else {
+        bestLongestFishEl.style.display = 'none';
+    }
+
     if (mostFishTrip) {
         const fishCount = fishCountByTrip[mostFishTrip.id] || 0;
+        const dateParts = mostFishTrip.date.split('-');
+        const tripDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const formattedDate = `${tripDate.getDate()} ${monthNames[tripDate.getMonth()]} ${tripDate.getFullYear()}`;
         bestTripEl.innerHTML = `
             <p class="font-bold text-lg">Most Fish in a Trip</p>
-            <p>${fishCount} fish on ${mostFishTrip.date}</p>
+            <p>${fishCount} fish on ${formattedDate}</p>
         `;
         bestTripEl.style.display = '';
     } else {
         bestTripEl.style.display = 'none';
     }
 
-    if (largestFish || mostFishTrip) {
+    if (largestFish || longestFish || mostFishTrip) {
         personalBestsSection.style.display = '';
     } else {
         personalBestsSection.style.display = 'none';

@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const gearNameInput = document.getElementById('gear-name');
     const gearBrandInput = document.getElementById('gear-brand');
     const gearFormTypeSelect = document.getElementById('gear-form-type-select');
-    const gearColorInput = document.getElementById('gear-color');
+    const gearColourInput = document.getElementById('gear-colour');
     const deleteGearBtn = document.getElementById('delete-gear-btn');
 
     // Gear Type Form
@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             gearIdInput.value = item.id;
             gearNameInput.value = item.name;
             gearBrandInput.value = item.brand;
-            gearColorInput.value = item.color;
+            gearColourInput.value = item.colour;
 
             gearFormTypeSelect.innerHTML = '';
             gearTypes.forEach(type => {
@@ -173,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
             name: gearNameInput.value.trim(),
             brand: gearBrandInput.value.trim(),
             type: gearFormTypeSelect.value,
-            color: gearColorInput.value.trim(),
+            colour: gearColourInput.value.trim(),
         };
 
         if (!gearData.name) return;
