@@ -1965,6 +1965,10 @@ function destroyActiveCharts() {
 function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
+    // Update total counts
+    document.getElementById('total-fish-caught').textContent = allFish.length;
+    document.getElementById('total-trips-logged').textContent = allTrips.length;
+
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
         acc[fish.tripId] = (acc[fish.tripId] || 0) + 1;
