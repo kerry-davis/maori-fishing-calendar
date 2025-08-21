@@ -2157,8 +2157,8 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     if (largestFish) {
         bestFishEl.innerHTML = `
-            <p class="font-bold text-lg">Largest Fish</p>
-            <p>${largestFish.species} (${largestFish.weight || 'N/A'}, ${largestFish.length || 'N/A'})</p>
+            <p class="font-bold text-lg">Heaviest Fish</p>
+            <p>${largestFish.species} (${largestFish.weight || 'N/A'})</p>
         `;
         bestFishEl.style.display = '';
     } else {
