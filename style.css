@@ -183,3 +183,7 @@ body.modal-open {
         transform: scale(1);
     }
 }
+
+#best-performing-insights p {
+    margin-bottom: 0.5rem;
+}

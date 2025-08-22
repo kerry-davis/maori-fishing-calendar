@@ -1980,11 +1980,82 @@ function animateCountUp(element, endValue, duration = 1000) {
     requestAnimationFrame(step);
 }
 
+function generateInsights(allTrips, allWeather, allFish) {
+    const insights = [];
+
+    // Helper function to find the item with the highest count in a dataset
+    const findMostSuccessful = (data) => {
+        if (Object.keys(data).length === 0) return null;
+        return Object.entries(data).reduce((a, b) => a[1] > b[1] ? a : b);
+    };
+
+    // 1. Best Moon Phase
+    const moonPhaseData = {};
+    allTrips.forEach(trip => {
+        const dateParts = trip.date.split('-');
+        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
+        const fishCount = allFish.filter(f => f.tripId === trip.id).length;
+        moonPhaseData[moonPhase] = (moonPhaseData[moonPhase] || 0) + fishCount;
+    });
+    const bestMoon = findMostSuccessful(moonPhaseData);
+    if (bestMoon) {
+        insights.push(`Your most successful fishing has been during the <strong>${bestMoon[0]}</strong> moon phase, with <strong>${bestMoon[1]}</strong> fish caught.`);
+    }
+
+    // 2. Best Species (for other insights)
+    const speciesData = {};
+    allFish.forEach(fish => {
+        speciesData[fish.species] = (speciesData[fish.species] || 0) + 1;
+    });
+    const bestSpecies = findMostSuccessful(speciesData);
+
+    // 3. Best Lure/Gear for the top species
+    if (bestSpecies) {
+        const gearData = {};
+        allFish.filter(f => f.species === bestSpecies[0]).forEach(fish => {
+            if (fish.gear && fish.gear.length > 0) {
+                fish.gear.forEach(g => {
+                    gearData[g] = (gearData[g] || 0) + 1;
+                });
+            }
+        });
+        const bestGear = findMostSuccessful(gearData);
+        if (bestGear) {
+            insights.push(`When targeting <strong>${bestSpecies[0]}</strong>, your most effective lure has been the <strong>${bestGear[0]}</strong>.`);
+        }
+    }
+
+    // 4. Best Weather for any fish
+    const weatherData = {};
+    allWeather.forEach(weather => {
+        const condition = weather.sky;
+        if (condition) {
+            const fishCount = allFish.filter(f => f.tripId === weather.tripId).length;
+            weatherData[condition] = (weatherData[condition] || 0) + fishCount;
+        }
+    });
+    const bestWeather = findMostSuccessful(weatherData);
+    if (bestWeather) {
+        insights.push(`You've had the most luck in <strong>${bestWeather[0]}</strong> conditions, catching <strong>${bestWeather[1]}</strong> fish.`);
+    }
+
+    const insightsContainer = document.getElementById('best-performing-insights');
+    if (insights.length > 0) {
+        insightsContainer.innerHTML = insights.map(insight => `<p class="text-sm md:text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>${insight}</p>`).join('');
+    } else {
+        insightsContainer.innerHTML = '<p>Not enough data to generate insights. Keep logging your trips!</p>';
+    }
+}
+
 function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
     // Update total counts with animation
     animateCountUp(document.getElementById('total-fish-caught'), allFish.length);
+
+    // Generate and display insights
+    generateInsights(allTrips, allWeather, allFish);
 
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
