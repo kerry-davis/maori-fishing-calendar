@@ -781,7 +781,7 @@ function setupEventListeners() {
     if (cancelEditTripBtn) {
         cancelEditTripBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            clearTripForm();
+            closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         });
     }
 
