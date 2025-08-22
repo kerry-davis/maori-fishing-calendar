@@ -430,11 +430,6 @@ function clearTripForm() {
     document.getElementById('trip-form-title').textContent = 'Log a New Trip';
     document.getElementById('save-trip-btn').textContent = 'Save Trip';
     document.getElementById('cancel-edit-trip-btn').classList.add('hidden');
-
-    // Show the form and hide the button when clearing
-    document.getElementById('new-trip-form-wrapper').classList.remove('hidden');
-    document.getElementById('show-log-form-btn').classList.add('hidden');
-
     validateTripForm();
 }
 
@@ -462,15 +457,10 @@ function saveTrip() {
 
     request.onsuccess = () => {
         console.log("Trip saved successfully.");
-        clearTripForm();
+        closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         displayTrips(date);
         renderCalendar();
         updateOpenTripLogButton(date);
-        const successMsg = document.getElementById('save-trip-success-msg');
-        successMsg.classList.remove('hidden');
-        setTimeout(() => {
-            successMsg.classList.add('hidden');
-        }, 2000);
     };
 
     request.onerror = (event) => {
@@ -489,13 +479,7 @@ function displayTrips(date) {
         tripLogList.innerHTML = '';
         const trips = request.result;
 
-        const formWrapper = document.getElementById('new-trip-form-wrapper');
-        const showFormBtn = document.getElementById('show-log-form-btn');
-
         if (trips.length > 0) {
-            formWrapper.classList.add('hidden');
-            showFormBtn.classList.remove('hidden');
-
             trips.forEach(trip => {
                 const tripEl = document.createElement('div');
                 tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
@@ -538,8 +522,6 @@ function displayTrips(date) {
             });
         } else {
             tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
-            formWrapper.classList.remove('hidden');
-            showFormBtn.classList.add('hidden');
         }
     };
 }
@@ -563,10 +545,7 @@ function editTrip(id) {
         document.getElementById('cancel-edit-trip-btn').classList.remove('hidden');
         validateTripForm();
 
-        const modalContent = document.getElementById('trip-log-scroll-container');
-        if (modalContent) {
-            modalContent.scrollTop = 0;
-        }
+        openModalWithAnimation(document.getElementById('tripDetailsModal'));
     };
 }
 
@@ -1028,6 +1007,10 @@ function setupEventListeners() {
         closeTripLogModal.addEventListener('click', () => closeModalWithAnimation(tripLogModal));
 
         tripLogModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-trip-btn') {
+                clearTripForm();
+                openModalWithAnimation(document.getElementById('tripDetailsModal'));
+            }
             // Close if the backdrop is clicked, but not if an inner element is clicked
             if (e.target === tripLogModal) {
                 closeModalWithAnimation(tripLogModal);
@@ -1043,14 +1026,17 @@ function setupEventListeners() {
                 () => closeModalWithAnimation(tripLogModal)
             );
         }
+    }
 
-        const showLogFormBtn = document.getElementById('show-log-form-btn');
-        if (showLogFormBtn) {
-            showLogFormBtn.addEventListener('click', () => {
-                document.getElementById('new-trip-form-wrapper').classList.remove('hidden');
-                showLogFormBtn.classList.add('hidden');
-            });
-        }
+    const tripDetailsModal = document.getElementById('tripDetailsModal');
+    if (tripDetailsModal) {
+        const closeBtn = document.getElementById('closeTripDetailsModal');
+        closeBtn.addEventListener('click', () => closeModalWithAnimation(tripDetailsModal));
+        tripDetailsModal.addEventListener('click', (e) => {
+            if (e.target === tripDetailsModal) {
+                closeModalWithAnimation(tripDetailsModal);
+            }
+        });
     }
 
     // Swipe gestures for calendar
