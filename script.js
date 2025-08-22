@@ -430,6 +430,11 @@ function clearTripForm() {
     document.getElementById('trip-form-title').textContent = 'Log a New Trip';
     document.getElementById('save-trip-btn').textContent = 'Save Trip';
     document.getElementById('cancel-edit-trip-btn').classList.add('hidden');
+
+    // Show the form and hide the button when clearing
+    document.getElementById('new-trip-form-wrapper').classList.remove('hidden');
+    document.getElementById('show-log-form-btn').classList.add('hidden');
+
     validateTripForm();
 }
 
@@ -484,7 +489,13 @@ function displayTrips(date) {
         tripLogList.innerHTML = '';
         const trips = request.result;
 
+        const formWrapper = document.getElementById('new-trip-form-wrapper');
+        const showFormBtn = document.getElementById('show-log-form-btn');
+
         if (trips.length > 0) {
+            formWrapper.classList.add('hidden');
+            showFormBtn.classList.remove('hidden');
+
             trips.forEach(trip => {
                 const tripEl = document.createElement('div');
                 tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
@@ -527,6 +538,8 @@ function displayTrips(date) {
             });
         } else {
             tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
+            formWrapper.classList.remove('hidden');
+            showFormBtn.classList.add('hidden');
         }
     };
 }
@@ -558,6 +571,9 @@ function editTrip(id) {
 }
 
 function deleteTrip(id) {
+    if (!confirm('Are you sure you want to delete this trip and all its associated data?')) {
+        return;
+    }
     // Get the date of the trip before deleting, so we can refresh the UI
     const getTransaction = db.transaction(["trips"], "readonly");
     const getObjectStore = getTransaction.objectStore("trips");
@@ -1026,6 +1042,14 @@ function setupEventListeners() {
                 () => closeModalWithAnimation(tripLogModal),
                 () => closeModalWithAnimation(tripLogModal)
             );
+        }
+
+        const showLogFormBtn = document.getElementById('show-log-form-btn');
+        if (showLogFormBtn) {
+            showLogFormBtn.addEventListener('click', () => {
+                document.getElementById('new-trip-form-wrapper').classList.remove('hidden');
+                showLogFormBtn.classList.add('hidden');
+            });
         }
     }
 
@@ -1864,9 +1888,9 @@ function displayFishForTrip(tripId) {
                     content += `<div>${sizeParts.join(' / ')}</div>`;
                 }
                 if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
-                    content += `<div>Bait/Lure: ${log.gear.join(', ')}</div>`;
+                    content += `<div>Gear: ${log.gear.join(', ')}</div>`;
                 } else if (log.bait) { // Backward compatibility
-                    content += `<div>Bait/Lure: ${log.bait}</div>`;
+                    content += `<div>Gear: ${log.bait}</div>`;
                 }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
