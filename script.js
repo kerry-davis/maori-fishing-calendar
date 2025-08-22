@@ -2098,10 +2098,14 @@ function displayGeneralInsights(allTrips, allWeather, allFish) {
     }
 
     const insightsContainer = document.getElementById('general-insights-container');
-    if (insights.length > 0) {
-        insightsContainer.innerHTML = insights.map(insight => `<p class="text-sm md:text-base"><i class="fas fa-info-circle text-blue-500 mr-2"></i>${insight}</p>`).join('');
+    if (insightsContainer) {
+        if (insights.length > 0) {
+            insightsContainer.innerHTML = insights.map(insight => `<p class="text-sm md:text-base"><i class="fas fa-info-circle text-blue-500 mr-2"></i>${insight}</p>`).join('');
+        } else {
+            insightsContainer.innerHTML = '<p class="text-sm text-gray-500">Not enough data for general insights yet.</p>';
+        }
     } else {
-        insightsContainer.innerHTML = '<p class="text-sm text-gray-500">Not enough data for general insights yet.</p>';
+        console.error('Error: Could not find the general insights container.');
     }
 }
 
