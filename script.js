@@ -2062,6 +2062,49 @@ function updateGearRanking(allFish) {
 }
 
 
+function displayGeneralInsights(allTrips, allWeather, allFish) {
+    const insights = [];
+    const findMostSuccessful = (data) => {
+        if (Object.keys(data).length === 0) return null;
+        return Object.entries(data).reduce((a, b) => a[1] > b[1] ? a : b);
+    };
+
+    // Moon Phase Insight
+    const moonPhaseData = {};
+    allTrips.forEach(trip => {
+        const dateParts = trip.date.split('-');
+        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
+        const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
+        const fishCount = allFish.filter(f => f.tripId === trip.id).length;
+        moonPhaseData[moonPhase] = (moonPhaseData[moonPhase] || 0) + fishCount;
+    });
+    const bestMoon = findMostSuccessful(moonPhaseData);
+    if (bestMoon && bestMoon[1] > 0) {
+        insights.push(`Your most successful fishing has been during the <strong>${bestMoon[0]}</strong> moon phase.`);
+    }
+
+    // Weather Insight
+    const weatherData = {};
+    allWeather.forEach(weather => {
+        const condition = weather.sky;
+        if (condition) {
+            const fishCount = allFish.filter(f => f.tripId === weather.tripId).length;
+            weatherData[condition] = (weatherData[condition] || 0) + fishCount;
+        }
+    });
+    const bestWeather = findMostSuccessful(weatherData);
+    if (bestWeather && bestWeather[1] > 0) {
+        insights.push(`You've had the most luck in <strong>${bestWeather[0]}</strong> conditions.`);
+    }
+
+    const insightsContainer = document.getElementById('general-insights-container');
+    if (insights.length > 0) {
+        insightsContainer.innerHTML = insights.map(insight => `<p class="text-sm md:text-base"><i class="fas fa-info-circle text-blue-500 mr-2"></i>${insight}</p>`).join('');
+    } else {
+        insightsContainer.innerHTML = '<p class="text-sm text-gray-500">Not enough data for general insights yet.</p>';
+    }
+}
+
 function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
 
@@ -2070,6 +2113,7 @@ function loadAnalytics(allTrips, allWeather, allFish) {
 
     // Initialize interactive insights
     initInteractiveInsights(allFish);
+    displayGeneralInsights(allTrips, allWeather, allFish);
 
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
