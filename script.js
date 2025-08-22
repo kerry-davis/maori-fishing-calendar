@@ -512,7 +512,7 @@ function displayTrips(date) {
                         <button data-action="add-weather" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-blue-500 text-white rounded">Add Weather</button>
                     </div>
                     <div class="border-t dark:border-gray-700 mt-3 pt-3">
-                        <h6 class="font-semibold mb-2"># Fish Caught</h6>
+                        <h6 class="font-semibold mb-2">Catch</h6>
                         <div id="fish-list-${trip.id}" class="space-y-2">
                             <!-- Fish logs will be displayed here -->
                         </div>
