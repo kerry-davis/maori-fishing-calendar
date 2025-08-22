@@ -1962,8 +1962,29 @@ function destroyActiveCharts() {
     activeCharts = {};
 }
 
+function animateCountUp(element, endValue, duration = 1000) {
+    let startValue = 0;
+    const startTime = performance.now();
+
+    function step(currentTime) {
+        const elapsedTime = currentTime - startTime;
+        if (elapsedTime > duration) {
+            element.textContent = endValue;
+            return;
+        }
+        const progress = elapsedTime / duration;
+        const currentValue = Math.floor(progress * endValue);
+        element.textContent = currentValue;
+        requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+}
+
 function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
+
+    // Update total counts with animation
+    animateCountUp(document.getElementById('total-fish-caught'), allFish.length);
 
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
