@@ -187,3 +187,11 @@ body.modal-open {
 #best-performing-insights p {
     margin-bottom: 0.5rem;
 }
+
+.modal-content-covered {
+    pointer-events: none;
+    /* This prevents the underlying modal from shifting or its animations from interfering */
+    transition: none !important;
+    transform: scale(1) !important;
+    opacity: 1 !important;
+}

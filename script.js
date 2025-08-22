@@ -53,6 +53,7 @@ let currentYear = currentDate.getFullYear();
 let modalCurrentDay = null;
 let modalCurrentMonth = null;
 let modalCurrentYear = null;
+let modalStack = [];
 
 let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
 
@@ -1136,16 +1137,25 @@ function showTripLogModal() {
 // Generic modal handlers
 function openModalWithAnimation(modal) {
     if (!modal) return;
+
+    // If there's an active modal, cover its content
+    if (modalStack.length > 0) {
+        const currentModal = modalStack[modalStack.length - 1];
+        if (currentModal && currentModal.firstElementChild) {
+            currentModal.firstElementChild.classList.add('modal-content-covered');
+        }
+    }
+
+    modalStack.push(modal);
+
     document.body.classList.add('modal-open');
     modal.classList.remove('hidden');
-    setTimeout(() => { // Ensures display property is set before transition starts
+    setTimeout(() => {
         modal.classList.add('is-visible');
     }, 10);
 
-    // Reset scroll position of the scrollable container inside the modal
     const scrollContainer = modal.querySelector('.overflow-y-auto');
     if (scrollContainer) {
-        // Use setTimeout to ensure the element is visible and scrollable before resetting.
         setTimeout(() => {
             scrollContainer.scrollTop = 0;
         }, 0);
@@ -1154,7 +1164,23 @@ function openModalWithAnimation(modal) {
 
 function closeModalWithAnimation(modal) {
     if (!modal) return;
-    document.body.classList.remove('modal-open');
+
+    // Remove the closed modal from the stack
+    modalStack = modalStack.filter(m => m !== modal);
+
+    // Uncover the new top modal, if it exists
+    if (modalStack.length > 0) {
+        const newTopModal = modalStack[modalStack.length - 1];
+        if (newTopModal && newTopModal.firstElementChild) {
+            newTopModal.firstElementChild.classList.remove('modal-content-covered');
+        }
+    }
+
+    // Only remove the body class if no modals are left open
+    if (modalStack.length === 0) {
+        document.body.classList.remove('modal-open');
+    }
+
     modal.classList.remove('is-visible');
     const onTransitionEnd = (e) => {
         if (e.target === modal) {
