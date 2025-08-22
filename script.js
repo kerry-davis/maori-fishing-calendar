@@ -2022,7 +2022,10 @@ function generateInsights(allTrips, allWeather, allFish) {
         });
         const bestGear = findMostSuccessful(gearData);
         if (bestGear) {
-            insights.push(`When targeting <strong>${bestSpecies[0]}</strong>, your most effective lure has been the <strong>${bestGear[0]}</strong>.`);
+            const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+            const gearItem = tacklebox.find(item => item.name === bestGear[0]);
+            const gearType = gearItem ? gearItem.type.toLowerCase() : 'gear';
+            insights.push(`When targeting <strong>${bestSpecies[0]}</strong>, your most effective ${gearType} has been the <strong>${bestGear[0]}</strong>.`);
         }
     }
 
