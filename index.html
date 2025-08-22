@@ -489,11 +489,23 @@
                     <canvas id="moon-phase-chart"></canvas>
                 </div>
 
-                <!-- Best Performing Insights Section -->
+                <!-- Interactive Gear Insights Section -->
                 <div>
-                    <h4 class="text-xl font-semibold mb-4">Best Performing</h4>
-                    <div id="best-performing-insights" class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg space-y-2">
-                        <p>Loading insights...</p>
+                    <h4 class="text-xl font-semibold mb-4">Top Gear Performance</h4>
+                    <div class="p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+                        <div class="flex flex-col md:flex-row md:items-center md:space-x-4 space-y-2 md:space-y-0 mb-4">
+                            <div class="flex-1">
+                                <label for="species-select" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Target Species</label>
+                                <select id="species-select" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100"></select>
+                            </div>
+                            <div class="flex-1">
+                                <label for="gear-type-select-insights" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Gear Type</label>
+                                <select id="gear-type-select-insights" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100"></select>
+                            </div>
+                        </div>
+                        <div id="gear-ranking-list" class="space-y-2">
+                            <!-- Ranked list will be populated here -->
+                        </div>
                     </div>
                 </div>
 

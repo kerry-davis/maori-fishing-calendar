@@ -1980,76 +1980,87 @@ function animateCountUp(element, endValue, duration = 1000) {
     requestAnimationFrame(step);
 }
 
-function generateInsights(allTrips, allWeather, allFish) {
-    const insights = [];
+function initInteractiveInsights(allFish) {
+    const speciesSelect = document.getElementById('species-select');
+    const gearTypeSelect = document.getElementById('gear-type-select-insights');
 
-    // Helper function to find the item with the highest count in a dataset
-    const findMostSuccessful = (data) => {
-        if (Object.keys(data).length === 0) return null;
-        return Object.entries(data).reduce((a, b) => a[1] > b[1] ? a : b);
-    };
+    // Populate species dropdown
+    const species = [...new Set(allFish.map(f => f.species))].sort();
+    speciesSelect.innerHTML = species.map(s => `<option value="${s}">${s}</option>`).join('');
 
-    // 1. Best Moon Phase
-    const moonPhaseData = {};
-    allTrips.forEach(trip => {
-        const dateParts = trip.date.split('-');
-        const date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
-        const moonPhase = lunarPhases[getMoonPhaseData(date).phaseIndex].name;
-        const fishCount = allFish.filter(f => f.tripId === trip.id).length;
-        moonPhaseData[moonPhase] = (moonPhaseData[moonPhase] || 0) + fishCount;
+    // Initial population of gear types and rankings
+    updateGearTypeFilter(allFish);
+    updateGearRanking(allFish);
+
+    // Add event listeners
+    speciesSelect.addEventListener('change', () => {
+        updateGearTypeFilter(allFish);
+        updateGearRanking(allFish);
     });
-    const bestMoon = findMostSuccessful(moonPhaseData);
-    if (bestMoon) {
-        insights.push(`Your most successful fishing has been during the <strong>${bestMoon[0]}</strong> moon phase, with <strong>${bestMoon[1]}</strong> fish caught.`);
-    }
+    gearTypeSelect.addEventListener('change', () => updateGearRanking(allFish));
+}
 
-    // 2. Best Species (for other insights)
-    const speciesData = {};
-    allFish.forEach(fish => {
-        speciesData[fish.species] = (speciesData[fish.species] || 0) + 1;
+function updateGearTypeFilter(allFish) {
+    const speciesSelect = document.getElementById('species-select');
+    const gearTypeSelect = document.getElementById('gear-type-select-insights');
+    const selectedSpecies = speciesSelect.value;
+    const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+
+    const relevantFish = allFish.filter(f => f.species === selectedSpecies);
+
+    const gearTypes = new Set();
+    relevantFish.forEach(fish => {
+        if (fish.gear && fish.gear.length > 0) {
+            fish.gear.forEach(gearName => {
+                const gearItem = tacklebox.find(item => item.name === gearName);
+                if (gearItem && gearItem.type) {
+                    gearTypes.add(gearItem.type);
+                }
+            });
+        }
     });
-    const bestSpecies = findMostSuccessful(speciesData);
 
-    // 3. Best Lure/Gear for the top species
-    if (bestSpecies) {
-        const gearData = {};
-        allFish.filter(f => f.species === bestSpecies[0]).forEach(fish => {
+    const sortedGearTypes = [...gearTypes].sort();
+    gearTypeSelect.innerHTML = '<option value="">All Types</option>' + sortedGearTypes.map(gt => `<option value="${gt}">${gt}</option>`).join('');
+}
+
+function updateGearRanking(allFish) {
+    const speciesSelect = document.getElementById('species-select');
+    const gearTypeSelect = document.getElementById('gear-type-select-insights');
+    const rankingList = document.getElementById('gear-ranking-list');
+    const selectedSpecies = speciesSelect.value;
+    const selectedGearType = gearTypeSelect.value;
+    const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+
+    const gearCounts = {};
+    allFish
+        .filter(f => f.species === selectedSpecies)
+        .forEach(fish => {
             if (fish.gear && fish.gear.length > 0) {
-                fish.gear.forEach(g => {
-                    gearData[g] = (gearData[g] || 0) + 1;
+                fish.gear.forEach(gearName => {
+                    const gearItem = tacklebox.find(item => item.name === gearName);
+                    // Filter by gear type if one is selected
+                    if (!selectedGearType || (gearItem && gearItem.type === selectedGearType)) {
+                        gearCounts[gearName] = (gearCounts[gearName] || 0) + 1;
+                    }
                 });
             }
         });
-        const bestGear = findMostSuccessful(gearData);
-        if (bestGear) {
-            const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
-            const gearItem = tacklebox.find(item => item.name === bestGear[0]);
-            const gearType = gearItem ? gearItem.type.toLowerCase() : 'gear';
-            insights.push(`When targeting <strong>${bestSpecies[0]}</strong>, your most effective ${gearType} has been the <strong>${bestGear[0]}</strong>.`);
-        }
-    }
 
-    // 4. Best Weather for any fish
-    const weatherData = {};
-    allWeather.forEach(weather => {
-        const condition = weather.sky;
-        if (condition) {
-            const fishCount = allFish.filter(f => f.tripId === weather.tripId).length;
-            weatherData[condition] = (weatherData[condition] || 0) + fishCount;
-        }
-    });
-    const bestWeather = findMostSuccessful(weatherData);
-    if (bestWeather) {
-        insights.push(`You've had the most luck in <strong>${bestWeather[0]}</strong> conditions, catching <strong>${bestWeather[1]}</strong> fish.`);
-    }
+    const sortedGear = Object.entries(gearCounts).sort((a, b) => b[1] - a[1]);
 
-    const insightsContainer = document.getElementById('best-performing-insights');
-    if (insights.length > 0) {
-        insightsContainer.innerHTML = insights.map(insight => `<p class="text-sm md:text-base"><i class="fas fa-check-circle text-green-500 mr-2"></i>${insight}</p>`).join('');
+    if (sortedGear.length > 0) {
+        rankingList.innerHTML = sortedGear.slice(0, 3).map(([name, count], index) => `
+            <div class="flex items-center justify-between p-2 rounded ${index === 0 ? 'bg-green-100 dark:bg-green-800' : ''}">
+                <span class="font-semibold">${index + 1}. ${name}</span>
+                <span class="font-bold">${count} ${count > 1 ? 'catches' : 'catch'}</span>
+            </div>
+        `).join('');
     } else {
-        insightsContainer.innerHTML = '<p>Not enough data to generate insights. Keep logging your trips!</p>';
+        rankingList.innerHTML = '<p class="text-sm text-gray-500">No catches found for this selection.</p>';
     }
 }
+
 
 function loadAnalytics(allTrips, allWeather, allFish) {
     destroyActiveCharts(); // Clear previous charts
@@ -2057,8 +2068,8 @@ function loadAnalytics(allTrips, allWeather, allFish) {
     // Update total counts with animation
     animateCountUp(document.getElementById('total-fish-caught'), allFish.length);
 
-    // Generate and display insights
-    generateInsights(allTrips, allWeather, allFish);
+    // Initialize interactive insights
+    initInteractiveInsights(allFish);
 
     // 1. Performance by Moon Phase
     const fishCountByTrip = allFish.reduce((acc, fish) => {
