@@ -53,6 +53,7 @@ let currentYear = currentDate.getFullYear();
 let modalCurrentDay = null;
 let modalCurrentMonth = null;
 let modalCurrentYear = null;
+let modalStack = [];
 
 let calendarDays, currentMonthElement, prevMonthButton, nextMonthButton, lunarModal, closeModal, modalTitle, modalSummary, modalDate, modalQuality, modalMoonAge, modalMoonIllumination, majorBites, minorBites, modalPrevDay, modalNextDay, currentMoonPhase, currentMoonAge, currentMoonIllumination;
 
@@ -457,15 +458,10 @@ function saveTrip() {
 
     request.onsuccess = () => {
         console.log("Trip saved successfully.");
-        clearTripForm();
+        closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         displayTrips(date);
         renderCalendar();
         updateOpenTripLogButton(date);
-        const successMsg = document.getElementById('save-trip-success-msg');
-        successMsg.classList.remove('hidden');
-        setTimeout(() => {
-            successMsg.classList.add('hidden');
-        }, 2000);
     };
 
     request.onerror = (event) => {
@@ -550,14 +546,14 @@ function editTrip(id) {
         document.getElementById('cancel-edit-trip-btn').classList.remove('hidden');
         validateTripForm();
 
-        const modalContent = document.getElementById('trip-log-scroll-container');
-        if (modalContent) {
-            modalContent.scrollTop = 0;
-        }
+        openModalWithAnimation(document.getElementById('tripDetailsModal'));
     };
 }
 
 function deleteTrip(id) {
+    if (!confirm('Are you sure you want to delete this trip and all its associated data?')) {
+        return;
+    }
     // Get the date of the trip before deleting, so we can refresh the UI
     const getTransaction = db.transaction(["trips"], "readonly");
     const getObjectStore = getTransaction.objectStore("trips");
@@ -786,7 +782,8 @@ function setupEventListeners() {
     if (cancelEditTripBtn) {
         cancelEditTripBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            clearTripForm();
+            e.stopPropagation();
+            closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         });
     }
 
@@ -1012,6 +1009,10 @@ function setupEventListeners() {
         closeTripLogModal.addEventListener('click', () => closeModalWithAnimation(tripLogModal));
 
         tripLogModal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-trip-btn') {
+                clearTripForm();
+                openModalWithAnimation(document.getElementById('tripDetailsModal'));
+            }
             // Close if the backdrop is clicked, but not if an inner element is clicked
             if (e.target === tripLogModal) {
                 closeModalWithAnimation(tripLogModal);
@@ -1027,6 +1028,17 @@ function setupEventListeners() {
                 () => closeModalWithAnimation(tripLogModal)
             );
         }
+    }
+
+    const tripDetailsModal = document.getElementById('tripDetailsModal');
+    if (tripDetailsModal) {
+        const closeBtn = document.getElementById('closeTripDetailsModal');
+        closeBtn.addEventListener('click', () => closeModalWithAnimation(tripDetailsModal));
+        tripDetailsModal.addEventListener('click', (e) => {
+            if (e.target === tripDetailsModal) {
+                closeModalWithAnimation(tripDetailsModal);
+            }
+        });
     }
 
     // Swipe gestures for calendar
@@ -1125,16 +1137,25 @@ function showTripLogModal() {
 // Generic modal handlers
 function openModalWithAnimation(modal) {
     if (!modal) return;
+
+    // If there's an active modal, cover its content
+    if (modalStack.length > 0) {
+        const currentModal = modalStack[modalStack.length - 1];
+        if (currentModal && currentModal.firstElementChild) {
+            currentModal.firstElementChild.classList.add('modal-content-covered');
+        }
+    }
+
+    modalStack.push(modal);
+
     document.body.classList.add('modal-open');
     modal.classList.remove('hidden');
-    setTimeout(() => { // Ensures display property is set before transition starts
+    setTimeout(() => {
         modal.classList.add('is-visible');
     }, 10);
 
-    // Reset scroll position of the scrollable container inside the modal
     const scrollContainer = modal.querySelector('.overflow-y-auto');
     if (scrollContainer) {
-        // Use setTimeout to ensure the element is visible and scrollable before resetting.
         setTimeout(() => {
             scrollContainer.scrollTop = 0;
         }, 0);
@@ -1143,7 +1164,23 @@ function openModalWithAnimation(modal) {
 
 function closeModalWithAnimation(modal) {
     if (!modal) return;
-    document.body.classList.remove('modal-open');
+
+    // Remove the closed modal from the stack
+    modalStack = modalStack.filter(m => m !== modal);
+
+    // Uncover the new top modal, if it exists
+    if (modalStack.length > 0) {
+        const newTopModal = modalStack[modalStack.length - 1];
+        if (newTopModal && newTopModal.firstElementChild) {
+            newTopModal.firstElementChild.classList.remove('modal-content-covered');
+        }
+    }
+
+    // Only remove the body class if no modals are left open
+    if (modalStack.length === 0) {
+        document.body.classList.remove('modal-open');
+    }
+
     modal.classList.remove('is-visible');
     const onTransitionEnd = (e) => {
         if (e.target === modal) {
@@ -1864,9 +1901,9 @@ function displayFishForTrip(tripId) {
                     content += `<div>${sizeParts.join(' / ')}</div>`;
                 }
                 if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
-                    content += `<div>Bait/Lure: ${log.gear.join(', ')}</div>`;
+                    content += `<div>Gear: ${log.gear.join(', ')}</div>`;
                 } else if (log.bait) { // Backward compatibility
-                    content += `<div>Bait/Lure: ${log.bait}</div>`;
+                    content += `<div>Gear: ${log.bait}</div>`;
                 }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
