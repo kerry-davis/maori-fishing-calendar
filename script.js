@@ -1223,6 +1223,17 @@ function showTripLogModal() {
     const tripLogModal = document.getElementById('tripLogModal');
     if (!tripLogModal) return;
 
+    const date = new Date(modalCurrentYear, modalCurrentMonth, modalCurrentDay);
+    const dayName = dayNames[date.getDay()];
+    const dayOfMonth = date.getDate();
+    const monthName = monthNames[date.getMonth()].substring(0, 3);
+    const formattedDate = `${dayName} ${dayOfMonth} ${monthName}`;
+
+    const tripLogDateEl = document.getElementById('trip-log-date');
+    if (tripLogDateEl) {
+        tripLogDateEl.textContent = formattedDate;
+    }
+
     // Populate the trips for the currently selected day
     const dateStrForDisplay = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     displayTrips(dateStrForDisplay);
