@@ -1246,15 +1246,18 @@ function showTripLogModal() {
 function openModalWithAnimation(modal) {
     if (!modal) return;
 
-    // If there's an active modal, cover its content
+    // If there's an active modal, cover its content, but only if it's a DIFFERENT modal.
     if (modalStack.length > 0) {
-        const currentModal = modalStack[modalStack.length - 1];
-        if (currentModal && currentModal.firstElementChild) {
-            currentModal.firstElementChild.classList.add('modal-content-covered');
+        const currentTopModal = modalStack[modalStack.length - 1];
+        if (currentTopModal !== modal && currentTopModal.firstElementChild) {
+            currentTopModal.firstElementChild.classList.add('modal-content-covered');
         }
     }
 
-    modalStack.push(modal);
+    // Only push the modal to the stack if it's not already the top-most one.
+    if (modalStack.length === 0 || modalStack[modalStack.length - 1] !== modal) {
+        modalStack.push(modal);
+    }
 
     document.body.classList.add('modal-open');
     modal.classList.remove('hidden');
@@ -1300,8 +1303,6 @@ function closeModalWithAnimation(modal) {
 }
 
 function showModal(day, month, year) {
-    const wasHidden = lunarModal.classList.contains('hidden');
-
     clearTripForm(); // Reset the form every time the modal is shown or day is changed
     validateTripForm(); // Ensure button state is correct on modal open
     modalCurrentDay = day;
@@ -1342,9 +1343,7 @@ function showModal(day, month, year) {
     updateOpenTripLogButton(dateStrForDisplay);
 
     updateNavigationButtons();
-    if (wasHidden) {
-        openModalWithAnimation(lunarModal);
-    }
+    openModalWithAnimation(lunarModal);
 }
 
 function showPreviousDay() {
