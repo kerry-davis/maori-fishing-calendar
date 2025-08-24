@@ -1004,8 +1004,10 @@ function setupEventListeners() {
 
     if (galleryBtn) {
         galleryBtn.addEventListener('click', () => {
-            loadPhotoGallery();
+            // Open the modal first for a better user experience
             openModalWithAnimation(galleryModal);
+            // Then load the content
+            loadPhotoGallery();
         });
     }
 
