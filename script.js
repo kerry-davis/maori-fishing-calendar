@@ -2675,10 +2675,14 @@ async function loadPhotoGallery() {
 
         const fishWithPhotos = allFish
             .filter(fish => fish.photo && tripsMap.has(fish.tripId))
-            .map(fish => ({
-                ...fish,
-                tripDate: new Date(tripsMap.get(fish.tripId).date + 'T00:00:00') // Use Date object
-            }));
+            .map(fish => {
+                const dateStr = tripsMap.get(fish.tripId).date;
+                const [year, month, day] = dateStr.split('-').map(Number);
+                return {
+                    ...fish,
+                    tripDate: new Date(year, month - 1, day)
+                };
+            });
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
