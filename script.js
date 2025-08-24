@@ -1162,6 +1162,16 @@ function setupEventListeners() {
             addSwipeListeners(modalContent, showNextDay, showPreviousDay);
         }
     }
+
+    // Add a global listener for the Escape key to close the top-most modal.
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (modalStack.length > 0) {
+                const topModal = modalStack[modalStack.length - 1];
+                closeModalWithAnimation(topModal);
+            }
+        }
+    });
 }
 
 function updateCurrentMoonInfo() {
