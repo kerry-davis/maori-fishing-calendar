@@ -46,6 +46,7 @@ let currentEditingTripId = null; // For sub-modals (weather, fish)
 let currentEditingWeatherId = null;
 let currentEditingFishId = null;
 let tempSelectedGear = [];
+let gallerySortOrder = 'desc';
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -714,6 +715,31 @@ function setupEventListeners() {
             if (e.target === settingsModal) {
                 closeModalWithAnimation(settingsModal);
             }
+        });
+    }
+
+    const gallerySortBtn = document.getElementById('gallery-sort-btn');
+    if (gallerySortBtn) {
+        const icon = gallerySortBtn.querySelector('i');
+        // Set initial icon state based on default sort order
+        if (gallerySortOrder === 'desc') {
+            icon.classList.add('fa-sort-down');
+        } else {
+            icon.classList.add('fa-sort-up');
+        }
+
+        gallerySortBtn.addEventListener('click', () => {
+            gallerySortOrder = gallerySortOrder === 'desc' ? 'asc' : 'desc';
+
+            // Update icon
+            icon.classList.remove('fa-sort-up', 'fa-sort-down');
+            if (gallerySortOrder === 'asc') {
+                icon.classList.add('fa-sort-up');
+            } else {
+                icon.classList.add('fa-sort-down');
+            }
+
+            loadPhotoGallery();
         });
     }
 
@@ -2653,8 +2679,8 @@ async function loadPhotoGallery() {
                 ...fish,
                 tripDate: tripsMap.get(fish.tripId)?.date
             }))
-            .filter(fish => fish.tripDate) // Ensure fish has a valid trip date
-            .sort((a, b) => new Date(b.tripDate) - new Date(a.tripDate)); // Sort by date descending
+            .filter(fish => fish.tripDate)
+            .sort((a, b) => new Date(a.tripDate) - new Date(b.tripDate));
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
@@ -2663,7 +2689,6 @@ async function loadPhotoGallery() {
 
         const groupedByMonth = fishWithPhotos.reduce((acc, fish) => {
             const date = new Date(fish.tripDate);
-            // Create a key like "2025-08"
             const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             if (!acc[monthKey]) {
                 acc[monthKey] = [];
@@ -2672,10 +2697,15 @@ async function loadPhotoGallery() {
             return acc;
         }, {});
 
-        galleryGrid.innerHTML = ''; // Clear loading message
+        galleryGrid.innerHTML = '';
 
-        for (const monthKey in groupedByMonth) {
-            const date = new Date(monthKey + '-02'); // Use day 02 to avoid timezone issues with day 01
+        const monthKeys = Object.keys(groupedByMonth).sort();
+        if (gallerySortOrder === 'desc') {
+            monthKeys.reverse();
+        }
+
+        for (const monthKey of monthKeys) {
+            const date = new Date(monthKey + '-02');
             const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
             const monthHeader = document.createElement('h4');
@@ -2684,10 +2714,14 @@ async function loadPhotoGallery() {
             galleryGrid.appendChild(monthHeader);
 
             const fishes = groupedByMonth[monthKey];
+            if (gallerySortOrder === 'desc') {
+                fishes.reverse();
+            }
+
             fishes.forEach(fish => {
                 const photoEl = document.createElement('div');
                 photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
-                photoEl.dataset.fishId = fish.id; // Add fish ID for click handler
+                photoEl.dataset.fishId = fish.id;
 
                 const img = document.createElement('img');
                 img.src = fish.photo;
