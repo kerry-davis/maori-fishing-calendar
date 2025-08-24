@@ -2674,87 +2674,64 @@ async function loadPhotoGallery() {
         const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
 
         const fishWithPhotos = allFish
-            .filter(fish => fish.photo)
+            .filter(fish => fish.photo && tripsMap.has(fish.tripId))
             .map(fish => ({
                 ...fish,
-                tripDate: tripsMap.get(fish.tripId)?.date
-            }))
-            .filter(fish => fish.tripDate)
-            .sort((a, b) => {
-                // Replace hyphens with slashes for robust date parsing across browsers
-                const dateA = new Date(a.tripDate.replace(/-/g, '/'));
-                const dateB = new Date(b.tripDate.replace(/-/g, '/'));
-                return dateA - dateB;
-            });
+                tripDate: new Date(tripsMap.get(fish.tripId).date + 'T00:00:00') // Use Date object
+            }));
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
             return;
         }
 
-        const groupedByMonth = fishWithPhotos.reduce((acc, fish) => {
-            const dateParts = fish.tripDate.split('-');
-            const year = parseInt(dateParts[0], 10);
-            const month = parseInt(dateParts[1], 10);
-            const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
-            if (!acc[monthKey]) {
-                acc[monthKey] = [];
-            }
-            acc[monthKey].push(fish);
-            return acc;
-        }, {});
+        // Single, definitive sort operation based on the global sort order
+        fishWithPhotos.sort((a, b) => {
+            return gallerySortOrder === 'desc' ? b.tripDate - a.tripDate : a.tripDate - b.tripDate;
+        });
 
         galleryGrid.innerHTML = '';
+        let currentMonthKey = '';
 
-        const monthKeys = Object.keys(groupedByMonth).sort();
-        if (gallerySortOrder === 'desc') {
-            monthKeys.reverse();
-        }
+        fishWithPhotos.forEach(fish => {
+            const monthKey = `${fish.tripDate.getFullYear()}-${fish.tripDate.getMonth()}`;
 
-        for (const monthKey of monthKeys) {
-            const keyParts = monthKey.split('-');
-            const year = parseInt(keyParts[0], 10);
-            const monthIndex = parseInt(keyParts[1], 10) - 1;
-            const date = new Date(year, monthIndex, 1);
-            const monthName = date.toLocaleString('default', {
-                month: 'long',
-                year: 'numeric',
-                timeZone: 'UTC'
-            });
+            // If the month has changed, print a new header
+            if (monthKey !== currentMonthKey) {
+                currentMonthKey = monthKey;
+                const monthName = fish.tripDate.toLocaleString('default', {
+                    month: 'long',
+                    year: 'numeric'
+                });
 
-            const monthHeader = document.createElement('h4');
-            monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-4 first:mt-0';
-            monthHeader.textContent = monthName;
-            galleryGrid.appendChild(monthHeader);
-
-            const fishes = groupedByMonth[monthKey];
-            if (gallerySortOrder === 'desc') {
-                fishes.reverse();
+                const monthHeader = document.createElement('h4');
+                monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-6 first:mt-0';
+                monthHeader.textContent = monthName;
+                galleryGrid.appendChild(monthHeader);
             }
 
-            fishes.forEach(fish => {
-                const photoEl = document.createElement('div');
-                photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
-                photoEl.dataset.fishId = fish.id;
+            // Render the photo element
+            const photoEl = document.createElement('div');
+            photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
+            photoEl.dataset.fishId = fish.id;
 
-                const img = document.createElement('img');
-                img.src = fish.photo;
-                img.alt = fish.species;
-                img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+            const img = document.createElement('img');
+            img.src = fish.photo;
+            img.alt = fish.species;
+            img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
 
-                const overlay = document.createElement('div');
-                overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
 
-                const text = document.createElement('p');
-                text.className = 'text-white text-sm font-semibold';
-                text.textContent = fish.species;
+            const text = document.createElement('p');
+            text.className = 'text-white text-sm font-semibold';
+            text.textContent = fish.species;
 
-                overlay.appendChild(text);
-                photoEl.appendChild(img);
-                photoEl.appendChild(overlay);
-                galleryGrid.appendChild(photoEl);
-            });
-        }
+            overlay.appendChild(text);
+            photoEl.appendChild(img);
+            photoEl.appendChild(overlay);
+            galleryGrid.appendChild(photoEl);
+        });
 
     } catch (error) {
         console.error("Error loading photo gallery:", error);
