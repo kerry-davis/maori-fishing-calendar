@@ -1814,10 +1814,8 @@ function openGearSelectionModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    // The tacklebox gear is already in `tempSelectedGear` from the modal selection
+    const photoFile = document.getElementById('fish-photo').files[0];
     const finalGear = [...tempSelectedGear];
-
-    // Get value from the "other bait" text input and add it
     const otherBaitInput = document.getElementById('fish-bait');
     const otherBaitValue = otherBaitInput ? otherBaitInput.value.trim() : '';
     if (otherBaitValue) {
@@ -1839,24 +1837,74 @@ function saveFish() {
         return;
     }
 
-    const transaction = db.transaction(['fish_caught'], 'readwrite');
-    const store = transaction.objectStore('fish_caught');
-    let request;
+    const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
 
-    if (currentEditingFishId) {
-        fishData.id = currentEditingFishId;
-        request = store.put(fishData);
+    const commitToDB = (data) => {
+        const transaction = db.transaction(['fish_caught'], 'readwrite');
+        const store = transaction.objectStore('fish_caught');
+
+        const saveOperation = (finalData) => {
+            const request = store.put(finalData);
+            request.onsuccess = () => {
+                displayFishForTrip(currentEditingTripId);
+                closeFishModal();
+                // Reset file input
+                const photoInput = document.getElementById('fish-photo');
+                if (photoInput) {
+                    photoInput.value = '';
+                }
+            };
+            request.onerror = (event) => console.error('Error saving fish data:', event.target.error);
+        };
+
+        if (currentEditingFishId) {
+            data.id = currentEditingFishId;
+            const getRequest = store.get(currentEditingFishId);
+            getRequest.onsuccess = () => {
+                const existingData = getRequest.result;
+                if (existingData && existingData.photo && !data.photo) {
+                    data.photo = existingData.photo; // Preserve old photo if no new one is uploaded
+                }
+                saveOperation(data);
+            }
+            getRequest.onerror = (event) => {
+                console.error('Error fetching existing fish data:', event.target.error);
+                // Still try to save, but we might lose the old photo
+                saveOperation(data);
+            };
+        } else {
+            // It's a new fish, just add it.
+            const request = store.add(data);
+             request.onsuccess = () => {
+                displayFishForTrip(currentEditingTripId);
+                closeFishModal();
+                const photoInput = document.getElementById('fish-photo');
+                if (photoInput) {
+                    photoInput.value = '';
+                }
+            };
+            request.onerror = (event) => console.error('Error saving new fish data:', event.target.error);
+        }
+    };
+
+    if (photoFile) {
+        readFileAsBase64(photoFile).then(base64 => {
+            fishData.photo = base64;
+            commitToDB(fishData);
+        }).catch(error => {
+            console.error('Error reading file:', error);
+            alert('Could not read the photo file. Please try another file. The fish data was not saved.');
+        });
     } else {
-        request = store.add(fishData);
+        commitToDB(fishData);
     }
-
-    request.onsuccess = () => {
-        displayFishForTrip(currentEditingTripId);
-        closeFishModal();
-    };
-    request.onerror = (event) => {
-        console.error('Error saving fish data:', event.target.error);
-    };
 }
 
 function updateFishCountForTrip(tripId) {
@@ -1907,6 +1955,10 @@ function displayFishForTrip(tripId) {
                 }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
+
+                if (log.photo) {
+                    content += `<img src="${log.photo}" alt="${log.species}" class="mt-2 rounded-lg w-full">`;
+                }
 
                 content += `
                     <div class="mt-2">
