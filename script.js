@@ -2716,20 +2716,28 @@ async function loadPhotoGallery() {
 
         // 5. Render the gallery from the sorted, grouped data
         galleryGrid.innerHTML = ''; // Clear existing content
-        const fragment = document.createDocumentFragment(); // Create a document fragment
+        const fragment = document.createDocumentFragment();
 
         for (const monthKey of sortedMonthKeys) {
             const photosInMonth = groupedByMonth.get(monthKey);
             const firstFish = photosInMonth[0];
+
+            // Create a container for the whole month
+            const monthContainer = document.createElement('div');
 
             const monthName = firstFish.tripDate.toLocaleString('default', {
                 month: 'long',
                 year: 'numeric'
             });
             const monthHeader = document.createElement('h4');
-            monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-6 first:mt-0';
+            // Note: The `col-span-full` is no longer needed here, but we'll keep margins.
+            monthHeader.className = 'text-xl font-bold text-gray-800 dark:text-gray-100 mb-4';
             monthHeader.textContent = monthName;
-            fragment.appendChild(monthHeader); // Append to fragment
+            monthContainer.appendChild(monthHeader);
+
+            // Create the grid for this month's photos
+            const photoGridForMonth = document.createElement('div');
+            photoGridForMonth.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
 
             photosInMonth.forEach(fish => {
                 const photoEl = document.createElement('div');
@@ -2751,11 +2759,14 @@ async function loadPhotoGallery() {
                 overlay.appendChild(text);
                 photoEl.appendChild(img);
                 photoEl.appendChild(overlay);
-                fragment.appendChild(photoEl); // Append to fragment
+                photoGridForMonth.appendChild(photoEl);
             });
+
+            monthContainer.appendChild(photoGridForMonth);
+            fragment.appendChild(monthContainer);
         }
 
-        galleryGrid.appendChild(fragment); // Append the entire fragment at once
+        galleryGrid.appendChild(fragment);
 
     } catch (error) {
         console.error("Error loading photo gallery:", error);
