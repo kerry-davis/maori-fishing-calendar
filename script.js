@@ -1162,6 +1162,13 @@ function setupEventListeners() {
             addSwipeListeners(modalContent, showNextDay, showPreviousDay);
         }
     }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modalStack.length > 0) {
+            const topModal = modalStack[modalStack.length - 1];
+            closeModalWithAnimation(topModal);
+        }
+    });
 }
 
 function updateCurrentMoonInfo() {
