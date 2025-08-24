@@ -45,7 +45,9 @@ let currentTripId = null;
 let currentEditingTripId = null; // For sub-modals (weather, fish)
 let currentEditingWeatherId = null;
 let currentEditingFishId = null;
+let currentEditingFishData = null; // To hold the full fish object for editing
 let tempSelectedGear = [];
+let gallerySortOrder = 'desc';
 
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
@@ -717,6 +719,31 @@ function setupEventListeners() {
         });
     }
 
+    const gallerySortBtn = document.getElementById('gallery-sort-btn');
+    if (gallerySortBtn) {
+        const icon = gallerySortBtn.querySelector('i');
+        // Set initial icon state based on default sort order
+        if (gallerySortOrder === 'desc') {
+            icon.classList.add('fa-sort-down');
+        } else {
+            icon.classList.add('fa-sort-up');
+        }
+
+        gallerySortBtn.addEventListener('click', () => {
+            gallerySortOrder = gallerySortOrder === 'desc' ? 'asc' : 'desc';
+
+            // Update icon
+            icon.classList.remove('fa-sort-up', 'fa-sort-down');
+            if (gallerySortOrder === 'asc') {
+                icon.classList.add('fa-sort-up');
+            } else {
+                icon.classList.add('fa-sort-down');
+            }
+
+            loadPhotoGallery();
+        });
+    }
+
     const gearSelectionModal = document.getElementById('gearSelectionModal');
     if (gearSelectionModal) {
         gearSelectionModal.addEventListener('click', (e) => {
@@ -906,6 +933,18 @@ function setupEventListeners() {
             if (openBtn) {
                 openGearSelectionModal();
             }
+
+            const deleteBtn = e.target.closest('#delete-photo-btn');
+            if (deleteBtn) {
+                if (confirm('Are you sure you want to delete this photo?')) {
+                    if (currentEditingFishData) {
+                        currentEditingFishData.photo = null;
+                    }
+                    // Hide the UI elements
+                    document.getElementById('edit-photo-container').classList.add('hidden');
+                    document.getElementById('fish-photo-thumbnail').src = '';
+                }
+            }
         });
     }
 
@@ -995,6 +1034,59 @@ function setupEventListeners() {
                 () => closeModalWithAnimation(analyticsModal)
             );
         }
+    }
+
+    // Gallery Modal Listeners
+    const galleryBtn = document.getElementById('gallery-btn');
+    const galleryModal = document.getElementById('galleryModal');
+    const closeGalleryModal = document.getElementById('closeGalleryModal');
+
+    if (galleryBtn) {
+        galleryBtn.addEventListener('click', () => {
+            // Open the modal first for a better user experience
+            openModalWithAnimation(galleryModal);
+            // Then load the content
+            loadPhotoGallery();
+        });
+    }
+
+    if (closeGalleryModal) {
+        closeGalleryModal.addEventListener('click', () => closeModalWithAnimation(galleryModal));
+    }
+
+    if (galleryModal) {
+        galleryModal.addEventListener('click', (e) => {
+            if (e.target === galleryModal) {
+                closeModalWithAnimation(galleryModal);
+            }
+        });
+
+        const galleryGrid = document.getElementById('gallery-grid');
+        if (galleryGrid) {
+            galleryGrid.addEventListener('click', (e) => {
+                const photoEl = e.target.closest('.group');
+                if (photoEl && photoEl.dataset.fishId) {
+                    const fishId = parseInt(photoEl.dataset.fishId, 10);
+                    openCatchDetailModal(fishId);
+                }
+            });
+        }
+    }
+
+    // Catch Detail Modal Listeners
+    const catchDetailModal = document.getElementById('catchDetailModal');
+    const closeCatchDetailModal = document.getElementById('closeCatchDetailModal');
+
+    if (closeCatchDetailModal) {
+        closeCatchDetailModal.addEventListener('click', () => closeModalWithAnimation(catchDetailModal));
+    }
+
+    if (catchDetailModal) {
+        catchDetailModal.addEventListener('click', (e) => {
+            if (e.target === catchDetailModal) {
+                closeModalWithAnimation(catchDetailModal);
+            }
+        });
     }
 
     const openTripLogBtn = document.getElementById('open-trip-log-btn');
@@ -1669,13 +1761,20 @@ function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
     const gearContainer = document.getElementById('fish-gear-container');
-    gearContainer.innerHTML = ''; // Clear previous content
+    const photoContainer = document.getElementById('edit-photo-container');
+    const photoThumbnail = document.getElementById('fish-photo-thumbnail');
 
+    // Reset fields and state
+    document.getElementById('fish-form').reset();
+    gearContainer.innerHTML = '';
+    photoContainer.classList.add('hidden');
+    photoThumbnail.src = '';
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
-    tempSelectedGear = []; // Reset on open
+    currentEditingFishData = null; // Reset editing data
+    tempSelectedGear = [];
 
-    // --- New UI for gear selection ---
+    // --- Dynamic UI for gear selection ---
     const gearLabel = document.createElement('label');
     gearLabel.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
     gearLabel.textContent = 'Gear / Lure Used';
@@ -1697,9 +1796,7 @@ function openFishModal(tripId, fishId = null) {
     gearDisplayWrapper.appendChild(openGearModalBtn);
 
     gearContainer.appendChild(gearDisplayWrapper);
-    // --- End of new UI ---
 
-    // Add a text input for bait/lure not in tacklebox
     const baitInput = document.createElement('input');
     baitInput.type = 'text';
     baitInput.id = 'fish-bait';
@@ -1716,11 +1813,19 @@ function openFishModal(tripId, fishId = null) {
             const data = request.result;
             if (!data) return;
 
+            currentEditingFishData = data; // Store the full object
+
             document.getElementById('fish-species').value = data.species || '';
             document.getElementById('fish-length').value = data.length || '';
             document.getElementById('fish-weight').value = data.weight || '';
             document.getElementById('fish-time').value = data.time || '';
             document.getElementById('fish-details').value = data.details || '';
+
+            // Handle photo display
+            if (data.photo) {
+                photoThumbnail.src = data.photo;
+                photoContainer.classList.remove('hidden');
+            }
 
             const gearUsed = data.gear || (data.bait ? [data.bait] : []);
             const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
@@ -1736,20 +1841,11 @@ function openFishModal(tripId, fishId = null) {
             });
 
             updateSelectedGearDisplay();
-
-            const otherBaitInput = document.getElementById('fish-bait');
-            if (otherBaitInput) {
-                otherBaitInput.value = customBaits.join(', ');
-            }
+            baitInput.value = customBaits.join(', ');
         };
     } else {
         modalTitle.textContent = 'Add Fish';
-        document.getElementById('fish-species').value = '';
-        document.getElementById('fish-length').value = '';
-        document.getElementById('fish-weight').value = '';
-        document.getElementById('fish-time').value = '';
-        document.getElementById('fish-details').value = '';
-        updateSelectedGearDisplay();
+        updateSelectedGearDisplay(); // To show "None selected"
     }
 
     openModalWithAnimation(fishModal);
@@ -1814,49 +1910,77 @@ function openGearSelectionModal() {
 function saveFish() {
     if (!currentEditingTripId) return;
 
-    // The tacklebox gear is already in `tempSelectedGear` from the modal selection
+    const photoFile = document.getElementById('fish-photo').files[0];
     const finalGear = [...tempSelectedGear];
-
-    // Get value from the "other bait" text input and add it
     const otherBaitInput = document.getElementById('fish-bait');
     const otherBaitValue = otherBaitInput ? otherBaitInput.value.trim() : '';
     if (otherBaitValue) {
         finalGear.push(otherBaitValue);
     }
 
-    const fishData = {
-        tripId: currentEditingTripId,
-        species: document.getElementById('fish-species').value.trim(),
-        gear: finalGear,
-        length: document.getElementById('fish-length').value.trim(),
-        weight: document.getElementById('fish-weight').value.trim(),
-        time: document.getElementById('fish-time').value,
-        details: document.getElementById('fish-details').value.trim(),
-    };
+    // Start with the existing data if we are editing, or a new object if adding.
+    const fishData = currentEditingFishData || { tripId: currentEditingTripId };
+
+    // Update with form values
+    fishData.species = document.getElementById('fish-species').value.trim();
+    fishData.gear = finalGear;
+    fishData.length = document.getElementById('fish-length').value.trim();
+    fishData.weight = document.getElementById('fish-weight').value.trim();
+    fishData.time = document.getElementById('fish-time').value;
+    fishData.details = document.getElementById('fish-details').value.trim();
+
 
     if (!fishData.species) {
         alert("Please enter a species for the fish.");
         return;
     }
 
-    const transaction = db.transaction(['fish_caught'], 'readwrite');
-    const store = transaction.objectStore('fish_caught');
-    let request;
+    const readFileAsBase64 = (file) => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
 
-    if (currentEditingFishId) {
-        fishData.id = currentEditingFishId;
-        request = store.put(fishData);
+    const commitToDB = (data) => {
+        const transaction = db.transaction(['fish_caught'], 'readwrite');
+        const store = transaction.objectStore('fish_caught');
+        let request;
+
+        if (data.id) { // If it has an ID, it's an update
+            request = store.put(data);
+        } else { // No ID, it's a new entry
+            request = store.add(data);
+        }
+
+        request.onsuccess = () => {
+            displayFishForTrip(currentEditingTripId);
+            closeFishModal();
+            // Reset file input
+            const photoInput = document.getElementById('fish-photo');
+            if (photoInput) {
+                photoInput.value = '';
+            }
+        };
+        request.onerror = (event) => console.error('Error saving fish data:', event.target.error);
+    };
+
+    if (photoFile) {
+        readFileAsBase64(photoFile).then(base64 => {
+            fishData.photo = base64; // Set or overwrite the photo
+            commitToDB(fishData);
+        }).catch(error => {
+            console.error('Error reading file:', error);
+            alert('Could not read the photo file. Please try another file. The fish data was not saved.');
+        });
     } else {
-        request = store.add(fishData);
+        // No new photo was selected.
+        // The fishData.photo property is either the old photo, or null if it was deleted.
+        // So we can just commit the data as is.
+        commitToDB(fishData);
     }
-
-    request.onsuccess = () => {
-        displayFishForTrip(currentEditingTripId);
-        closeFishModal();
-    };
-    request.onerror = (event) => {
-        console.error('Error saving fish data:', event.target.error);
-    };
 }
 
 function updateFishCountForTrip(tripId) {
@@ -1907,6 +2031,10 @@ function displayFishForTrip(tripId) {
                 }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
+
+                if (log.photo) {
+                    content += `<img src="${log.photo}" alt="${log.species}" class="mt-2 rounded-lg w-full">`;
+                }
 
                 content += `
                     <div class="mt-2">
@@ -2531,6 +2659,172 @@ function displaySearchResults(results) {
         resultEl.innerHTML = content;
         resultsContainer.appendChild(resultEl);
     });
+}
+
+async function loadPhotoGallery() {
+    const galleryGrid = document.getElementById('gallery-grid');
+    galleryGrid.innerHTML = '<p class="col-span-full text-center">Loading photos...</p>';
+
+    try {
+        // 1. Fetch all necessary data
+        const allFish = await getAllData('fish_caught');
+        const allTrips = await getAllData('trips');
+        const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
+
+        // 2. Filter for fish with photos and add a proper Date object
+        const fishWithPhotos = allFish
+            .filter(fish => fish.photo && tripsMap.has(fish.tripId))
+            .map(fish => {
+                const dateStr = tripsMap.get(fish.tripId).date;
+                const [year, month, day] = dateStr.split('-').map(Number);
+                return {
+                    ...fish,
+                    tripDate: new Date(year, month - 1, day) // Timezone-safe date
+                };
+            });
+
+        if (fishWithPhotos.length === 0) {
+            galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
+            return;
+        }
+
+        // 3. Group photos by month
+        const groupedByMonth = new Map();
+        fishWithPhotos.forEach(fish => {
+            const monthKey = `${fish.tripDate.getFullYear()}-${fish.tripDate.getMonth()}`;
+            if (!groupedByMonth.has(monthKey)) {
+                groupedByMonth.set(monthKey, []);
+            }
+            groupedByMonth.get(monthKey).push(fish);
+        });
+
+        // 4. Sort the grouped photos
+        const sortedMonthKeys = Array.from(groupedByMonth.keys()).sort((a, b) => {
+            const [yearA, monthA] = a.split('-').map(Number);
+            const [yearB, monthB] = b.split('-').map(Number);
+            const dateA = new Date(yearA, monthA);
+            const dateB = new Date(yearB, monthB);
+            return gallerySortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+
+        for (const key of sortedMonthKeys) {
+            const photosInMonth = groupedByMonth.get(key);
+            photosInMonth.sort((a, b) => {
+                 return gallerySortOrder === 'desc' ? b.tripDate - a.tripDate : a.tripDate - b.tripDate;
+            });
+        }
+
+        // 5. Render the gallery from the sorted, grouped data
+        galleryGrid.innerHTML = ''; // Clear existing content
+        const fragment = document.createDocumentFragment();
+
+        for (const monthKey of sortedMonthKeys) {
+            const photosInMonth = groupedByMonth.get(monthKey);
+            const firstFish = photosInMonth[0];
+
+            // Create a container for the whole month
+            const monthContainer = document.createElement('div');
+
+            const monthName = firstFish.tripDate.toLocaleString('default', {
+                month: 'long',
+                year: 'numeric'
+            });
+            const monthHeader = document.createElement('h4');
+            // Note: The `col-span-full` is no longer needed here, but we'll keep margins.
+            monthHeader.className = 'text-xl font-bold text-gray-800 dark:text-gray-100 mb-4';
+            monthHeader.textContent = monthName;
+            monthContainer.appendChild(monthHeader);
+
+            // Create the grid for this month's photos
+            const photoGridForMonth = document.createElement('div');
+            photoGridForMonth.className = 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4';
+
+            photosInMonth.forEach(fish => {
+                const photoEl = document.createElement('div');
+                photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
+                photoEl.dataset.fishId = fish.id;
+
+                const img = document.createElement('img');
+                img.src = fish.photo;
+                img.alt = fish.species;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+
+                const overlay = document.createElement('div');
+                overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+
+                const text = document.createElement('p');
+                text.className = 'text-white text-sm font-semibold';
+                text.textContent = fish.species;
+
+                overlay.appendChild(text);
+                photoEl.appendChild(img);
+                photoEl.appendChild(overlay);
+                photoGridForMonth.appendChild(photoEl);
+            });
+
+            monthContainer.appendChild(photoGridForMonth);
+            fragment.appendChild(monthContainer);
+        }
+
+        galleryGrid.appendChild(fragment);
+
+    } catch (error) {
+        console.error("Error loading photo gallery:", error);
+        galleryGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Could not load photos. Please try again later.</p>';
+    }
+}
+
+async function openCatchDetailModal(fishId) {
+    try {
+        const transaction = db.transaction(['fish_caught', 'trips'], 'readonly');
+        const fishStore = transaction.objectStore('fish_caught');
+        const tripStore = transaction.objectStore('trips');
+
+        const fishRequest = fishStore.get(fishId);
+        const fish = await new Promise((resolve, reject) => {
+            fishRequest.onsuccess = () => resolve(fishRequest.result);
+            fishRequest.onerror = () => reject(fishRequest.error);
+        });
+
+        if (!fish) {
+            console.error("Fish not found for ID:", fishId);
+            alert("Could not find the details for this catch.");
+            return;
+        }
+
+        const tripRequest = tripStore.get(fish.tripId);
+        const trip = await new Promise((resolve, reject) => {
+            tripRequest.onsuccess = () => resolve(tripRequest.result);
+            tripRequest.onerror = () => reject(tripRequest.error);
+        });
+
+        const modal = document.getElementById('catchDetailModal');
+        document.getElementById('catchDetailImage').src = fish.photo || '';
+        document.getElementById('catchDetailSpecies').textContent = fish.species || 'Unknown Species';
+
+        const contentEl = document.getElementById('catchDetailContent');
+        let detailsHTML = '';
+
+        if (trip) {
+            const date = new Date(trip.date + 'T00:00:00'); // Treat date as local
+            detailsHTML += `<p><strong>Date:</strong> ${date.toLocaleDateString()}</p>`;
+        }
+        if (fish.time) detailsHTML += `<p><strong>Time:</strong> ${fish.time}</p>`;
+        if (fish.length) detailsHTML += `<p><strong>Length:</strong> ${fish.length}</p>`;
+        if (fish.weight) detailsHTML += `<p><strong>Weight:</strong> ${fish.weight}</p>`;
+        if (fish.gear && fish.gear.length > 0) {
+            detailsHTML += `<p><strong>Gear Used:</strong> ${fish.gear.join(', ')}</p>`;
+        }
+        if (fish.details) detailsHTML += `<p class="mt-2"><strong>Notes:</strong><br>${fish.details}</p>`;
+
+        contentEl.innerHTML = detailsHTML;
+
+        openModalWithAnimation(modal);
+
+    } catch (error) {
+        console.error("Error opening catch detail modal:", error);
+        alert("An error occurred while trying to display the catch details.");
+    }
 }
 
 function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
