@@ -463,30 +463,32 @@
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
             <div class="p-6">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="fish-modal-title">Add Fish</h3>
-                <div class="space-y-3 text-sm">
-                    <input type="text" id="fish-species" placeholder="Species" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    <div id="fish-gear-container">
-                        <!-- Populated by script -->
-                    </div>
-                    <input type="text" id="fish-length" placeholder="Length" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    <input type="text" id="fish-weight" placeholder="Weight" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    <div class="flex items-center">
-                        <label for="fish-time" class="mr-2 dark:text-gray-300">Time:</label>
-                        <input type="time" id="fish-time" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
-                    </div>
-                    <textarea id="fish-details" placeholder="Other Details..." rows="3" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2"></textarea>
-                    <div id="edit-photo-container" class="hidden">
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Photo</label>
-                        <div class="mt-1 flex items-center">
-                            <img id="fish-photo-thumbnail" src="" alt="Current fish photo" class="w-16 h-16 object-cover rounded-md mr-4">
-                            <button type="button" id="delete-photo-btn" class="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">Delete Photo</button>
+                <form id="fish-form">
+                    <div class="space-y-3 text-sm">
+                        <input type="text" id="fish-species" placeholder="Species" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <div id="fish-gear-container">
+                            <!-- Populated by script -->
+                        </div>
+                        <input type="text" id="fish-length" placeholder="Length" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <input type="text" id="fish-weight" placeholder="Weight" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <div class="flex items-center">
+                            <label for="fish-time" class="mr-2 dark:text-gray-300">Time:</label>
+                            <input type="time" id="fish-time" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        </div>
+                        <textarea id="fish-details" placeholder="Other Details..." rows="3" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2"></textarea>
+                        <div id="edit-photo-container" class="hidden">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Photo</label>
+                            <div class="mt-1 flex items-center">
+                                <img id="fish-photo-thumbnail" src="" alt="Current fish photo" class="w-16 h-16 object-cover rounded-md mr-4">
+                                <button type="button" id="delete-photo-btn" class="px-3 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600">Delete Photo</button>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="fish-photo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload New Photo</label>
+                            <input type="file" id="fish-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300 dark:hover:file:bg-gray-600"/>
                         </div>
                     </div>
-                    <div>
-                        <label for="fish-photo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload New Photo</label>
-                        <input type="file" id="fish-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300 dark:hover:file:bg-gray-600"/>
-                    </div>
-                </div>
+                </form>
                 <div class="flex space-x-2 mt-4">
                     <button id="save-fish-btn" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">Save Fish</button>
                     <button id="close-fish-modal-btn" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">Cancel</button>
