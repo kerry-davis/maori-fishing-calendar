@@ -1529,25 +1529,18 @@ function importData(event) {
     if (!file) return;
 
     const filename = file.name;
-    const reader = new FileReader();
+    const isZipFile = filename.endsWith('.zip');
 
-    reader.onload = function(e) {
+    const processData = (data) => {
         try {
-            let data = JSON.parse(e.target.result);
-
             // Helper function to recursively trim strings in an object/array
             const trimObjectStrings = (obj) => {
                 if (obj === null || typeof obj !== 'object') {
-                    // For primitive values, return as is, except for strings which we trim
                     return typeof obj === 'string' ? obj.trim() : obj;
                 }
-
                 if (Array.isArray(obj)) {
-                    // If it's an array, map over its elements
                     return obj.map(trimObjectStrings);
                 }
-
-                // If it's an object, create a new object with trimmed string values
                 const newObj = {};
                 for (const key in obj) {
                     if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -1560,12 +1553,11 @@ function importData(event) {
             data = trimObjectStrings(data);
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
-            // Basic validation for the new structure
             if (typeof data !== 'object' || data === null || typeof data.indexedDB !== 'object' || typeof data.localStorage !== 'object') {
-                 throw new Error("Invalid data format: 'indexedDB' and 'localStorage' properties must be objects.");
+                throw new Error("Invalid data format: 'indexedDB' and 'localStorage' properties must be objects.");
             }
 
-            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data, including your tackle box.`);
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data.`);
             if (confirmed) {
                 // Clear localStorage
                 localStorage.removeItem('tacklebox');
@@ -1573,89 +1565,107 @@ function importData(event) {
 
                 // Import localStorage data
                 if (data.localStorage.tacklebox) {
-                    const tackleboxData = data.localStorage.tacklebox;
-                    tackleboxData.forEach(item => {
-                        if (item.hasOwnProperty('color')) {
-                            item.colour = item.color;
-                            delete item.color;
-                        }
-                    });
-                    localStorage.setItem('tacklebox', JSON.stringify(tackleboxData));
+                    localStorage.setItem('tacklebox', JSON.stringify(data.localStorage.tacklebox));
                 }
                 if (data.localStorage.gearTypes) {
                     localStorage.setItem('gearTypes', JSON.stringify(data.localStorage.gearTypes));
                 }
 
                 // Clear and import IndexedDB data
-                console.log("Import confirmed. Clearing old IndexedDB data...");
                 const transaction = db.transaction(storesToImport, "readwrite");
-                let clearPromises = [];
-                let totalImportCount = 0;
-
-                storesToImport.forEach(storeName => {
-                    const objectStore = transaction.objectStore(storeName);
-                    const clearRequest = objectStore.clear();
-                    const promise = new Promise((resolve, reject) => {
-                        clearRequest.onsuccess = resolve;
-                        clearRequest.onerror = reject;
+                let clearPromises = storesToImport.map(storeName => {
+                    return new Promise((resolve, reject) => {
+                        const request = transaction.objectStore(storeName).clear();
+                        request.onsuccess = resolve;
+                        request.onerror = reject;
                     });
-                    clearPromises.push(promise);
                 });
 
                 Promise.all(clearPromises).then(() => {
-                    console.log("Old IndexedDB data cleared. Starting import...");
                     const importTransaction = db.transaction(storesToImport, "readwrite");
-                    // Handle both old (flat) and new (nested under indexedDB) formats
-                    const dbData = Object.keys(data.indexedDB).length > 0 ? data.indexedDB : data;
+                    const dbData = data.indexedDB;
 
                     storesToImport.forEach(storeName => {
                         const storeData = dbData[storeName];
-
-                        // Data migration for sky conditions
-                        if (storeName === 'weather_logs' && storeData) {
-                            storeData.forEach(log => {
-                                if (log.sky === 'Part Cloud') {
-                                    log.sky = 'Partly Cloudy';
-                                }
-                            });
-                        }
-
                         if (storeData && Array.isArray(storeData)) {
                             const objectStore = importTransaction.objectStore(storeName);
-                            storeData.forEach(item => {
-                                objectStore.put(item);
-                                totalImportCount++;
-                            });
+                            storeData.forEach(item => objectStore.put(item));
                         }
                     });
 
                     importTransaction.oncomplete = () => {
-                        const message = `Successfully imported ${totalImportCount} log items and your tackle box from "${filename}".`;
-                        console.log(message);
-                        alert(message);
-                        renderCalendar();
-                        // Force reload to ensure all components are aware of the new data
+                        alert(`Successfully imported data from "${filename}". The page will now reload.`);
                         window.location.reload();
                     };
-
                     importTransaction.onerror = (event) => {
-                        console.error("Error during IndexedDB data import:", event.target.error);
-                        alert("An error occurred during import. Data may be partially imported.");
+                        throw new Error("Error during IndexedDB data import: " + event.target.error);
                     };
-
                 }).catch(error => {
-                    console.error("Error clearing object stores:", error);
-                    alert("Error clearing old data. Import aborted.");
+                    throw new Error("Error clearing object stores: " + error);
                 });
             }
         } catch (error) {
-            console.error("Error parsing or processing import file:", error);
-            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format. Error: ${error.message}`);
+            console.error("Error processing import file:", error);
+            alert(`Could not import data from "${filename}". Error: ${error.message}`);
         } finally {
             event.target.value = '';
         }
     };
-    reader.readAsText(file);
+
+    if (isZipFile) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            JSZip.loadAsync(e.target.result).then(zip => {
+                const dataFile = zip.file("data.json");
+                if (!dataFile) {
+                    throw new Error("data.json not found in the zip file.");
+                }
+                return dataFile.async("string").then(content => {
+                    const data = JSON.parse(content);
+                    const photoPromises = [];
+                    const photosFolder = zip.folder("photos");
+                    if (photosFolder) {
+                        photosFolder.forEach((relativePath, file) => {
+                            const promise = file.async("base64").then(base64 => {
+                                const fileExtension = file.name.split('.').pop().toLowerCase();
+                                const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+                                return { path: `photos/${file.name}`, data: `data:${mimeType};base64,${base64}` };
+                            });
+                            photoPromises.push(promise);
+                        });
+                    }
+                    return Promise.all(photoPromises).then(photos => {
+                        const photoMap = new Map(photos.map(p => [p.path, p.data]));
+                        if (data.indexedDB && data.indexedDB.fish_caught) {
+                            data.indexedDB.fish_caught.forEach(fish => {
+                                if (fish.photo && photoMap.has(fish.photo)) {
+                                    fish.photo = photoMap.get(fish.photo);
+                                }
+                            });
+                        }
+                        return data;
+                    });
+                });
+            }).then(processData).catch(error => {
+                console.error("Error reading zip file:", error);
+                alert("Could not read the zip file. It may be corrupt or invalid.");
+                event.target.value = '';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    } else { // Handle JSON files for backward compatibility
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                processData(JSON.parse(e.target.result));
+            } catch (error) {
+                 console.error("Error parsing JSON file:", error);
+                 alert("Could not parse the JSON file. It may be corrupt or in the wrong format.");
+                 event.target.value = '';
+            }
+        };
+        reader.readAsText(file);
+    }
 }
 
 function openWeatherModal(tripId, weatherId = null) {
