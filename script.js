@@ -1530,7 +1530,7 @@ function exportData() {
 
 function exportDataAsCSV() {
     console.log("Exporting data as CSV...");
-    const exportBtn = document.getElementById('export-csv-btn'); // Assuming a new button with this ID
+    const exportBtn = document.getElementById('export-csv-btn');
     const originalBtnText = exportBtn.innerHTML;
     exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting CSV...';
     exportBtn.disabled = true;
@@ -1541,6 +1541,7 @@ function exportDataAsCSV() {
     Promise.all(promises).then(results => {
         const [trips, weatherLogs, fishCaught] = results;
         const zip = new JSZip();
+        const photosFolder = zip.folder("photos");
 
         // Sanitize and prepare data for CSV conversion
         if (trips.length > 0) {
@@ -1554,18 +1555,30 @@ function exportDataAsCSV() {
         }
 
         if (fishCaught.length > 0) {
-            // For fish, we need to handle the 'gear' array and 'photo' path
             const fishDataForCsv = fishCaught.map(fish => {
                 const fishCopy = {...fish};
-                // Convert gear array to a comma-separated string
                 if (Array.isArray(fishCopy.gear)) {
                     fishCopy.gear = fishCopy.gear.join(', ');
                 }
-                // We don't include the base64 photo, but we could keep the path if it exists
-                if (fishCopy.photo && fishCopy.photo.startsWith('photos/')) {
-                    fishCopy.photo_filename = fishCopy.photo.split('/').pop();
+
+                // If photo exists, add it to the zip and store a reference filename
+                if (fishCopy.photo && fishCopy.photo.startsWith('data:image')) {
+                    try {
+                        const photoData = fishCopy.photo.split(',')[1];
+                        const mimeType = fishCopy.photo.substring("data:".length, fishCopy.photo.indexOf(";base64"));
+                        const fileExtension = mimeType.split('/')[1] || 'png';
+                        const fileName = `fish_${fishCopy.id}.${fileExtension}`;
+
+                        photosFolder.file(fileName, photoData, { base64: true });
+                        fishCopy.photo_filename = fileName;
+                    } catch (e) {
+                        console.error(`Could not process photo for fish ${fishCopy.id}:`, e);
+                        fishCopy.photo_filename = '';
+                    }
+                } else {
+                    fishCopy.photo_filename = '';
                 }
-                delete fishCopy.photo;
+                delete fishCopy.photo; // Remove the large base64 string from CSV
                 return fishCopy;
             });
             const fishCsv = Papa.unparse(fishDataForCsv);
@@ -1724,9 +1737,22 @@ function importData(event) {
                 } else if (tripsCsvFile) {
                     const data = {
                         indexedDB: { trips: [], weather_logs: [], fish_caught: [] },
-                        localStorage: {} // CSV import doesn't handle localStorage
+                        localStorage: {}
                     };
-                    const promises = [];
+                    const csvPromises = [];
+                    const photoPromises = [];
+
+                    const photosFolder = zip.folder("photos");
+                    if (photosFolder) {
+                        photosFolder.forEach((relativePath, file) => {
+                            const promise = file.async("base64").then(base64 => {
+                                const fileExtension = file.name.split('.').pop().toLowerCase();
+                                const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+                                return { filename: relativePath, data: `data:${mimeType};base64,${base64}` };
+                            });
+                            photoPromises.push(promise);
+                        });
+                    }
 
                     zip.forEach((relativePath, zipEntry) => {
                         if (zipEntry.name.endsWith('.csv')) {
@@ -1743,11 +1769,24 @@ function importData(event) {
                                     data.indexedDB.fish_caught = parsed.data;
                                 }
                             });
-                            promises.push(promise);
+                            csvPromises.push(promise);
                         }
                     });
 
-                    return Promise.all(promises).then(() => data);
+                    return Promise.all(csvPromises).then(() => {
+                        return Promise.all(photoPromises).then(photos => {
+                            const photoMap = new Map(photos.map(p => [p.filename, p.data]));
+                            if (data.indexedDB.fish_caught.length > 0) {
+                                data.indexedDB.fish_caught.forEach(fish => {
+                                    if (fish.photo_filename && photoMap.has(fish.photo_filename)) {
+                                        fish.photo = photoMap.get(fish.photo_filename);
+                                    }
+                                    delete fish.photo_filename;
+                                });
+                            }
+                            return data;
+                        });
+                    });
                 } else {
                     throw new Error("No valid data file (data.json or .csv) found in the zip archive.");
                 }
