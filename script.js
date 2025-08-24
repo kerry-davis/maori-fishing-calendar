@@ -2680,7 +2680,12 @@ async function loadPhotoGallery() {
                 tripDate: tripsMap.get(fish.tripId)?.date
             }))
             .filter(fish => fish.tripDate)
-            .sort((a, b) => new Date(a.tripDate) - new Date(b.tripDate));
+            .sort((a, b) => {
+                // Replace hyphens with slashes for robust date parsing across browsers
+                const dateA = new Date(a.tripDate.replace(/-/g, '/'));
+                const dateB = new Date(b.tripDate.replace(/-/g, '/'));
+                return dateA - dateB;
+            });
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
@@ -2688,8 +2693,10 @@ async function loadPhotoGallery() {
         }
 
         const groupedByMonth = fishWithPhotos.reduce((acc, fish) => {
-            const date = new Date(fish.tripDate);
-            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            const dateParts = fish.tripDate.split('-');
+            const year = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10);
+            const monthKey = `${year}-${month.toString().padStart(2, '0')}`;
             if (!acc[monthKey]) {
                 acc[monthKey] = [];
             }
@@ -2705,8 +2712,15 @@ async function loadPhotoGallery() {
         }
 
         for (const monthKey of monthKeys) {
-            const date = new Date(monthKey + '-02');
-            const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+            const keyParts = monthKey.split('-');
+            const year = parseInt(keyParts[0], 10);
+            const monthIndex = parseInt(keyParts[1], 10) - 1;
+            const date = new Date(year, monthIndex, 1);
+            const monthName = date.toLocaleString('default', {
+                month: 'long',
+                year: 'numeric',
+                timeZone: 'UTC'
+            });
 
             const monthHeader = document.createElement('h4');
             monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-4 first:mt-0';
