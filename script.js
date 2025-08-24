@@ -1021,6 +1021,33 @@ function setupEventListeners() {
                 closeModalWithAnimation(galleryModal);
             }
         });
+
+        const galleryGrid = document.getElementById('gallery-grid');
+        if (galleryGrid) {
+            galleryGrid.addEventListener('click', (e) => {
+                const photoEl = e.target.closest('.group');
+                if (photoEl && photoEl.dataset.fishId) {
+                    const fishId = parseInt(photoEl.dataset.fishId, 10);
+                    openCatchDetailModal(fishId);
+                }
+            });
+        }
+    }
+
+    // Catch Detail Modal Listeners
+    const catchDetailModal = document.getElementById('catchDetailModal');
+    const closeCatchDetailModal = document.getElementById('closeCatchDetailModal');
+
+    if (closeCatchDetailModal) {
+        closeCatchDetailModal.addEventListener('click', () => closeModalWithAnimation(catchDetailModal));
+    }
+
+    if (catchDetailModal) {
+        catchDetailModal.addEventListener('click', (e) => {
+            if (e.target === catchDetailModal) {
+                closeModalWithAnimation(catchDetailModal);
+            }
+        });
     }
 
     const openTripLogBtn = document.getElementById('open-trip-log-btn');
@@ -2613,44 +2640,130 @@ function displaySearchResults(results) {
 
 async function loadPhotoGallery() {
     const galleryGrid = document.getElementById('gallery-grid');
-    galleryGrid.innerHTML = '<p>Loading photos...</p>';
+    galleryGrid.innerHTML = '<p class="col-span-full text-center">Loading photos...</p>';
 
     try {
         const allFish = await getAllData('fish_caught');
-        const fishWithPhotos = allFish.filter(fish => fish.photo);
+        const allTrips = await getAllData('trips');
+        const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
+
+        const fishWithPhotos = allFish
+            .filter(fish => fish.photo)
+            .map(fish => ({
+                ...fish,
+                tripDate: tripsMap.get(fish.tripId)?.date
+            }))
+            .filter(fish => fish.tripDate) // Ensure fish has a valid trip date
+            .sort((a, b) => new Date(b.tripDate) - new Date(a.tripDate)); // Sort by date descending
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
             return;
         }
 
+        const groupedByMonth = fishWithPhotos.reduce((acc, fish) => {
+            const date = new Date(fish.tripDate);
+            // Create a key like "2025-08"
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            if (!acc[monthKey]) {
+                acc[monthKey] = [];
+            }
+            acc[monthKey].push(fish);
+            return acc;
+        }, {});
+
         galleryGrid.innerHTML = ''; // Clear loading message
 
-        fishWithPhotos.forEach(fish => {
-            const photoEl = document.createElement('div');
-            photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group';
+        for (const monthKey in groupedByMonth) {
+            const date = new Date(monthKey + '-02'); // Use day 02 to avoid timezone issues with day 01
+            const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
 
-            const img = document.createElement('img');
-            img.src = fish.photo;
-            img.alt = fish.species;
-            img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+            const monthHeader = document.createElement('h4');
+            monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-4 first:mt-0';
+            monthHeader.textContent = monthName;
+            galleryGrid.appendChild(monthHeader);
 
-            const overlay = document.createElement('div');
-            overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+            const fishes = groupedByMonth[monthKey];
+            fishes.forEach(fish => {
+                const photoEl = document.createElement('div');
+                photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
+                photoEl.dataset.fishId = fish.id; // Add fish ID for click handler
 
-            const text = document.createElement('p');
-            text.className = 'text-white text-sm font-semibold';
-            text.textContent = fish.species;
+                const img = document.createElement('img');
+                img.src = fish.photo;
+                img.alt = fish.species;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
 
-            overlay.appendChild(text);
-            photoEl.appendChild(img);
-            photoEl.appendChild(overlay);
-            galleryGrid.appendChild(photoEl);
-        });
+                const overlay = document.createElement('div');
+                overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+
+                const text = document.createElement('p');
+                text.className = 'text-white text-sm font-semibold';
+                text.textContent = fish.species;
+
+                overlay.appendChild(text);
+                photoEl.appendChild(img);
+                photoEl.appendChild(overlay);
+                galleryGrid.appendChild(photoEl);
+            });
+        }
 
     } catch (error) {
         console.error("Error loading photo gallery:", error);
         galleryGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Could not load photos. Please try again later.</p>';
+    }
+}
+
+async function openCatchDetailModal(fishId) {
+    try {
+        const transaction = db.transaction(['fish_caught', 'trips'], 'readonly');
+        const fishStore = transaction.objectStore('fish_caught');
+        const tripStore = transaction.objectStore('trips');
+
+        const fishRequest = fishStore.get(fishId);
+        const fish = await new Promise((resolve, reject) => {
+            fishRequest.onsuccess = () => resolve(fishRequest.result);
+            fishRequest.onerror = () => reject(fishRequest.error);
+        });
+
+        if (!fish) {
+            console.error("Fish not found for ID:", fishId);
+            alert("Could not find the details for this catch.");
+            return;
+        }
+
+        const tripRequest = tripStore.get(fish.tripId);
+        const trip = await new Promise((resolve, reject) => {
+            tripRequest.onsuccess = () => resolve(tripRequest.result);
+            tripRequest.onerror = () => reject(tripRequest.error);
+        });
+
+        const modal = document.getElementById('catchDetailModal');
+        document.getElementById('catchDetailImage').src = fish.photo || '';
+        document.getElementById('catchDetailSpecies').textContent = fish.species || 'Unknown Species';
+
+        const contentEl = document.getElementById('catchDetailContent');
+        let detailsHTML = '';
+
+        if (trip) {
+            const date = new Date(trip.date + 'T00:00:00'); // Treat date as local
+            detailsHTML += `<p><strong>Date:</strong> ${date.toLocaleDateString()}</p>`;
+        }
+        if (fish.time) detailsHTML += `<p><strong>Time:</strong> ${fish.time}</p>`;
+        if (fish.length) detailsHTML += `<p><strong>Length:</strong> ${fish.length}</p>`;
+        if (fish.weight) detailsHTML += `<p><strong>Weight:</strong> ${fish.weight}</p>`;
+        if (fish.gear && fish.gear.length > 0) {
+            detailsHTML += `<p><strong>Gear Used:</strong> ${fish.gear.join(', ')}</p>`;
+        }
+        if (fish.details) detailsHTML += `<p class="mt-2"><strong>Notes:</strong><br>${fish.details}</p>`;
+
+        contentEl.innerHTML = detailsHTML;
+
+        openModalWithAnimation(modal);
+
+    } catch (error) {
+        console.error("Error opening catch detail modal:", error);
+        alert("An error occurred while trying to display the catch details.");
     }
 }
 
