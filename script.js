@@ -997,6 +997,30 @@ function setupEventListeners() {
         }
     }
 
+    // Gallery Modal Listeners
+    const galleryBtn = document.getElementById('gallery-btn');
+    const galleryModal = document.getElementById('galleryModal');
+    const closeGalleryModal = document.getElementById('closeGalleryModal');
+
+    if (galleryBtn) {
+        galleryBtn.addEventListener('click', () => {
+            loadPhotoGallery();
+            openModalWithAnimation(galleryModal);
+        });
+    }
+
+    if (closeGalleryModal) {
+        closeGalleryModal.addEventListener('click', () => closeModalWithAnimation(galleryModal));
+    }
+
+    if (galleryModal) {
+        galleryModal.addEventListener('click', (e) => {
+            if (e.target === galleryModal) {
+                closeModalWithAnimation(galleryModal);
+            }
+        });
+    }
+
     const openTripLogBtn = document.getElementById('open-trip-log-btn');
     if (openTripLogBtn) {
         openTripLogBtn.addEventListener('click', showTripLogModal);
@@ -2583,6 +2607,49 @@ function displaySearchResults(results) {
         resultEl.innerHTML = content;
         resultsContainer.appendChild(resultEl);
     });
+}
+
+async function loadPhotoGallery() {
+    const galleryGrid = document.getElementById('gallery-grid');
+    galleryGrid.innerHTML = '<p>Loading photos...</p>';
+
+    try {
+        const allFish = await getAllData('fish_caught');
+        const fishWithPhotos = allFish.filter(fish => fish.photo);
+
+        if (fishWithPhotos.length === 0) {
+            galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
+            return;
+        }
+
+        galleryGrid.innerHTML = ''; // Clear loading message
+
+        fishWithPhotos.forEach(fish => {
+            const photoEl = document.createElement('div');
+            photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group';
+
+            const img = document.createElement('img');
+            img.src = fish.photo;
+            img.alt = fish.species;
+            img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+
+            const overlay = document.createElement('div');
+            overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+
+            const text = document.createElement('p');
+            text.className = 'text-white text-sm font-semibold';
+            text.textContent = fish.species;
+
+            overlay.appendChild(text);
+            photoEl.appendChild(img);
+            photoEl.appendChild(overlay);
+            galleryGrid.appendChild(photoEl);
+        });
+
+    } catch (error) {
+        console.error("Error loading photo gallery:", error);
+        galleryGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Could not load photos. Please try again later.</p>';
+    }
 }
 
 function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
