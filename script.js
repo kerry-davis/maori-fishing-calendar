@@ -3031,6 +3031,12 @@ async function openCatchDetailModal(fishId) {
         if (fish.gear && fish.gear.length > 0) {
             detailsHTML += `<p><strong>Gear Used:</strong> ${fish.gear.join(', ')}</p>`;
         }
+
+        if (trip) {
+            if (trip.water) detailsHTML += `<p><strong>Body of water:</strong> ${trip.water}</p>`;
+            if (trip.location) detailsHTML += `<p><strong>Specific Location:</strong> ${trip.location}</p>`;
+        }
+
         if (fish.details) detailsHTML += `<p class="mt-2"><strong>Notes:</strong><br>${fish.details}</p>`;
 
         contentEl.innerHTML = detailsHTML;
