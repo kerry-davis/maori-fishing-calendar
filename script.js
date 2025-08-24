@@ -1432,9 +1432,16 @@ async function renderCalendar() {
 }
 
 function exportData() {
-    console.log("Exporting data...");
+    console.log("Exporting data as a zip file...");
+    // Show a loading indicator to the user
+    const exportBtn = document.getElementById('export-data-btn');
+    const originalBtnText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+    exportBtn.disabled = true;
+
+
     const storesToExport = ["trips", "weather_logs", "fish_caught"];
-    const exportData = {
+    const exportDataContainer = {
         indexedDB: {},
         localStorage: {}
     };
@@ -1446,7 +1453,7 @@ function exportData() {
         const request = objectStore.getAll();
         const promise = new Promise((resolve, reject) => {
             request.onsuccess = () => {
-                exportData.indexedDB[storeName] = request.result;
+                exportDataContainer.indexedDB[storeName] = request.result;
                 resolve();
             };
             request.onerror = (event) => {
@@ -1458,22 +1465,62 @@ function exportData() {
     });
 
     Promise.all(promises).then(() => {
-        // Get data from localStorage
-        exportData.localStorage.tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
-        exportData.localStorage.gearTypes = JSON.parse(localStorage.getItem('gearTypes') || '[]');
+        const zip = new JSZip();
+        const photosFolder = zip.folder("photos");
 
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "fishing_log_export.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        console.log("Data exported successfully.");
-        alert("Data exported successfully.");
+        if (exportDataContainer.indexedDB.fish_caught) {
+            exportDataContainer.indexedDB.fish_caught.forEach(fish => {
+                if (fish.photo && fish.photo.startsWith('data:image')) {
+                    try {
+                        const photoData = fish.photo.split(',')[1];
+                        const mimeType = fish.photo.substring("data:".length, fish.photo.indexOf(";base64"));
+                        const fileExtension = mimeType.split('/')[1] || 'png';
+                        const fileName = `fish_${fish.id}.${fileExtension}`;
+
+                        photosFolder.file(fileName, photoData, { base64: true });
+
+                        // Replace the large base64 string with a reference path
+                        fish.photo = `photos/${fileName}`;
+                    } catch(e) {
+                        console.error(`Could not process photo for fish ${fish.id}:`, e);
+                        // If processing fails, remove the invalid photo data
+                        fish.photo = null;
+                    }
+                }
+            });
+        }
+
+        exportDataContainer.localStorage.tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+        exportDataContainer.localStorage.gearTypes = JSON.parse(localStorage.getItem('gearTypes') || '[]');
+
+        zip.file("data.json", JSON.stringify(exportDataContainer, null, 2));
+
+        zip.generateAsync({ type: "blob" }).then(content => {
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.href = URL.createObjectURL(content);
+            downloadAnchorNode.download = "fishing_log_export.zip";
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            document.body.removeChild(downloadAnchorNode);
+            URL.revokeObjectURL(downloadAnchorNode.href);
+
+            console.log("Data exported successfully.");
+            alert("Data exported successfully.");
+        }).catch(err => {
+            console.error("Error generating zip file:", err);
+            alert("Could not generate the export file. See console for details.");
+        }).finally(() => {
+            // Restore button state
+            exportBtn.innerHTML = originalBtnText;
+            exportBtn.disabled = false;
+        });
+
     }).catch(error => {
-        console.error("Error during export:", error);
-        alert("Could not export data. See console for details.");
+        console.error("Error during export data retrieval:", error);
+        alert("Could not retrieve data for export. See console for details.");
+        // Restore button state in case of failure
+        exportBtn.innerHTML = originalBtnText;
+        exportBtn.disabled = false;
     });
 }
 
