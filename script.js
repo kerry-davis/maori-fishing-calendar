@@ -897,9 +897,13 @@ function setupEventListeners() {
     }
 
     const exportBtn = document.getElementById('export-data-btn');
-    // ADDED CHECK: Ensure the export button exists before adding a listener.
     if (exportBtn) {
         exportBtn.addEventListener('click', exportData);
+    }
+
+    const exportCsvBtn = document.getElementById('export-csv-btn');
+    if (exportCsvBtn) {
+        exportCsvBtn.addEventListener('click', exportDataAsCSV);
     }
 
     const importInput = document.getElementById('import-file-input');
@@ -1432,9 +1436,16 @@ async function renderCalendar() {
 }
 
 function exportData() {
-    console.log("Exporting data...");
+    console.log("Exporting data as a zip file...");
+    // Show a loading indicator to the user
+    const exportBtn = document.getElementById('export-data-btn');
+    const originalBtnText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting...';
+    exportBtn.disabled = true;
+
+
     const storesToExport = ["trips", "weather_logs", "fish_caught"];
-    const exportData = {
+    const exportDataContainer = {
         indexedDB: {},
         localStorage: {}
     };
@@ -1446,7 +1457,7 @@ function exportData() {
         const request = objectStore.getAll();
         const promise = new Promise((resolve, reject) => {
             request.onsuccess = () => {
-                exportData.indexedDB[storeName] = request.result;
+                exportDataContainer.indexedDB[storeName] = request.result;
                 resolve();
             };
             request.onerror = (event) => {
@@ -1458,22 +1469,146 @@ function exportData() {
     });
 
     Promise.all(promises).then(() => {
-        // Get data from localStorage
-        exportData.localStorage.tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
-        exportData.localStorage.gearTypes = JSON.parse(localStorage.getItem('gearTypes') || '[]');
+        const zip = new JSZip();
+        const photosFolder = zip.folder("photos");
 
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
-        const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href", dataStr);
-        downloadAnchorNode.setAttribute("download", "fishing_log_export.json");
-        document.body.appendChild(downloadAnchorNode);
-        downloadAnchorNode.click();
-        downloadAnchorNode.remove();
-        console.log("Data exported successfully.");
-        alert("Data exported successfully.");
+        if (exportDataContainer.indexedDB.fish_caught) {
+            exportDataContainer.indexedDB.fish_caught.forEach(fish => {
+                if (fish.photo && fish.photo.startsWith('data:image')) {
+                    try {
+                        const photoData = fish.photo.split(',')[1];
+                        const mimeType = fish.photo.substring("data:".length, fish.photo.indexOf(";base64"));
+                        const fileExtension = mimeType.split('/')[1] || 'png';
+                        const fileName = `fish_${fish.id}.${fileExtension}`;
+
+                        photosFolder.file(fileName, photoData, { base64: true });
+
+                        // Replace the large base64 string with a reference path
+                        fish.photo = `photos/${fileName}`;
+                    } catch(e) {
+                        console.error(`Could not process photo for fish ${fish.id}:`, e);
+                        // If processing fails, remove the invalid photo data
+                        fish.photo = null;
+                    }
+                }
+            });
+        }
+
+        exportDataContainer.localStorage.tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+        exportDataContainer.localStorage.gearTypes = JSON.parse(localStorage.getItem('gearTypes') || '[]');
+
+        zip.file("data.json", JSON.stringify(exportDataContainer, null, 2));
+
+        zip.generateAsync({ type: "blob" }).then(content => {
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.href = URL.createObjectURL(content);
+            downloadAnchorNode.download = "fishing_log_export.zip";
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            document.body.removeChild(downloadAnchorNode);
+            URL.revokeObjectURL(downloadAnchorNode.href);
+
+            console.log("Data exported successfully.");
+            alert("Data exported successfully.");
+        }).catch(err => {
+            console.error("Error generating zip file:", err);
+            alert("Could not generate the export file. See console for details.");
+        }).finally(() => {
+            // Restore button state
+            exportBtn.innerHTML = originalBtnText;
+            exportBtn.disabled = false;
+        });
+
     }).catch(error => {
-        console.error("Error during export:", error);
-        alert("Could not export data. See console for details.");
+        console.error("Error during export data retrieval:", error);
+        alert("Could not retrieve data for export. See console for details.");
+        // Restore button state in case of failure
+        exportBtn.innerHTML = originalBtnText;
+        exportBtn.disabled = false;
+    });
+}
+
+function exportDataAsCSV() {
+    console.log("Exporting data as CSV...");
+    const exportBtn = document.getElementById('export-csv-btn');
+    const originalBtnText = exportBtn.innerHTML;
+    exportBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Exporting CSV...';
+    exportBtn.disabled = true;
+
+    const storesToExport = ["trips", "weather_logs", "fish_caught"];
+    const promises = storesToExport.map(storeName => getAllData(storeName));
+
+    Promise.all(promises).then(results => {
+        const [trips, weatherLogs, fishCaught] = results;
+        const zip = new JSZip();
+        const photosFolder = zip.folder("photos");
+
+        // Sanitize and prepare data for CSV conversion
+        if (trips.length > 0) {
+            const tripsCsv = Papa.unparse(trips);
+            zip.file("trips.csv", tripsCsv);
+        }
+
+        if (weatherLogs.length > 0) {
+            const weatherCsv = Papa.unparse(weatherLogs);
+            zip.file("weather.csv", weatherCsv);
+        }
+
+        if (fishCaught.length > 0) {
+            const fishDataForCsv = fishCaught.map(fish => {
+                const fishCopy = {...fish};
+                if (Array.isArray(fishCopy.gear)) {
+                    fishCopy.gear = fishCopy.gear.join(', ');
+                }
+
+                // If photo exists, add it to the zip and store a reference filename
+                if (fishCopy.photo && fishCopy.photo.startsWith('data:image')) {
+                    try {
+                        const photoData = fishCopy.photo.split(',')[1];
+                        const mimeType = fishCopy.photo.substring("data:".length, fishCopy.photo.indexOf(";base64"));
+                        const fileExtension = mimeType.split('/')[1] || 'png';
+                        const fileName = `fish_${fishCopy.id}.${fileExtension}`;
+
+                        photosFolder.file(fileName, photoData, { base64: true });
+                        fishCopy.photo_filename = fileName;
+                    } catch (e) {
+                        console.error(`Could not process photo for fish ${fishCopy.id}:`, e);
+                        fishCopy.photo_filename = '';
+                    }
+                } else {
+                    fishCopy.photo_filename = '';
+                }
+                delete fishCopy.photo; // Remove the large base64 string from CSV
+                return fishCopy;
+            });
+            const fishCsv = Papa.unparse(fishDataForCsv);
+            zip.file("fish.csv", fishCsv);
+        }
+
+        zip.generateAsync({type:"blob"}).then(content => {
+            const downloadAnchorNode = document.createElement('a');
+            downloadAnchorNode.href = URL.createObjectURL(content);
+            downloadAnchorNode.download = "fishing_log_csv_export.zip";
+            document.body.appendChild(downloadAnchorNode);
+            downloadAnchorNode.click();
+            document.body.removeChild(downloadAnchorNode);
+            URL.revokeObjectURL(downloadAnchorNode.href);
+
+            console.log("CSV data exported successfully.");
+            alert("CSV data exported successfully.");
+        }).catch(err => {
+            console.error("Error generating zip file for CSV:", err);
+            alert("Could not generate the CSV export file. See console for details.");
+        }).finally(() => {
+            exportBtn.innerHTML = originalBtnText;
+            exportBtn.disabled = false;
+        });
+
+    }).catch(error => {
+        console.error("Error during CSV export data retrieval:", error);
+        alert("Could not retrieve data for CSV export. See console for details.");
+        exportBtn.innerHTML = originalBtnText;
+        exportBtn.disabled = false;
     });
 }
 
@@ -1482,25 +1617,18 @@ function importData(event) {
     if (!file) return;
 
     const filename = file.name;
-    const reader = new FileReader();
+    const isZipFile = filename.endsWith('.zip');
 
-    reader.onload = function(e) {
+    const processData = (data) => {
         try {
-            let data = JSON.parse(e.target.result);
-
             // Helper function to recursively trim strings in an object/array
             const trimObjectStrings = (obj) => {
                 if (obj === null || typeof obj !== 'object') {
-                    // For primitive values, return as is, except for strings which we trim
                     return typeof obj === 'string' ? obj.trim() : obj;
                 }
-
                 if (Array.isArray(obj)) {
-                    // If it's an array, map over its elements
                     return obj.map(trimObjectStrings);
                 }
-
-                // If it's an object, create a new object with trimmed string values
                 const newObj = {};
                 for (const key in obj) {
                     if (Object.prototype.hasOwnProperty.call(obj, key)) {
@@ -1513,12 +1641,11 @@ function importData(event) {
             data = trimObjectStrings(data);
             const storesToImport = ["trips", "weather_logs", "fish_caught"];
 
-            // Basic validation for the new structure
             if (typeof data !== 'object' || data === null || typeof data.indexedDB !== 'object' || typeof data.localStorage !== 'object') {
-                 throw new Error("Invalid data format: 'indexedDB' and 'localStorage' properties must be objects.");
+                throw new Error("Invalid data format: 'indexedDB' and 'localStorage' properties must be objects.");
             }
 
-            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data, including your tackle box.`);
+            const confirmed = confirm(`Are you sure you want to import data from "${filename}"? This will overwrite ALL existing log data.`);
             if (confirmed) {
                 // Clear localStorage
                 localStorage.removeItem('tacklebox');
@@ -1526,89 +1653,163 @@ function importData(event) {
 
                 // Import localStorage data
                 if (data.localStorage.tacklebox) {
-                    const tackleboxData = data.localStorage.tacklebox;
-                    tackleboxData.forEach(item => {
-                        if (item.hasOwnProperty('color')) {
-                            item.colour = item.color;
-                            delete item.color;
-                        }
-                    });
-                    localStorage.setItem('tacklebox', JSON.stringify(tackleboxData));
+                    localStorage.setItem('tacklebox', JSON.stringify(data.localStorage.tacklebox));
                 }
                 if (data.localStorage.gearTypes) {
                     localStorage.setItem('gearTypes', JSON.stringify(data.localStorage.gearTypes));
                 }
 
                 // Clear and import IndexedDB data
-                console.log("Import confirmed. Clearing old IndexedDB data...");
                 const transaction = db.transaction(storesToImport, "readwrite");
-                let clearPromises = [];
-                let totalImportCount = 0;
-
-                storesToImport.forEach(storeName => {
-                    const objectStore = transaction.objectStore(storeName);
-                    const clearRequest = objectStore.clear();
-                    const promise = new Promise((resolve, reject) => {
-                        clearRequest.onsuccess = resolve;
-                        clearRequest.onerror = reject;
+                let clearPromises = storesToImport.map(storeName => {
+                    return new Promise((resolve, reject) => {
+                        const request = transaction.objectStore(storeName).clear();
+                        request.onsuccess = resolve;
+                        request.onerror = reject;
                     });
-                    clearPromises.push(promise);
                 });
 
                 Promise.all(clearPromises).then(() => {
-                    console.log("Old IndexedDB data cleared. Starting import...");
                     const importTransaction = db.transaction(storesToImport, "readwrite");
-                    // Handle both old (flat) and new (nested under indexedDB) formats
-                    const dbData = Object.keys(data.indexedDB).length > 0 ? data.indexedDB : data;
+                    const dbData = data.indexedDB;
 
                     storesToImport.forEach(storeName => {
                         const storeData = dbData[storeName];
-
-                        // Data migration for sky conditions
-                        if (storeName === 'weather_logs' && storeData) {
-                            storeData.forEach(log => {
-                                if (log.sky === 'Part Cloud') {
-                                    log.sky = 'Partly Cloudy';
-                                }
-                            });
-                        }
-
                         if (storeData && Array.isArray(storeData)) {
                             const objectStore = importTransaction.objectStore(storeName);
-                            storeData.forEach(item => {
-                                objectStore.put(item);
-                                totalImportCount++;
-                            });
+                            storeData.forEach(item => objectStore.put(item));
                         }
                     });
 
                     importTransaction.oncomplete = () => {
-                        const message = `Successfully imported ${totalImportCount} log items and your tackle box from "${filename}".`;
-                        console.log(message);
-                        alert(message);
-                        renderCalendar();
-                        // Force reload to ensure all components are aware of the new data
+                        alert(`Successfully imported data from "${filename}". The page will now reload.`);
                         window.location.reload();
                     };
-
                     importTransaction.onerror = (event) => {
-                        console.error("Error during IndexedDB data import:", event.target.error);
-                        alert("An error occurred during import. Data may be partially imported.");
+                        throw new Error("Error during IndexedDB data import: " + event.target.error);
                     };
-
                 }).catch(error => {
-                    console.error("Error clearing object stores:", error);
-                    alert("Error clearing old data. Import aborted.");
+                    throw new Error("Error clearing object stores: " + error);
                 });
             }
         } catch (error) {
-            console.error("Error parsing or processing import file:", error);
-            alert(`Could not import data from "${filename}". The file may be corrupt or in the wrong format. Error: ${error.message}`);
+            console.error("Error processing import file:", error);
+            alert(`Could not import data from "${filename}". Error: ${error.message}`);
         } finally {
             event.target.value = '';
         }
     };
-    reader.readAsText(file);
+
+    if (isZipFile) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            JSZip.loadAsync(e.target.result).then(zip => {
+                const dataFile = zip.file("data.json");
+                const tripsCsvFile = zip.file("trips.csv");
+
+                if (dataFile) {
+                    return dataFile.async("string").then(content => {
+                        const data = JSON.parse(content);
+                        const photoPromises = [];
+                        const photosFolder = zip.folder("photos");
+                        if (photosFolder) {
+                            photosFolder.forEach((relativePath, file) => {
+                                const promise = file.async("base64").then(base64 => {
+                                    const fileExtension = file.name.split('.').pop().toLowerCase();
+                                    const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+                                    return { path: file.name, data: `data:${mimeType};base64,${base64}` };
+                                });
+                                photoPromises.push(promise);
+                            });
+                        }
+                        return Promise.all(photoPromises).then(photos => {
+                            const photoMap = new Map(photos.map(p => [p.path, p.data]));
+                            if (data.indexedDB && data.indexedDB.fish_caught) {
+                                data.indexedDB.fish_caught.forEach(fish => {
+                                    if (fish.photo && photoMap.has(fish.photo)) {
+                                        fish.photo = photoMap.get(fish.photo);
+                                    }
+                                });
+                            }
+                            return data;
+                        });
+                    });
+                } else if (tripsCsvFile) {
+                    const data = {
+                        indexedDB: { trips: [], weather_logs: [], fish_caught: [] },
+                        localStorage: {}
+                    };
+                    const csvPromises = [];
+                    const photoPromises = [];
+
+                    const photosFolder = zip.folder("photos");
+                    if (photosFolder) {
+                        photosFolder.forEach((relativePath, file) => {
+                            const promise = file.async("base64").then(base64 => {
+                                const fileExtension = file.name.split('.').pop().toLowerCase();
+                                const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+                                return { filename: relativePath, data: `data:${mimeType};base64,${base64}` };
+                            });
+                            photoPromises.push(promise);
+                        });
+                    }
+
+                    zip.forEach((relativePath, zipEntry) => {
+                        if (zipEntry.name.endsWith('.csv')) {
+                            const promise = zipEntry.async("string").then(content => {
+                                const parsed = Papa.parse(content, { header: true, dynamicTyping: true, skipEmptyLines: true });
+                                if (zipEntry.name === 'trips.csv') data.indexedDB.trips = parsed.data;
+                                if (zipEntry.name === 'weather.csv') data.indexedDB.weather_logs = parsed.data;
+                                if (zipEntry.name === 'fish.csv') {
+                                    parsed.data.forEach(fish => {
+                                        if (fish.gear && typeof fish.gear === 'string') {
+                                            fish.gear = fish.gear.split(',').map(s => s.trim());
+                                        }
+                                    });
+                                    data.indexedDB.fish_caught = parsed.data;
+                                }
+                            });
+                            csvPromises.push(promise);
+                        }
+                    });
+
+                    return Promise.all(csvPromises).then(() => {
+                        return Promise.all(photoPromises).then(photos => {
+                            const photoMap = new Map(photos.map(p => [p.filename, p.data]));
+                            if (data.indexedDB.fish_caught.length > 0) {
+                                data.indexedDB.fish_caught.forEach(fish => {
+                                    if (fish.photo_filename && photoMap.has(fish.photo_filename)) {
+                                        fish.photo = photoMap.get(fish.photo_filename);
+                                    }
+                                    delete fish.photo_filename;
+                                });
+                            }
+                            return data;
+                        });
+                    });
+                } else {
+                    throw new Error("No valid data file (data.json or .csv) found in the zip archive.");
+                }
+            }).then(processData).catch(error => {
+                console.error("Error processing zip file:", error);
+                alert(`Could not process the zip file. Error: ${error.message}`);
+                event.target.value = '';
+            });
+        };
+        reader.readAsArrayBuffer(file);
+    } else { // Handle JSON files for backward compatibility
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                processData(JSON.parse(e.target.result));
+            } catch (error) {
+                 console.error("Error parsing JSON file:", error);
+                 alert("Could not parse the JSON file. It may be corrupt or in the wrong format.");
+                 event.target.value = '';
+            }
+        };
+        reader.readAsText(file);
+    }
 }
 
 function openWeatherModal(tripId, weatherId = null) {
