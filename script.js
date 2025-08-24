@@ -45,6 +45,7 @@ let currentTripId = null;
 let currentEditingTripId = null; // For sub-modals (weather, fish)
 let currentEditingWeatherId = null;
 let currentEditingFishId = null;
+let currentEditingFishData = null; // To hold the full fish object for editing
 let tempSelectedGear = [];
 let gallerySortOrder = 'desc';
 
@@ -932,6 +933,18 @@ function setupEventListeners() {
             if (openBtn) {
                 openGearSelectionModal();
             }
+
+            const deleteBtn = e.target.closest('#delete-photo-btn');
+            if (deleteBtn) {
+                if (confirm('Are you sure you want to delete this photo?')) {
+                    if (currentEditingFishData) {
+                        currentEditingFishData.photo = null;
+                    }
+                    // Hide the UI elements
+                    document.getElementById('edit-photo-container').classList.add('hidden');
+                    document.getElementById('fish-photo-thumbnail').src = '';
+                }
+            }
         });
     }
 
@@ -1748,13 +1761,20 @@ function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
     const gearContainer = document.getElementById('fish-gear-container');
-    gearContainer.innerHTML = ''; // Clear previous content
+    const photoContainer = document.getElementById('edit-photo-container');
+    const photoThumbnail = document.getElementById('fish-photo-thumbnail');
 
+    // Reset fields and state
+    document.getElementById('fish-form').reset();
+    gearContainer.innerHTML = '';
+    photoContainer.classList.add('hidden');
+    photoThumbnail.src = '';
     currentEditingTripId = tripId;
     currentEditingFishId = fishId;
-    tempSelectedGear = []; // Reset on open
+    currentEditingFishData = null; // Reset editing data
+    tempSelectedGear = [];
 
-    // --- New UI for gear selection ---
+    // --- Dynamic UI for gear selection ---
     const gearLabel = document.createElement('label');
     gearLabel.className = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
     gearLabel.textContent = 'Gear / Lure Used';
@@ -1776,9 +1796,7 @@ function openFishModal(tripId, fishId = null) {
     gearDisplayWrapper.appendChild(openGearModalBtn);
 
     gearContainer.appendChild(gearDisplayWrapper);
-    // --- End of new UI ---
 
-    // Add a text input for bait/lure not in tacklebox
     const baitInput = document.createElement('input');
     baitInput.type = 'text';
     baitInput.id = 'fish-bait';
@@ -1795,11 +1813,19 @@ function openFishModal(tripId, fishId = null) {
             const data = request.result;
             if (!data) return;
 
+            currentEditingFishData = data; // Store the full object
+
             document.getElementById('fish-species').value = data.species || '';
             document.getElementById('fish-length').value = data.length || '';
             document.getElementById('fish-weight').value = data.weight || '';
             document.getElementById('fish-time').value = data.time || '';
             document.getElementById('fish-details').value = data.details || '';
+
+            // Handle photo display
+            if (data.photo) {
+                photoThumbnail.src = data.photo;
+                photoContainer.classList.remove('hidden');
+            }
 
             const gearUsed = data.gear || (data.bait ? [data.bait] : []);
             const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
@@ -1815,20 +1841,11 @@ function openFishModal(tripId, fishId = null) {
             });
 
             updateSelectedGearDisplay();
-
-            const otherBaitInput = document.getElementById('fish-bait');
-            if (otherBaitInput) {
-                otherBaitInput.value = customBaits.join(', ');
-            }
+            baitInput.value = customBaits.join(', ');
         };
     } else {
         modalTitle.textContent = 'Add Fish';
-        document.getElementById('fish-species').value = '';
-        document.getElementById('fish-length').value = '';
-        document.getElementById('fish-weight').value = '';
-        document.getElementById('fish-time').value = '';
-        document.getElementById('fish-details').value = '';
-        updateSelectedGearDisplay();
+        updateSelectedGearDisplay(); // To show "None selected"
     }
 
     openModalWithAnimation(fishModal);
@@ -1901,15 +1918,17 @@ function saveFish() {
         finalGear.push(otherBaitValue);
     }
 
-    const fishData = {
-        tripId: currentEditingTripId,
-        species: document.getElementById('fish-species').value.trim(),
-        gear: finalGear,
-        length: document.getElementById('fish-length').value.trim(),
-        weight: document.getElementById('fish-weight').value.trim(),
-        time: document.getElementById('fish-time').value,
-        details: document.getElementById('fish-details').value.trim(),
-    };
+    // Start with the existing data if we are editing, or a new object if adding.
+    const fishData = currentEditingFishData || { tripId: currentEditingTripId };
+
+    // Update with form values
+    fishData.species = document.getElementById('fish-species').value.trim();
+    fishData.gear = finalGear;
+    fishData.length = document.getElementById('fish-length').value.trim();
+    fishData.weight = document.getElementById('fish-weight').value.trim();
+    fishData.time = document.getElementById('fish-time').value;
+    fishData.details = document.getElementById('fish-details').value.trim();
+
 
     if (!fishData.species) {
         alert("Please enter a species for the fish.");
@@ -1928,60 +1947,38 @@ function saveFish() {
     const commitToDB = (data) => {
         const transaction = db.transaction(['fish_caught'], 'readwrite');
         const store = transaction.objectStore('fish_caught');
+        let request;
 
-        const saveOperation = (finalData) => {
-            const request = store.put(finalData);
-            request.onsuccess = () => {
-                displayFishForTrip(currentEditingTripId);
-                closeFishModal();
-                // Reset file input
-                const photoInput = document.getElementById('fish-photo');
-                if (photoInput) {
-                    photoInput.value = '';
-                }
-            };
-            request.onerror = (event) => console.error('Error saving fish data:', event.target.error);
-        };
-
-        if (currentEditingFishId) {
-            data.id = currentEditingFishId;
-            const getRequest = store.get(currentEditingFishId);
-            getRequest.onsuccess = () => {
-                const existingData = getRequest.result;
-                if (existingData && existingData.photo && !data.photo) {
-                    data.photo = existingData.photo; // Preserve old photo if no new one is uploaded
-                }
-                saveOperation(data);
-            }
-            getRequest.onerror = (event) => {
-                console.error('Error fetching existing fish data:', event.target.error);
-                // Still try to save, but we might lose the old photo
-                saveOperation(data);
-            };
-        } else {
-            // It's a new fish, just add it.
-            const request = store.add(data);
-             request.onsuccess = () => {
-                displayFishForTrip(currentEditingTripId);
-                closeFishModal();
-                const photoInput = document.getElementById('fish-photo');
-                if (photoInput) {
-                    photoInput.value = '';
-                }
-            };
-            request.onerror = (event) => console.error('Error saving new fish data:', event.target.error);
+        if (data.id) { // If it has an ID, it's an update
+            request = store.put(data);
+        } else { // No ID, it's a new entry
+            request = store.add(data);
         }
+
+        request.onsuccess = () => {
+            displayFishForTrip(currentEditingTripId);
+            closeFishModal();
+            // Reset file input
+            const photoInput = document.getElementById('fish-photo');
+            if (photoInput) {
+                photoInput.value = '';
+            }
+        };
+        request.onerror = (event) => console.error('Error saving fish data:', event.target.error);
     };
 
     if (photoFile) {
         readFileAsBase64(photoFile).then(base64 => {
-            fishData.photo = base64;
+            fishData.photo = base64; // Set or overwrite the photo
             commitToDB(fishData);
         }).catch(error => {
             console.error('Error reading file:', error);
             alert('Could not read the photo file. Please try another file. The fish data was not saved.');
         });
     } else {
+        // No new photo was selected.
+        // The fishData.photo property is either the old photo, or null if it was deleted.
+        // So we can just commit the data as is.
         commitToDB(fishData);
     }
 }
