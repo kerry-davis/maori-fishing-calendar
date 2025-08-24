@@ -1300,6 +1300,8 @@ function closeModalWithAnimation(modal) {
 }
 
 function showModal(day, month, year) {
+    const wasHidden = lunarModal.classList.contains('hidden');
+
     clearTripForm(); // Reset the form every time the modal is shown or day is changed
     validateTripForm(); // Ensure button state is correct on modal open
     modalCurrentDay = day;
@@ -1340,7 +1342,9 @@ function showModal(day, month, year) {
     updateOpenTripLogButton(dateStrForDisplay);
 
     updateNavigationButtons();
-    openModalWithAnimation(lunarModal);
+    if (wasHidden) {
+        openModalWithAnimation(lunarModal);
+    }
 }
 
 function showPreviousDay() {
