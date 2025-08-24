@@ -665,11 +665,6 @@ function initCalendar() {
 }
 
 function handleModalClicks(e) {
-    if (e.target === lunarModal) {
-        hideModal();
-        return;
-    }
-
     const target = e.target.closest('button');
     if (!target) return;
 
@@ -791,7 +786,13 @@ function setupEventListeners() {
         renderCalendar();
     });
     closeModal.addEventListener('click', hideModal);
-    lunarModal.addEventListener('click', handleModalClicks);
+
+    // This listener handles clicks on the modal's backdrop to close it.
+    lunarModal.addEventListener('click', (e) => {
+        if (e.target === lunarModal) {
+            hideModal();
+        }
+    });
 
     modalPrevDay.addEventListener('click', showPreviousDay);
     modalNextDay.addEventListener('click', showNextDay);
