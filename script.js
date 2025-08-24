@@ -1629,7 +1629,7 @@ function importData(event) {
                             const promise = file.async("base64").then(base64 => {
                                 const fileExtension = file.name.split('.').pop().toLowerCase();
                                 const mimeType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
-                                return { path: `photos/${file.name}`, data: `data:${mimeType};base64,${base64}` };
+                                return { path: file.name, data: `data:${mimeType};base64,${base64}` };
                             });
                             photoPromises.push(promise);
                         });
