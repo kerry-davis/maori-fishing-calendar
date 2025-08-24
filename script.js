@@ -2665,18 +2665,27 @@ function displaySearchResults(results) {
 }
 
 async function loadPhotoGallery() {
+    console.log(`[DEBUG] Starting loadPhotoGallery. Sort order: ${gallerySortOrder}`);
     const galleryGrid = document.getElementById('gallery-grid');
     galleryGrid.innerHTML = '<p class="col-span-full text-center">Loading photos...</p>';
 
     try {
         // 1. Fetch all necessary data
+        console.log("[DEBUG] Fetching all fish and trips data...");
         const allFish = await getAllData('fish_caught');
         const allTrips = await getAllData('trips');
         const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
+        console.log(`[DEBUG] Fetched ${allFish.length} fish records and ${allTrips.length} trip records.`);
 
         // 2. Filter for fish with photos and add a proper Date object
         const fishWithPhotos = allFish
-            .filter(fish => fish.photo && tripsMap.has(fish.tripId))
+            .filter(fish => {
+                const hasPhoto = fish.photo && tripsMap.has(fish.tripId);
+                if (!hasPhoto && fish.photo) {
+                    console.log(`[DEBUG] Excluding fish ID ${fish.id} because its trip (ID: ${fish.tripId}) was not found.`);
+                }
+                return hasPhoto;
+            })
             .map(fish => {
                 const dateStr = tripsMap.get(fish.tripId).date;
                 const [year, month, day] = dateStr.split('-').map(Number);
@@ -2685,13 +2694,16 @@ async function loadPhotoGallery() {
                     tripDate: new Date(year, month - 1, day) // Timezone-safe date
                 };
             });
+        console.log(`[DEBUG] Found ${fishWithPhotos.length} fish with photos and valid trip data.`);
 
         if (fishWithPhotos.length === 0) {
             galleryGrid.innerHTML = '<p class="text-gray-500 dark:text-gray-400 col-span-full text-center">No photos have been uploaded yet.</p>';
+            console.log("[DEBUG] No photos to display. Exiting function.");
             return;
         }
 
         // 3. Group photos by month
+        console.log("[DEBUG] Grouping photos by month...");
         const groupedByMonth = new Map();
         fishWithPhotos.forEach(fish => {
             const monthKey = `${fish.tripDate.getFullYear()}-${fish.tripDate.getMonth()}`;
@@ -2700,8 +2712,13 @@ async function loadPhotoGallery() {
             }
             groupedByMonth.get(monthKey).push(fish);
         });
+        console.log(`[DEBUG] Grouped photos into ${groupedByMonth.size} distinct months.`);
+        groupedByMonth.forEach((value, key) => {
+            console.log(`[DEBUG] Month ${key} has ${value.length} photos.`);
+        });
 
         // 4. Sort the grouped photos
+        console.log("[DEBUG] Sorting month groups...");
         const sortedMonthKeys = Array.from(groupedByMonth.keys()).sort((a, b) => {
             const [yearA, monthA] = a.split('-').map(Number);
             const [yearB, monthB] = b.split('-').map(Number);
@@ -2709,7 +2726,9 @@ async function loadPhotoGallery() {
             const dateB = new Date(yearB, monthB);
             return gallerySortOrder === 'desc' ? dateB - dateA : dateA - dateB;
         });
+        console.log(`[DEBUG] Sorted month keys: ${sortedMonthKeys.join(', ')}`);
 
+        console.log("[DEBUG] Sorting photos within each month group...");
         for (const key of sortedMonthKeys) {
             const photosInMonth = groupedByMonth.get(key);
             photosInMonth.sort((a, b) => {
@@ -2718,6 +2737,7 @@ async function loadPhotoGallery() {
         }
 
         // 5. Render the gallery from the sorted, grouped data
+        console.log("[DEBUG] Rendering gallery...");
         galleryGrid.innerHTML = '';
         for (const monthKey of sortedMonthKeys) {
             const photosInMonth = groupedByMonth.get(monthKey);
@@ -2727,11 +2747,13 @@ async function loadPhotoGallery() {
                 month: 'long',
                 year: 'numeric'
             });
+            console.log(`[DEBUG] Creating header for ${monthName}`);
             const monthHeader = document.createElement('h4');
             monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-6 first:mt-0';
             monthHeader.textContent = monthName;
             galleryGrid.appendChild(monthHeader);
 
+            console.log(`[DEBUG] Rendering ${photosInMonth.length} photos for ${monthName}`);
             photosInMonth.forEach(fish => {
                 const photoEl = document.createElement('div');
                 photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
@@ -2755,9 +2777,10 @@ async function loadPhotoGallery() {
                 galleryGrid.appendChild(photoEl);
             });
         }
+        console.log("[DEBUG] Gallery rendering complete.");
 
     } catch (error) {
-        console.error("Error loading photo gallery:", error);
+        console.error("[DEBUG] Error loading photo gallery:", error);
         galleryGrid.innerHTML = '<p class="text-red-500 col-span-full text-center">Could not load photos. Please try again later.</p>';
     }
 }
