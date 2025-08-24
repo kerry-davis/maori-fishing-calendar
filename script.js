@@ -2669,10 +2669,12 @@ async function loadPhotoGallery() {
     galleryGrid.innerHTML = '<p class="col-span-full text-center">Loading photos...</p>';
 
     try {
+        // 1. Fetch all necessary data
         const allFish = await getAllData('fish_caught');
         const allTrips = await getAllData('trips');
         const tripsMap = new Map(allTrips.map(trip => [trip.id, trip]));
 
+        // 2. Filter for fish with photos and add a proper Date object
         const fishWithPhotos = allFish
             .filter(fish => fish.photo && tripsMap.has(fish.tripId))
             .map(fish => {
@@ -2680,7 +2682,7 @@ async function loadPhotoGallery() {
                 const [year, month, day] = dateStr.split('-').map(Number);
                 return {
                     ...fish,
-                    tripDate: new Date(year, month - 1, day)
+                    tripDate: new Date(year, month - 1, day) // Timezone-safe date
                 };
             });
 
@@ -2689,53 +2691,70 @@ async function loadPhotoGallery() {
             return;
         }
 
-        // Single, definitive sort operation based on the global sort order
-        fishWithPhotos.sort((a, b) => {
-            return gallerySortOrder === 'desc' ? b.tripDate - a.tripDate : a.tripDate - b.tripDate;
-        });
-
-        galleryGrid.innerHTML = '';
-        let currentMonthKey = '';
-
+        // 3. Group photos by month
+        const groupedByMonth = new Map();
         fishWithPhotos.forEach(fish => {
             const monthKey = `${fish.tripDate.getFullYear()}-${fish.tripDate.getMonth()}`;
-
-            // If the month has changed, print a new header
-            if (monthKey !== currentMonthKey) {
-                currentMonthKey = monthKey;
-                const monthName = fish.tripDate.toLocaleString('default', {
-                    month: 'long',
-                    year: 'numeric'
-                });
-
-                const monthHeader = document.createElement('h4');
-                monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-6 first:mt-0';
-                monthHeader.textContent = monthName;
-                galleryGrid.appendChild(monthHeader);
+            if (!groupedByMonth.has(monthKey)) {
+                groupedByMonth.set(monthKey, []);
             }
-
-            // Render the photo element
-            const photoEl = document.createElement('div');
-            photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
-            photoEl.dataset.fishId = fish.id;
-
-            const img = document.createElement('img');
-            img.src = fish.photo;
-            img.alt = fish.species;
-            img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
-
-            const overlay = document.createElement('div');
-            overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
-
-            const text = document.createElement('p');
-            text.className = 'text-white text-sm font-semibold';
-            text.textContent = fish.species;
-
-            overlay.appendChild(text);
-            photoEl.appendChild(img);
-            photoEl.appendChild(overlay);
-            galleryGrid.appendChild(photoEl);
+            groupedByMonth.get(monthKey).push(fish);
         });
+
+        // 4. Sort the grouped photos
+        const sortedMonthKeys = Array.from(groupedByMonth.keys()).sort((a, b) => {
+            const [yearA, monthA] = a.split('-').map(Number);
+            const [yearB, monthB] = b.split('-').map(Number);
+            const dateA = new Date(yearA, monthA);
+            const dateB = new Date(yearB, monthB);
+            return gallerySortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        });
+
+        for (const key of sortedMonthKeys) {
+            const photosInMonth = groupedByMonth.get(key);
+            photosInMonth.sort((a, b) => {
+                 return gallerySortOrder === 'desc' ? b.tripDate - a.tripDate : a.tripDate - b.tripDate;
+            });
+        }
+
+        // 5. Render the gallery from the sorted, grouped data
+        galleryGrid.innerHTML = '';
+        for (const monthKey of sortedMonthKeys) {
+            const photosInMonth = groupedByMonth.get(monthKey);
+            const firstFish = photosInMonth[0];
+
+            const monthName = firstFish.tripDate.toLocaleString('default', {
+                month: 'long',
+                year: 'numeric'
+            });
+            const monthHeader = document.createElement('h4');
+            monthHeader.className = 'col-span-full text-xl font-bold text-gray-800 dark:text-gray-100 mt-6 first:mt-0';
+            monthHeader.textContent = monthName;
+            galleryGrid.appendChild(monthHeader);
+
+            photosInMonth.forEach(fish => {
+                const photoEl = document.createElement('div');
+                photoEl.className = 'relative aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden group cursor-pointer';
+                photoEl.dataset.fishId = fish.id;
+
+                const img = document.createElement('img');
+                img.src = fish.photo;
+                img.alt = fish.species;
+                img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
+
+                const overlay = document.createElement('div');
+                overlay.className = 'absolute inset-0 bg-black bg-opacity-50 flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300';
+
+                const text = document.createElement('p');
+                text.className = 'text-white text-sm font-semibold';
+                text.textContent = fish.species;
+
+                overlay.appendChild(text);
+                photoEl.appendChild(img);
+                photoEl.appendChild(overlay);
+                galleryGrid.appendChild(photoEl);
+            });
+        }
 
     } catch (error) {
         console.error("Error loading photo gallery:", error);
