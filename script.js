@@ -665,11 +665,6 @@ function initCalendar() {
 }
 
 function handleModalClicks(e) {
-    if (e.target === lunarModal) {
-        hideModal();
-        return;
-    }
-
     const target = e.target.closest('button');
     if (!target) return;
 
@@ -791,7 +786,13 @@ function setupEventListeners() {
         renderCalendar();
     });
     closeModal.addEventListener('click', hideModal);
-    lunarModal.addEventListener('click', handleModalClicks);
+
+    // This listener handles clicks on the modal's backdrop to close it.
+    lunarModal.addEventListener('click', (e) => {
+        if (e.target === lunarModal) {
+            hideModal();
+        }
+    });
 
     modalPrevDay.addEventListener('click', showPreviousDay);
     modalNextDay.addEventListener('click', showNextDay);
@@ -1245,15 +1246,18 @@ function showTripLogModal() {
 function openModalWithAnimation(modal) {
     if (!modal) return;
 
-    // If there's an active modal, cover its content
+    // If there's an active modal, cover its content, but only if it's a DIFFERENT modal.
     if (modalStack.length > 0) {
-        const currentModal = modalStack[modalStack.length - 1];
-        if (currentModal && currentModal.firstElementChild) {
-            currentModal.firstElementChild.classList.add('modal-content-covered');
+        const currentTopModal = modalStack[modalStack.length - 1];
+        if (currentTopModal !== modal && currentTopModal.firstElementChild) {
+            currentTopModal.firstElementChild.classList.add('modal-content-covered');
         }
     }
 
-    modalStack.push(modal);
+    // Only push the modal to the stack if it's not already the top-most one.
+    if (modalStack.length === 0 || modalStack[modalStack.length - 1] !== modal) {
+        modalStack.push(modal);
+    }
 
     document.body.classList.add('modal-open');
     modal.classList.remove('hidden');
