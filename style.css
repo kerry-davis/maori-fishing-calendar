@@ -203,3 +203,6 @@ body.modal-open {
 .bg-main-500:hover {
     background-color: #089479;
 }
+.ring-main-500 {
+    --tw-ring-color: #0AA689;
+}
