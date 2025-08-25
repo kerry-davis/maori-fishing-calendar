@@ -33,7 +33,7 @@ const lunarPhases = [
 
 const biteQualityColors = {
     excellent: "#10b981",
-    good: "#0AA689",
+    good: "#3b82f6",
     average: "#f59e0b",
     fair: "#8b5cf6",
     poor: "#ef4444"
