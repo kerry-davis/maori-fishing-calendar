@@ -203,9 +203,3 @@ body.modal-open {
 .bg-main-500:hover {
     background-color: #089479;
 }
-.bg-complementary-500 {
-    background-color: #FF6F61;
-}
-.bg-complementary-500:hover {
-    background-color: #e66355;
-}
