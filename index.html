@@ -55,10 +55,10 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 id="currentMonth" class="text-xl font-semibold text-gray-800 dark:text-gray-100"></h2>
                     <div class="flex space-x-2">
-                        <button id="prevMonth" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                        <button id="prevMonth" class="px-3 py-1 bg-main-500 text-white rounded transition">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button id="nextMonth" class="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 transition">
+                        <button id="nextMonth" class="px-3 py-1 bg-main-500 text-white rounded transition">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -116,7 +116,7 @@
                         <p id="currentMoonIllumination" class="text-sm text-gray-600 dark:text-gray-400"></p>
                     </div>
                 </div>
-                <button id="prompt-location-btn" class="hidden mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Set Location</button>
+                <button id="prompt-location-btn" class="hidden mt-4 px-4 py-2 bg-main-500 text-white rounded transition">Set Location</button>
             </div>
         </main>
 
@@ -168,7 +168,7 @@
                         <button id="search-location-btn" class="px-3 py-2 bg-gray-500 text-white hover:bg-gray-600">
                             <i class="fas fa-search"></i>
                         </button>
-                        <button id="use-location-btn" class="px-3 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600">
+                        <button id="use-location-btn" class="px-3 py-2 bg-main-500 text-white rounded-r-md">
                             <i class="fas fa-map-marker-alt"></i>
                         </button>
                         <div id="autocomplete-results" class="absolute top-full left-0 z-10 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md mt-1 hidden"></div>
@@ -232,7 +232,7 @@
 
                 <!-- Trip Log Section -->
                 <div class="border-t dark:border-gray-700 pt-4 mt-4">
-                    <button id="open-trip-log-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                    <button id="open-trip-log-btn" class="w-full px-4 py-2 bg-main-500 text-white rounded-md transition">
                         <i class="fas fa-book-open mr-2"></i> View / Manage Trip Log
                     </button>
                 </div>
@@ -254,7 +254,7 @@
             </div>
             <div class="p-6 border-t dark:border-gray-700 mt-auto">
                 <div class="flex justify-end">
-                    <button id="done-select-gear-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Done</button>
+                    <button id="done-select-gear-btn" class="px-4 py-2 bg-main-500 text-white rounded transition">Done</button>
                 </div>
             </div>
         </div>
@@ -273,7 +273,7 @@
                         </button>
                     </div>
                 </div>
-                <button id="add-trip-btn" class="w-full px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition mb-4">
+                <button id="add-trip-btn" class="w-full px-4 py-2 bg-main-500 text-white rounded-md transition mb-4">
                     <i class="fas fa-plus-circle mr-2"></i> Log a New Trip
                 </button>
                 <div id="trip-log-list" class="space-y-4 mb-4">
@@ -301,7 +301,7 @@
                     <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
                 </div>
                 <div class="flex space-x-2 mt-4">
-                    <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Save Trip</button>
+                    <button id="save-trip-btn" class="flex-1 px-4 py-2 bg-main-500 text-white rounded transition disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>Save Trip</button>
                     <button id="cancel-edit-trip-btn" class="flex-1 px-4 py-2 bg-gray-400 text-white rounded-md hover:bg-gray-500 transition hidden">Cancel Edit</button>
                 </div>
                 <div id="save-trip-success-msg" class="text-green-500 text-sm mt-2 text-center hidden">Trip saved!</div>
@@ -336,8 +336,8 @@
                             <select id="gear-type-select" class="mt-1 block w-full p-2 border rounded-md dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100"></select>
                         </div>
                         <div class="flex space-x-2">
-                            <button id="add-new-gear-btn" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Add New Gear</button>
-                            <button id="add-new-type-btn" class="flex-1 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">Add New Type</button>
+                            <button id="add-new-gear-btn" class="flex-1 px-4 py-2 bg-main-500 text-white rounded">Add New Gear</button>
+                            <button id="add-new-type-btn" class="flex-1 px-4 py-2 bg-main-500 text-white rounded">Add New Type</button>
                         </div>
                     </div>
 
@@ -354,7 +354,7 @@
                                 <input type="text" id="gear-colour" placeholder="Colour" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
                             </div>
                             <div class="flex space-x-2 mt-4">
-                                <button type="submit" class="flex-1 px-4 py-2 bg-blue-500 text-white rounded">Save</button>
+                                <button type="submit" class="flex-1 px-4 py-2 bg-main-500 text-white rounded">Save</button>
                                 <button type="button" id="delete-gear-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded hidden">Delete</button>
                             </div>
                         </form>
@@ -366,7 +366,7 @@
                                 <input type="text" id="gear-type-name" placeholder="Gear type name" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400" required>
                             </div>
                             <div class="flex space-x-2 mt-4">
-                                <button type="submit" class="flex-1 px-4 py-2 bg-green-500 text-white rounded">Save</button>
+                                <button type="submit" class="flex-1 px-4 py-2 bg-main-500 text-white rounded">Save</button>
                                 <button type="button" id="delete-gear-type-btn" class="flex-1 px-4 py-2 bg-red-500 text-white rounded hidden">Delete</button>
                             </div>
                         </form>
@@ -391,7 +391,7 @@
                 </div>
                 <div class="mt-4 flex space-x-2">
                     <input type="text" id="search-input" placeholder="e.g., 'Snapper' or 'January'" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <button id="search-button" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition">Search</button>
+                    <button id="search-button" class="px-4 py-2 bg-main-500 text-white rounded transition">Search</button>
                 </div>
             </div>
             <div id="search-results-container" class="p-6 overflow-y-auto space-y-4">
@@ -415,10 +415,10 @@
                     <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Data Management</h4>
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">Export your catch log as a JSON file to back it up or transfer to another device. You can then import this file on another device to restore your data.</p>
                     <div class="space-y-3">
-                        <button id="export-data-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">Export as JSON</button>
-                        <button id="export-csv-btn" class="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 transition">Export as CSV</button>
+                        <button id="export-data-btn" class="w-full px-4 py-2 bg-main-500 text-white rounded-md transition">Export as JSON</button>
+                        <button id="export-csv-btn" class="w-full px-4 py-2 bg-main-500 text-white rounded-md transition">Export as CSV</button>
                         <div>
-                            <label for="import-file-input" class="w-full text-center block px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition cursor-pointer">Import Data</label>
+                            <label for="import-file-input" class="w-full text-center block px-4 py-2 bg-main-500 text-white rounded-md transition cursor-pointer">Import Data</label>
                             <input type="file" id="import-file-input" class="hidden" accept=".json,.zip">
                         </div>
                     </div>
@@ -457,7 +457,7 @@
                     <input type="number" id="weather-air-temp" placeholder="Air Temp" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 </div>
                 <div class="flex space-x-2 mt-4">
-                    <button id="save-weather-btn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Save Weather</button>
+                    <button id="save-weather-btn" class="flex-1 px-4 py-2 bg-main-500 text-white rounded transition">Save Weather</button>
                     <button id="close-weather-modal-btn" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">Cancel</button>
                 </div>
             </div>
@@ -491,12 +491,12 @@
                         </div>
                         <div>
                             <label for="fish-photo" class="block text-sm font-medium text-gray-700 dark:text-gray-300">Upload New Photo</label>
-                            <input type="file" id="fish-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-gray-700 dark:file:text-gray-300 dark:hover:file:bg-gray-600"/>
+                            <input type="file" id="fish-photo" accept="image/*" class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-main-500 file:text-white hover:file:bg-main-600 dark:file:bg-gray-700 dark:file:text-gray-300 dark:hover:file:bg-gray-600"/>
                         </div>
                     </div>
                 </form>
                 <div class="flex space-x-2 mt-4">
-                    <button id="save-fish-btn" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">Save Fish</button>
+                    <button id="save-fish-btn" class="flex-1 px-4 py-2 bg-main-500 text-white rounded transition">Save Fish</button>
                     <button id="close-fish-modal-btn" class="flex-1 px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition">Cancel</button>
                 </div>
             </div>
