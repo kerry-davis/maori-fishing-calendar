@@ -1433,7 +1433,7 @@ async function renderCalendar() {
             }
 
             if (currentYear === new Date().getFullYear() && currentMonth === new Date().getMonth() && day === new Date().getDate()) {
-                dayElement.classList.add('ring-2', 'ring-main-500');
+                dayElement.classList.add('current-day-highlight');
             }
 
             dayElement.addEventListener('click', () => showModal(day, currentMonth, currentYear));

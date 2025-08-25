@@ -203,6 +203,6 @@ body.modal-open {
 .bg-main-500:hover {
     background-color: #089479;
 }
-.ring-main-500 {
-    --tw-ring-color: #0AA689;
+.current-day-highlight {
+    box-shadow: 0 0 0 2px #0AA689;
 }
