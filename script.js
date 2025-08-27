@@ -1,3 +1,34 @@
+// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
+// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
+// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
+// Assuming the configuration object is available globally as 'myAppConfig'
+console.log('Value of myAppConfig:', myAppConfig); // Add this line
+// Initialize Firebase using the configuration provided by Firebase Hosting
+    // Access configuration from firebase.options after SDK is loaded
+    if (firebase.options) {
+        firebase.initializeApp(firebase.options);
+    } else {
+        console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set.");
+    }
+
+document.getElementById('signInButton').addEventListener('click', async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    firebase.auth().signInWithPopup(provider)
+        .then((result) => {
+            // This gives you a Google Access Token. You can use it to access the Google API.
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const token = credential.accessToken;
+            // The signed-in user info.
+            const user = result.user;
+            console.log("User signed in:", user); // You would typically update UI here
+        }).catch((error) => {
+            // Handle Errors here.
+            const errorCode = error.code;
+            const errorMessage = error.message;
+            console.error("Sign-in error:", errorCode, errorMessage);
+        });
+});
+
 const lunarPhases = [
     { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
     { name: "Tirea", quality: "Average", description: "The moon is a sliver. A reasonably good day for crayfishing.", biteQualities: ["poor", "average", "poor", "poor"] },
@@ -164,7 +195,7 @@ async function fetchWeatherForecast(lat, lon, date) {
     const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
     const apiUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_max,temperature_2m_min,windspeed_10m_max,winddirection_10m_dominant&timezone=auto&start_date=${dateStr}&end_date=${dateStr}`;
 
-    try {
+ try {
         const response = await fetch(apiUrl);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
