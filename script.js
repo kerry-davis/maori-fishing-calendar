@@ -12,6 +12,10 @@ document.getElementById('signInButton').addEventListener('click', async () => {
         .then((result) => {
             // This gives you a Google Access Token. You can use it to access the Google API.
             const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+            if (!credential) {
+                console.warn("Credential could not be retrieved from result.");
+                return;
+            }
             const token = credential.accessToken;
             // The signed-in user info.
             const user = result.user;
