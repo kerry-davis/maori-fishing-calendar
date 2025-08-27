@@ -1,10 +1,6 @@
 // Initialize Firebase using the configuration provided by Firebase Hosting environment variables
-// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
-// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
-// Assuming the configuration object is available globally as 'myAppConfig'
-console.log('Value of myAppConfig:', myAppConfig); // Add this line
-// Initialize Firebase using the configuration provided by Firebase Hosting
-    // Access configuration from firebase.options after SDK is loaded
+// This will be automatically handled by the /__/firebase/init.js script
+// which populates the firebase.options object.
     if (firebase.options) {
         firebase.initializeApp(firebase.options);
     } else {
