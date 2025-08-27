@@ -45,7 +45,8 @@ self.addEventListener('fetch', event => {
     fetch(event.request)
       .then(response => {
         // If we get a valid response, we clone it and cache it for offline use.
-        if (response && response.status === 200) {
+        // We only cache GET requests.
+        if (response && response.status === 200 && event.request.method === 'GET') {
           const responseToCache = response.clone();
           caches.open(CACHE_NAME)
             .then(cache => {

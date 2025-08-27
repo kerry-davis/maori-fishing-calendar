@@ -1,17 +1,17 @@
 // Initialize Firebase using the configuration provided by Firebase Hosting.
 // The /__/firebase/init.js script populates firebase.options.
 if (firebase.options) {
-    firebase.initializeApp(firebase.options);
-} else {
-    console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set or you are running in the emulator.");
-}
+        firebase.initializeApp(firebase.options);
+    } else {
+        console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set.");
+    }
 
 document.getElementById('signInButton').addEventListener('click', async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
     firebase.auth().signInWithPopup(provider)
         .then((result) => {
             // This gives you a Google Access Token. You can use it to access the Google API.
-            const credential = GoogleAuthProvider.credentialFromResult(result);
+            const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
             const token = credential.accessToken;
             // The signed-in user info.
             const user = result.user;
