@@ -1,32 +1,90 @@
 // Initialize Firebase using the configuration provided by Firebase Hosting.
 // The /__/firebase/init.js script populates firebase.options.
-if (firebase.options) {
-        firebase.initializeApp(firebase.options);
-    } else {
-        console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set.");
-    }
+// Initialize Firebase using the configuration provided by Firebase Hosting
+// Access configuration from firebase.options after SDK is loaded
+// Handle the redirect result on page load (Keep this part)
+firebase.auth()
+.getRedirectResult()
+.then((result) => {
+  if (result.credential) {
+    // This gives you a Google Access Token. You can use it to access the Google API.
+    const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
+    const token = credential.accessToken;
+    // The signed-in user info.
+    const user = result.user;
+    console.log("User signed in (redirect):", user);
+    // You would typically update UI here and proceed with backend access
+    // Example: Redirect to a dashboard page, show user info, etc.
+  } else {
+    // Handle cases where there is no credential (e.g., user cancelled)
+    console.log("No redirect result or credential.");
+    // Example: Keep the sign-in button visible
+  }
+})
+.catch((error) => {
+  // Handle Errors here.
+  const errorCode = error.code;
+  const errorMessage = error.message;
+  console.error("Sign-in redirect error:", errorCode, errorMessage);
+  // Example: Display an error message to the user
+});
+
+// Listen for authentication state changes
+firebase.auth().onAuthStateChanged((user) => {
+    console.log("onAuthStateChanged listener is running");
+
+    // Use a small delay to get button references and manage visibility
+    setTimeout(() => { // Start setTimeout wrapper
+      const signInButton = document.getElementById('signInButton');
+      const signOutButton = document.getElementById('signOutButton'); // Get sign-out button
+      console.log("Sign-in button element (in listener after delay):", signInButton);
+      console.log("Sign-out button element (in listener after delay):", signOutButton); // Log sign-out button
+
+      if (user) {
+        // User is signed in
+        if (signInButton) {
+            signInButton.style.display = 'none'; // Hide sign-in button
+        }
+        if (signOutButton) { // Show sign-out button
+            signOutButton.style.display = 'block'; // Or 'inline-block'
+        }
+        console.log("Auth state changed: User signed in", user);
+        // You can also display user information here
+      } else {
+        // User is signed out
+        if (signInButton) {
+            signInButton.style.display = 'block'; // Show sign-in button
+        }
+        if (signOutButton) { // Hide sign-out button
+            signOutButton.style.display = 'none';
+        }
+        console.log("Auth state changed: User signed out");
+      }
+    }, 50); // End setTimeout wrapper with a small delay (e.g., 50 milliseconds)
+  });
 
 document.getElementById('signInButton').addEventListener('click', async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
-    firebase.auth().signInWithPopup(provider)
-        .then((result) => {
-            // This gives you a Google Access Token. You can use it to access the Google API.
-            const credential = firebase.auth.GoogleAuthProvider.credentialFromResult(result);
-            if (!credential) {
-                console.warn("Credential could not be retrieved from result.");
-                return;
-            }
-            const token = credential.accessToken;
-            // The signed-in user info.
-            const user = result.user;
-            console.log("User signed in:", user); // You would typically update UI here
-        }).catch((error) => {
-            // Handle Errors here.
-            const errorCode = error.code;
-            const errorMessage = error.message;
-            console.error("Sign-in error:", errorCode, errorMessage);
-        });
+    firebase.auth().signInWithRedirect(provider); // Switch to redirect
+    // No .then() or .catch() here for the redirect call itself
 });
+
+// Use event delegation for the sign-out button click
+document.body.addEventListener('click', (event) => {
+    const target = event.target;
+
+    // Check if the clicked element or one of its ancestors is the sign-out button
+    if (target.id === 'signOutButton' || target.closest('#signOutButton')) {
+      console.log("Sign-out button clicked (delegation)"); // Add a log here
+      try {
+        firebase.auth().signOut(); // Use non-async version for simple delegation
+        console.log("User signed out successfully (delegation).");
+        // onAuthStateChanged listener will handle UI update
+      } catch (error) {
+        console.error("Error signing out (delegation):", error);
+      }
+    }
+  });
 
 const lunarPhases = [
     { name: "Whiro", quality: "Poor", description: "The new moon. An unfavourable day for fishing.", biteQualities: ["poor", "poor", "poor", "poor"] },
