@@ -1,8 +1,9 @@
-// Initialize Firebase using the configuration object provided by /__/firebase/init.js
-if (typeof myAppConfig !== 'undefined') {
-    firebase.initializeApp(myAppConfig);
+// Initialize Firebase using the configuration provided by Firebase Hosting.
+// The /__/firebase/init.js script populates firebase.options.
+if (firebase.options) {
+    firebase.initializeApp(firebase.options);
 } else {
-    console.error("Firebase configuration (myAppConfig) not found. Ensure you are running the app through Firebase Hosting.");
+    console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set or you are running in the emulator.");
 }
 
 document.getElementById('signInButton').addEventListener('click', async () => {
