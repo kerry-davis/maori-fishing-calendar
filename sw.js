@@ -17,11 +17,22 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME)
       .then(cache => {
         console.log('Opened cache');
-        // Use a more robust caching strategy that doesn't fail if one resource fails
+        // Use a more robust caching strategy that handles CORS
         const cachePromises = urlsToCache.map(urlToCache => {
-          return cache.add(urlToCache).catch(err => {
-            console.warn(`Failed to cache ${urlToCache}:`, err);
-          });
+          if (urlToCache.startsWith('http')) {
+            // For third-party resources, fetch with no-cors mode.
+            const request = new Request(urlToCache, { mode: 'no-cors' });
+            return fetch(request)
+              .then(response => cache.put(urlToCache, response))
+              .catch(err => {
+                console.warn(`Failed to cache ${urlToCache}:`, err);
+              });
+          } else {
+            // For local resources, cache.add is fine.
+            return cache.add(urlToCache).catch(err => {
+              console.warn(`Failed to cache ${urlToCache}:`, err);
+            });
+          }
         });
         return Promise.all(cachePromises);
       })
