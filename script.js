@@ -1,11 +1,9 @@
-// Initialize Firebase using the configuration provided by Firebase Hosting environment variables
-// This will be automatically handled by the /__/firebase/init.js script
-// which populates the firebase.options object.
-    if (firebase.options) {
-        firebase.initializeApp(firebase.options);
-    } else {
-        console.error("Firebase configuration not found. Ensure Firebase Hosting environment variables are set.");
-    }
+// Initialize Firebase using the configuration object provided by /__/firebase/init.js
+if (typeof myAppConfig !== 'undefined') {
+    firebase.initializeApp(myAppConfig);
+} else {
+    console.error("Firebase configuration (myAppConfig) not found. Ensure you are running the app through Firebase Hosting.");
+}
 
 document.getElementById('signInButton').addEventListener('click', async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
