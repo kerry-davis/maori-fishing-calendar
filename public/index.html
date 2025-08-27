@@ -19,17 +19,15 @@
     <link rel="stylesheet" href="tacklebox.css">
     <link rel="manifest" href="manifest.json">
     <!-- Firebase SDK -->
-    <script src="/__/firebase/9.23.0/firebase-app-compat.js"></script>
-    <script src="/__/firebase/9.23.0/firebase-auth-compat.js"></script>
-    <script src="/__/firebase/init.js"></script>
+    <script defer src="/__/firebase/9.23.0/firebase-app-compat.js"></script>
+    <script defer src="/__/firebase/9.23.0/firebase-auth-compat.js"></script>
+    <!-- Firebase config and initialization -->
+    <script defer src="/__/firebase/init.js"></script>
 </head>
 <body class="bg-gray-50 dark:bg-gray-900 dark:text-gray-100">
     <div class="container mx-auto px-4 py-8 max-w-6xl">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 items-center mb-8">
-            <div class="flex space-x-2">
-                <button id="signInButton">Sign In with Google</button>
-                <button id="signOutButton" style="display: none;">Sign Out</button>
-            </div>
+            <button id="signInButton">Sign In with Google</button>
             <div class="hidden md:block"></div>
             <header class="text-center md:col-span-2">
                 <h1 class="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100 mb-2">Māori Fishing Calendar</h1>
@@ -316,6 +314,9 @@
             </div>
         </div>
     </div>
+
+    <script defer src="script.js"></script>
+    <script defer src="js/tacklebox.js"></script>
 
     <!-- Tackle Box Modal -->
     <div id="tackleboxModal" class="modal fixed inset-0 z-50 hidden">
@@ -644,8 +645,5 @@
             </div>
         </div>
     </div>
-    <script src="script.js?v=1"></script> <!-- Example with a version number -->
-    <script src="js/tacklebox.js"></script>
 </body>
-
 </html>
