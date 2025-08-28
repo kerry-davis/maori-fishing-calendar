@@ -1,74 +1,68 @@
-const CACHE_NAME = 'maori-fishing-calendar-cache-v8';
+const CACHE_NAME = 'maori-fishing-calendar-cache-v4';
 const urlsToCache = [
   '/',
   'index.html',
   'style.css',
-  'tacklebox.css',
   'script.js',
-  'js/tacklebox.js',
   'manifest.json',
-  '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png',
+  'icons/icon-192x192.png',
+  'icons/icon-512x512.png',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdn.tailwindcss.com'
 ];
 
 self.addEventListener('install', event => {
-  console.log('Installing final service worker...');
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Opened cache for pre-caching.');
+        console.log('Opened cache');
         // Use a more robust caching strategy that handles CORS
         const cachePromises = urlsToCache.map(urlToCache => {
-          const request = new Request(urlToCache, { mode: 'no-cors' });
-          return fetch(request).then(response => cache.put(urlToCache, response)).catch(err => {
+          if (urlToCache.startsWith('http')) {
+            // For third-party resources, fetch with no-cors mode.
+            const request = new Request(urlToCache, { mode: 'no-cors' });
+            return fetch(request)
+              .then(response => cache.put(urlToCache, response))
+              .catch(err => {
+                console.warn(`Failed to cache ${urlToCache}:`, err);
+              });
+          } else {
+            // For local resources, cache.add is fine.
+            return cache.add(urlToCache).catch(err => {
               console.warn(`Failed to cache ${urlToCache}:`, err);
-          });
+            });
+          }
         });
         return Promise.all(cachePromises);
       })
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('fetch', event => {
+  // Always try to get a fresh version from the network first.
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
+        // If we get a valid response, we clone it and cache it for offline use.
+        // We only cache GET requests.
+        if (response && response.status === 200 && event.request.method === 'GET') {
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME)
+            .then(cache => {
+              cache.put(event.request, responseToCache);
+            });
         }
-
-        // Not in cache - go to network and cache the response for next time
-        return fetch(event.request).then(
-          (response) => {
-            // Check if we received a valid response
-            if(!response || response.status !== 200) {
-              return response;
-            }
-
-            // IMPORTANT: Clone the response. A response is a stream
-            // and because we want the browser to consume the response
-            // as well as the cache consuming the response, we need
-            // to clone it so we have two streams.
-            var responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
+        return response;
       })
-    );
+      .catch(() => {
+        // If the network request fails (e.g., offline), return the cached version.
+        return caches.match(event.request);
+      })
+  );
 });
 
 self.addEventListener('activate', event => {
-  console.log('Activating final service worker...');
   const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -82,5 +76,6 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  // Tell the active service worker to take control of the page immediately.
   return self.clients.claim();
 });
