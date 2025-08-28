@@ -29,39 +29,59 @@ firebase.auth()
   // Example: Display an error message to the user
 });
 
+let db; // For IndexedDB (used for migration)
+let firestoreDb; // For Firestore
+let currentUser = null;
+
 // Listen for authentication state changes
-firebase.auth().onAuthStateChanged((user) => {
-    console.log("onAuthStateChanged listener is running");
+firebase.auth().onAuthStateChanged(async (user) => {
+    currentUser = user; // Set the current user
 
-    // Use a small delay to get button references and manage visibility
-    setTimeout(() => { // Start setTimeout wrapper
-      const signInButton = document.getElementById('signInButton');
-      const signOutButton = document.getElementById('signOutButton'); // Get sign-out button
-      console.log("Sign-in button element (in listener after delay):", signInButton);
-      console.log("Sign-out button element (in listener after delay):", signOutButton); // Log sign-out button
+    const signInButton = document.getElementById('signInButton');
+    const signOutButton = document.getElementById('signOutButton');
+    const mainContent = document.querySelector('main');
+    const footer = document.querySelector('footer');
+    const headerActions = document.querySelector('.flex.space-x-2.justify-center');
 
-      if (user) {
+    if (user) {
         // User is signed in
-        if (signInButton) {
-            signInButton.style.display = 'none'; // Hide sign-in button
-        }
-        if (signOutButton) { // Show sign-out button
-            signOutButton.style.display = 'block'; // Or 'inline-block'
-        }
+        firestoreDb = firebase.firestore(); // Initialize Firestore
+        console.log("Firestore initialized for user:", user.uid);
+
+        if (signInButton) signInButton.style.display = 'none';
+        if (signOutButton) signOutButton.style.display = 'block';
+        if (mainContent) mainContent.style.display = '';
+        if (footer) footer.style.display = '';
+        if (headerActions) headerActions.style.visibility = 'visible';
+
         console.log("Auth state changed: User signed in", user);
-        // You can also display user information here
-      } else {
+
+        try {
+            await initDB(); // Wait for IndexedDB to be ready for migration check
+            await migrateDataToFirestore(); // Run migration if needed
+        } catch (error) {
+            console.error("Failed to initialize local DB for migration or migration failed:", error);
+            // Non-fatal, the app can continue with cloud data.
+        }
+
+        initCalendar(); // Re-render calendar with user's data
+    } else {
         // User is signed out
-        if (signInButton) {
-            signInButton.style.display = 'block'; // Show sign-in button
-        }
-        if (signOutButton) { // Hide sign-out button
-            signOutButton.style.display = 'none';
-        }
+        firestoreDb = null; // Clear firestore instance
+        if (signInButton) signInButton.style.display = 'block';
+        if (signOutButton) signOutButton.style.display = 'none';
+        // Hide main content when logged out
+        if (mainContent) mainContent.style.display = 'none';
+        if (footer) footer.style.display = 'none';
+        if (headerActions) headerActions.style.visibility = 'hidden';
+
         console.log("Auth state changed: User signed out");
-      }
-    }, 50); // End setTimeout wrapper with a small delay (e.g., 50 milliseconds)
-  });
+        // Clear calendar display
+        if (calendarDays) calendarDays.innerHTML = '';
+        if (currentMonthElement) currentMonthElement.textContent = 'Please sign in';
+    }
+});
+
 
 document.getElementById('signInButton').addEventListener('click', async () => {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -127,7 +147,6 @@ const biteQualityColors = {
     poor: "#ef4444"
 };
 
-let db;
 let userLocation = null;
 let currentTripId = null;
 let currentEditingTripId = null; // For sub-modals (weather, fish)
@@ -456,46 +475,38 @@ function setLocationAndFetchBiteTimes(lat, lon, name) {
     updateLocationDisplay();
 };
 
-function initDB(callback) {
-    const request = indexedDB.open("fishingLog", 2); // Bump version to 2
+function initDB() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open("fishingLog", 2);
 
-    request.onupgradeneeded = function(event) {
-        const db = event.target.result;
-        console.log("Upgrading database schema...");
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            console.log("Upgrading IndexedDB schema for migration...");
+            if (!db.objectStoreNames.contains('trips')) {
+                const tripsStore = db.createObjectStore("trips", { keyPath: "id", autoIncrement: true });
+                tripsStore.createIndex("date", "date", { unique: false });
+            }
+            if (!db.objectStoreNames.contains('weather_logs')) {
+                const weatherStore = db.createObjectStore("weather_logs", { keyPath: "id", autoIncrement: true });
+                weatherStore.createIndex("tripId", "tripId", { unique: false });
+            }
+            if (!db.objectStoreNames.contains('fish_caught')) {
+                const fishStore = db.createObjectStore("fish_caught", { keyPath: "id", autoIncrement: true });
+                fishStore.createIndex("tripId", "tripId", { unique: false });
+            }
+        };
 
-        // Delete old store if it exists
-        if (db.objectStoreNames.contains('catch_logs')) {
-            db.deleteObjectStore('catch_logs');
-            console.log("Old 'catch_logs' object store deleted.");
-        }
+        request.onsuccess = function(event) {
+            db = event.target.result;
+            console.log("IndexedDB initialized successfully for migration check.");
+            resolve();
+        };
 
-        // Create new stores
-        if (!db.objectStoreNames.contains('trips')) {
-            const tripsStore = db.createObjectStore("trips", { keyPath: "id", autoIncrement: true });
-            tripsStore.createIndex("date", "date", { unique: false });
-            console.log("'trips' object store created.");
-        }
-        if (!db.objectStoreNames.contains('weather_logs')) {
-            const weatherStore = db.createObjectStore("weather_logs", { keyPath: "id", autoIncrement: true });
-            weatherStore.createIndex("tripId", "tripId", { unique: false });
-            console.log("'weather_logs' object store created.");
-        }
-        if (!db.objectStoreNames.contains('fish_caught')) {
-            const fishStore = db.createObjectStore("fish_caught", { keyPath: "id", autoIncrement: true });
-            fishStore.createIndex("tripId", "tripId", { unique: false });
-            console.log("'fish_caught' object store created.");
-        }
-    };
-
-    request.onsuccess = function(event) {
-        db = event.target.result;
-        console.log("Database initialized successfully.");
-        if (callback) callback();
-    };
-
-    request.onerror = function(event) {
-        console.error("Database error: " + event.target.errorCode);
-    };
+        request.onerror = function(event) {
+            console.error("IndexedDB error: " + event.target.errorCode);
+            reject(event.target.errorCode);
+        };
+    });
 }
 
 function validateTripForm() {
@@ -524,9 +535,15 @@ function clearTripForm() {
     validateTripForm();
 }
 
-function saveTrip() {
+async function saveTrip() {
+    if (!currentUser) {
+        alert("You must be signed in to save a trip.");
+        return;
+    }
+
     const date = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     const tripData = {
+        userId: currentUser.uid,
         date: date,
         water: document.getElementById('trip-water').value.trim(),
         location: document.getElementById('trip-location').value.trim(),
@@ -535,40 +552,42 @@ function saveTrip() {
         notes: document.getElementById('trip-best-times').value.trim(),
     };
 
-    const transaction = db.transaction(["trips"], "readwrite");
-    const objectStore = transaction.objectStore("trips");
-    let request;
+    try {
+        if (currentTripId) {
+            await firestoreDb.collection("trips").doc(currentTripId).set(tripData, { merge: true });
+            console.log("Trip updated successfully:", currentTripId);
+        } else {
+            const docRef = await firestoreDb.collection("trips").add(tripData);
+            console.log("Trip saved successfully with ID:", docRef.id);
+        }
 
-    if (currentTripId) {
-        tripData.id = currentTripId;
-        request = objectStore.put(tripData);
-    } else {
-        request = objectStore.add(tripData);
-    }
-
-    request.onsuccess = () => {
-        console.log("Trip saved successfully.");
         closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         displayTrips(date);
         renderCalendar();
         updateOpenTripLogButton(date);
-    };
-
-    request.onerror = (event) => {
-        console.error("Error saving trip:", event.target.error);
-    };
+    } catch (error) {
+        console.error("Error saving trip:", error);
+        alert("There was an error saving your trip. Please try again.");
+    }
 }
 
-function displayTrips(date) {
-    const transaction = db.transaction(["trips"], "readonly");
-    const objectStore = transaction.objectStore("trips");
-    const index = objectStore.index("date");
-    const request = index.getAll(date);
+async function displayTrips(date) {
+    if (!currentUser) return;
 
-    request.onsuccess = () => {
-        const tripLogList = document.getElementById('trip-log-list');
+    const tripLogList = document.getElementById('trip-log-list');
+    tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading trips...</p>';
+
+    try {
+        const querySnapshot = await firestoreDb.collection("trips")
+            .where("userId", "==", currentUser.uid)
+            .where("date", "==", date)
+            .get();
+
         tripLogList.innerHTML = '';
-        const trips = request.result;
+        const trips = [];
+        querySnapshot.forEach(doc => {
+            trips.push({ id: doc.id, ...doc.data() });
+        });
 
         if (trips.length > 0) {
             trips.forEach(trip => {
@@ -614,16 +633,22 @@ function displayTrips(date) {
         } else {
             tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
         }
-    };
+    } catch (error) {
+        console.error("Error displaying trips:", error);
+        tripLogList.innerHTML = '<p class="text-red-500">Error loading trips.</p>';
+    }
 }
 
-function editTrip(id) {
-    const transaction = db.transaction(["trips"], "readonly");
-    const objectStore = transaction.objectStore("trips");
-    const request = objectStore.get(id);
+async function editTrip(id) {
+    try {
+        const doc = await firestoreDb.collection("trips").doc(id).get();
+        if (!doc.exists) {
+            console.error("No such trip!");
+            alert("Could not find the trip to edit.");
+            return;
+        }
 
-    request.onsuccess = () => {
-        const trip = request.result;
+        const trip = doc.data();
         document.getElementById('trip-water').value = trip.water;
         document.getElementById('trip-location').value = trip.location;
         document.getElementById('trip-hours').value = trip.hours;
@@ -637,72 +662,50 @@ function editTrip(id) {
         validateTripForm();
 
         openModalWithAnimation(document.getElementById('tripDetailsModal'));
-    };
+    } catch (error) {
+        console.error("Error fetching trip for edit:", error);
+        alert("There was an error fetching the trip data.");
+    }
 }
 
-function deleteTrip(id) {
+async function deleteTrip(id) {
     if (!confirm('Are you sure you want to delete this trip and all its associated data?')) {
         return;
     }
-    // Get the date of the trip before deleting, so we can refresh the UI
-    const getTransaction = db.transaction(["trips"], "readonly");
-    const getObjectStore = getTransaction.objectStore("trips");
-    const getRequest = getObjectStore.get(id);
 
-    getRequest.onsuccess = () => {
-        const tripToDelete = getRequest.result;
-        if (!tripToDelete) {
+    try {
+        // First, get the trip document to find its date for UI refresh
+        const tripDoc = await firestoreDb.collection("trips").doc(id).get();
+        if (!tripDoc.exists) {
             console.error("Trip to delete not found:", id);
             return;
         }
-        const dateToDelete = tripToDelete.date;
+        const dateToDelete = tripDoc.data().date;
 
-        // Start the delete transaction
-        const deleteTransaction = db.transaction(["trips", "weather_logs", "fish_caught"], "readwrite");
+        const batch = firestoreDb.batch();
 
-        deleteTransaction.oncomplete = () => {
-            console.log("Trip and all associated data deleted successfully.");
-            displayTrips(dateToDelete);
-            renderCalendar();
-            updateOpenTripLogButton(dateToDelete);
-        };
+        // Delete associated weather logs
+        const weatherSnapshot = await firestoreDb.collection("weather_logs").where("tripId", "==", id).get();
+        weatherSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        deleteTransaction.onerror = (event) => {
-            console.error("Error deleting trip and associated data:", event.target.error);
-        };
+        // Delete associated fish
+        const fishSnapshot = await firestoreDb.collection("fish_caught").where("tripId", "==", id).get();
+        fishSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        // 1. Delete associated weather logs
-        const weatherStore = deleteTransaction.objectStore("weather_logs");
-        const weatherIndex = weatherStore.index("tripId");
-        const weatherRequest = weatherIndex.openCursor(IDBKeyRange.only(id));
-        weatherRequest.onsuccess = (event) => {
-            const cursor = event.target.result;
-            if (cursor) {
-                cursor.delete();
-                cursor.continue();
-            }
-        };
+        // Delete the trip itself
+        batch.delete(firestoreDb.collection("trips").doc(id));
 
-        // 2. Delete associated fish
-        const fishStore = deleteTransaction.objectStore("fish_caught");
-        const fishIndex = fishStore.index("tripId");
-        const fishRequest = fishIndex.openCursor(IDBKeyRange.only(id));
-        fishRequest.onsuccess = (event) => {
-            const cursor = event.target.result;
-            if (cursor) {
-                cursor.delete();
-                cursor.continue();
-            }
-        };
+        await batch.commit();
 
-        // 3. Delete the trip itself
-        const tripsStore = deleteTransaction.objectStore("trips");
-        tripsStore.delete(id);
-    };
+        console.log("Trip and all associated data deleted successfully.");
+        displayTrips(dateToDelete);
+        renderCalendar();
+        updateOpenTripLogButton(dateToDelete);
 
-    getRequest.onerror = (event) => {
-        console.error("Error fetching trip to delete:", event.target.error);
-    };
+    } catch (error) {
+        console.error("Error deleting trip and associated data:", error);
+        alert("There was an error deleting the trip.");
+    }
 }
 
 function updateLocationDisplay() {
@@ -745,11 +748,12 @@ function initCalendar() {
     loadLocation();
     setupEventListeners();
     setupTheme();
-    initDB(() => {
+    // initDB() is now called from onAuthStateChanged before this function
+    if (currentUser) {
         renderCalendar();
         updateCurrentMoonInfo();
         updateLocationDisplay();
-    });
+    }
 }
 
 function handleModalClicks(e) {
@@ -759,15 +763,17 @@ function handleModalClicks(e) {
     const action = target.dataset.action;
     if (!action) return;
 
-    const tripId = parseInt(target.dataset.tripId, 10);
+    const tripId = target.dataset.tripId;
+    const weatherId = target.dataset.weatherId;
+    const fishId = target.dataset.fishId;
 
     if (action === 'add-weather') openWeatherModal(tripId);
-    if (action === 'edit-weather') openWeatherModal(tripId, parseInt(target.dataset.weatherId, 10));
-    if (action === 'delete-weather') deleteWeather(parseInt(target.dataset.weatherId, 10), tripId);
+    if (action === 'edit-weather') openWeatherModal(tripId, weatherId);
+    if (action === 'delete-weather') deleteWeather(weatherId, tripId);
 
     if (action === 'add-fish') openFishModal(tripId);
-    if (action === 'edit-fish') openFishModal(tripId, parseInt(target.dataset.fishId, 10));
-    if (action === 'delete-fish') deleteFish(parseInt(target.dataset.fishId, 10), tripId);
+    if (action === 'edit-fish') openFishModal(tripId, fishId);
+    if (action === 'delete-fish') deleteFish(fishId, tripId);
 
     if (action === 'edit-trip') editTrip(tripId);
     if (action === 'delete-trip') deleteTrip(tripId);
@@ -1091,6 +1097,10 @@ function setupEventListeners() {
 
     if (analyticsBtn) {
         analyticsBtn.addEventListener('click', async () => {
+            if (!currentUser) {
+                alert("Please sign in to view analytics.");
+                return;
+            }
             try {
                 const allTrips = await getAllData('trips');
                 const allFish = await getAllData('fish_caught');
@@ -1159,7 +1169,7 @@ function setupEventListeners() {
             galleryGrid.addEventListener('click', (e) => {
                 const photoEl = e.target.closest('.group');
                 if (photoEl && photoEl.dataset.fishId) {
-                    const fishId = parseInt(photoEl.dataset.fishId, 10);
+                    const fishId = photoEl.dataset.fishId; // No longer need parseInt
                     openCatchDetailModal(fishId);
                 }
             });
@@ -1283,23 +1293,22 @@ function createBiteTimeElement(biteTime) {
     return biteElement;
 }
 
-function checkIfTripsExist(date, callback) {
-    if (!db) {
+async function checkIfTripsExist(date, callback) {
+    if (!currentUser) {
         callback(false);
         return;
     }
-    const transaction = db.transaction(["trips"], "readonly");
-    const objectStore = transaction.objectStore("trips");
-    const index = objectStore.index("date");
-    const request = index.count(date);
-
-    request.onsuccess = () => {
-        callback(request.result > 0);
-    };
-    request.onerror = (event) => {
-        console.error("Error checking for trips:", event.target.error);
+    try {
+        const querySnapshot = await firestoreDb.collection("trips")
+            .where("userId", "==", currentUser.uid)
+            .where("date", "==", date)
+            .limit(1)
+            .get();
+        callback(!querySnapshot.empty);
+    } catch (error) {
+        console.error("Error checking for trips:", error);
         callback(false);
-    };
+    }
 }
 
 function updateOpenTripLogButton(dateStr) {
@@ -1929,35 +1938,40 @@ function importData(event) {
     }
 }
 
-function openWeatherModal(tripId, weatherId = null) {
+async function openWeatherModal(tripId, weatherId = null) {
     const weatherModal = document.getElementById('weatherModal');
     const modalTitle = document.getElementById('weather-modal-title');
     currentEditingTripId = tripId;
     currentEditingWeatherId = weatherId;
 
+    // Clear form fields first
+    document.getElementById('weather-time-of-day').value = '';
+    document.getElementById('weather-sky').value = '';
+    document.getElementById('weather-wind-condition').value = '';
+    document.getElementById('weather-wind-direction').value = '';
+    document.getElementById('weather-water-temp').value = '';
+    document.getElementById('weather-air-temp').value = '';
+
     if (weatherId) {
         modalTitle.textContent = 'Edit Weather Log';
-        const transaction = db.transaction(['weather_logs'], 'readonly');
-        const store = transaction.objectStore('weather_logs');
-        const request = store.get(weatherId);
-        request.onsuccess = () => {
-            const data = request.result;
-            document.getElementById('weather-time-of-day').value = data.timeOfDay;
-            document.getElementById('weather-sky').value = data.sky;
-            document.getElementById('weather-wind-condition').value = data.windCondition;
-            document.getElementById('weather-wind-direction').value = data.windDirection;
-            document.getElementById('weather-water-temp').value = data.waterTemp;
-            document.getElementById('weather-air-temp').value = data.airTemp;
-        };
+        try {
+            const doc = await firestoreDb.collection("weather_logs").doc(weatherId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                document.getElementById('weather-time-of-day').value = data.timeOfDay;
+                document.getElementById('weather-sky').value = data.sky;
+                document.getElementById('weather-wind-condition').value = data.windCondition;
+                document.getElementById('weather-wind-direction').value = data.windDirection;
+                document.getElementById('weather-water-temp').value = data.waterTemp;
+                document.getElementById('weather-air-temp').value = data.airTemp;
+            }
+        } catch (error) {
+            console.error("Error fetching weather log:", error);
+            alert("Could not load weather log for editing.");
+            return;
+        }
     } else {
         modalTitle.textContent = 'Add Weather Log';
-        // Clear form fields
-        document.getElementById('weather-time-of-day').value = '';
-        document.getElementById('weather-sky').value = '';
-        document.getElementById('weather-wind-condition').value = '';
-        document.getElementById('weather-wind-direction').value = '';
-        document.getElementById('weather-water-temp').value = '';
-        document.getElementById('weather-air-temp').value = '';
     }
 
     openModalWithAnimation(weatherModal);
@@ -1969,10 +1983,11 @@ function closeWeatherModal() {
     currentEditingWeatherId = null;
 }
 
-function saveWeather() {
-    if (!currentEditingTripId) return;
+async function saveWeather() {
+    if (!currentEditingTripId || !currentUser) return;
 
     const weatherData = {
+        userId: currentUser.uid,
         tripId: currentEditingTripId,
         timeOfDay: document.getElementById('weather-time-of-day').value,
         sky: document.getElementById('weather-sky').value,
@@ -1989,44 +2004,40 @@ function saveWeather() {
         return;
     }
 
-    const transaction = db.transaction(['weather_logs'], 'readwrite');
-    const store = transaction.objectStore('weather_logs');
-    let request;
-
-    if (currentEditingWeatherId) {
-        weatherData.id = currentEditingWeatherId;
-        request = store.put(weatherData);
-    } else {
-        request = store.add(weatherData);
-    }
-
-    request.onsuccess = () => {
+    try {
+        if (currentEditingWeatherId) {
+            await firestoreDb.collection("weather_logs").doc(currentEditingWeatherId).set(weatherData, { merge: true });
+        } else {
+            await firestoreDb.collection("weather_logs").add(weatherData);
+        }
         displayWeatherForTrip(currentEditingTripId);
         closeWeatherModal();
-    };
-    request.onerror = (event) => {
-        console.error('Error saving weather data:', event.target.error);
-    };
+    } catch (error) {
+        console.error('Error saving weather data:', error);
+        alert('There was an error saving the weather log.');
+    }
 }
 
-function displayWeatherForTrip(tripId) {
+async function displayWeatherForTrip(tripId) {
     const listEl = document.getElementById(`weather-list-${tripId}`);
-    if (!listEl) {
-        return;
-    }
+    if (!listEl || !currentUser) return;
 
-    const transaction = db.transaction(['weather_logs'], 'readonly');
-    const store = transaction.objectStore('weather_logs');
-    const index = store.index('tripId');
-    const request = index.getAll(tripId);
+    try {
+        const querySnapshot = await firestoreDb.collection("weather_logs")
+            .where("userId", "==", currentUser.uid)
+            .where("tripId", "==", tripId)
+            .get();
 
-    request.onsuccess = () => {
-        const weatherLogs = request.result;
-        listEl.innerHTML = ''; // Clear previous entries
-        const addWeatherBtn = listEl.nextElementSibling; // The button is the next sibling
+        const weatherLogs = [];
+        querySnapshot.forEach(doc => {
+            weatherLogs.push({ id: doc.id, ...doc.data() });
+        });
+
+        listEl.innerHTML = '';
+        const addWeatherBtn = listEl.nextElementSibling;
 
         if (weatherLogs.length > 0) {
-            if(addWeatherBtn) addWeatherBtn.classList.add('hidden'); // Hide "Add Weather" button
+            if(addWeatherBtn) addWeatherBtn.classList.add('hidden');
             weatherLogs.forEach(log => {
                 const weatherEl = document.createElement('div');
                 weatherEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
@@ -2035,7 +2046,6 @@ function displayWeatherForTrip(tripId) {
                 if(log.windCondition) content += `<div>Wind: ${log.windCondition} ${log.windDirection || ''}</div>`;
                 if(log.waterTemp) content += `<div>Water Temp: ${log.waterTemp}</div>`;
                 if(log.airTemp) content += `<div>Air Temp: ${log.airTemp}</div>`;
-
                 content += `
                     <div class="mt-2">
                         <button data-action="edit-weather" data-trip-id="${tripId}" data-weather-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
@@ -2046,22 +2056,23 @@ function displayWeatherForTrip(tripId) {
                 listEl.appendChild(weatherEl);
             });
         } else {
-            if(addWeatherBtn) addWeatherBtn.classList.remove('hidden'); // Show "Add Weather" button
+            if(addWeatherBtn) addWeatherBtn.classList.remove('hidden');
             listEl.innerHTML = '<p class="text-xs text-gray-500">No weather logs for this trip yet.</p>';
         }
-    };
+    } catch (error) {
+        console.error("Error displaying weather:", error);
+        listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading weather.</p>';
+    }
 }
 
-function deleteWeather(weatherId, tripId) {
-    const transaction = db.transaction(['weather_logs'], 'readwrite');
-    const store = transaction.objectStore('weather_logs');
-    const request = store.delete(weatherId);
-    request.onsuccess = () => {
+async function deleteWeather(weatherId, tripId) {
+    try {
+        await firestoreDb.collection("weather_logs").doc(weatherId).delete();
         displayWeatherForTrip(tripId);
-    };
-    request.onerror = (event) => {
-        console.error('Error deleting weather log:', event.target.error);
-    };
+    } catch (error) {
+        console.error('Error deleting weather log:', error);
+        alert('There was an error deleting the weather log.');
+    }
 }
 
 function updateSelectedGearDisplay() {
@@ -2075,7 +2086,7 @@ function updateSelectedGearDisplay() {
     }
 }
 
-function openFishModal(tripId, fishId = null) {
+async function openFishModal(tripId, fishId = null) {
     const fishModal = document.getElementById('fishModal');
     const modalTitle = document.getElementById('fish-modal-title');
     const gearContainer = document.getElementById('fish-gear-container');
@@ -2124,46 +2135,47 @@ function openFishModal(tripId, fishId = null) {
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
-        const transaction = db.transaction(['fish_caught'], 'readonly');
-        const store = transaction.objectStore('fish_caught');
-        const request = store.get(fishId);
-        request.onsuccess = () => {
-            const data = request.result;
-            if (!data) return;
+        try {
+            const doc = await firestoreDb.collection("fish_caught").doc(fishId).get();
+            if (doc.exists) {
+                const data = doc.data();
+                currentEditingFishData = data;
 
-            currentEditingFishData = data; // Store the full object
+                document.getElementById('fish-species').value = data.species || '';
+                document.getElementById('fish-length').value = data.length || '';
+                document.getElementById('fish-weight').value = data.weight || '';
+                document.getElementById('fish-time').value = data.time || '';
+                document.getElementById('fish-details').value = data.details || '';
 
-            document.getElementById('fish-species').value = data.species || '';
-            document.getElementById('fish-length').value = data.length || '';
-            document.getElementById('fish-weight').value = data.weight || '';
-            document.getElementById('fish-time').value = data.time || '';
-            document.getElementById('fish-details').value = data.details || '';
-
-            // Handle photo display
-            if (data.photo) {
-                photoThumbnail.src = data.photo;
-                photoContainer.classList.remove('hidden');
-            }
-
-            const gearUsed = data.gear || (data.bait ? [data.bait] : []);
-            const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
-            const tackleboxGearNames = new Set(tacklebox.map(g => g.name));
-            const customBaits = [];
-
-            gearUsed.forEach(gearName => {
-                if (tackleboxGearNames.has(gearName)) {
-                    tempSelectedGear.push(gearName);
-                } else {
-                    customBaits.push(gearName);
+                if (data.photo) {
+                    photoThumbnail.src = data.photo;
+                    photoContainer.classList.remove('hidden');
                 }
-            });
 
-            updateSelectedGearDisplay();
-            baitInput.value = customBaits.join(', ');
-        };
+                const gearUsed = data.gear || [];
+                const tacklebox = JSON.parse(localStorage.getItem('tacklebox') || '[]');
+                const tackleboxGearNames = new Set(tacklebox.map(g => g.name));
+                const customBaits = [];
+
+                gearUsed.forEach(gearName => {
+                    if (tackleboxGearNames.has(gearName)) {
+                        tempSelectedGear.push(gearName);
+                    } else {
+                        customBaits.push(gearName);
+                    }
+                });
+
+                updateSelectedGearDisplay();
+                baitInput.value = customBaits.join(', ');
+            }
+        } catch (error) {
+            console.error("Error fetching fish log:", error);
+            alert("Could not load fish log for editing.");
+            return;
+        }
     } else {
         modalTitle.textContent = 'Add Fish';
-        updateSelectedGearDisplay(); // To show "None selected"
+        updateSelectedGearDisplay();
     }
 
     openModalWithAnimation(fishModal);
@@ -2225,8 +2237,8 @@ function openGearSelectionModal() {
     openModalWithAnimation(gearModal);
 }
 
-function saveFish() {
-    if (!currentEditingTripId) return;
+async function saveFish() {
+    if (!currentEditingTripId || !currentUser) return;
 
     const photoFile = document.getElementById('fish-photo').files[0];
     const finalGear = [...tempSelectedGear];
@@ -2236,17 +2248,18 @@ function saveFish() {
         finalGear.push(otherBaitValue);
     }
 
-    // Start with the existing data if we are editing, or a new object if adding.
-    const fishData = currentEditingFishData || { tripId: currentEditingTripId };
-
-    // Update with form values
-    fishData.species = document.getElementById('fish-species').value.trim();
-    fishData.gear = finalGear;
-    fishData.length = document.getElementById('fish-length').value.trim();
-    fishData.weight = document.getElementById('fish-weight').value.trim();
-    fishData.time = document.getElementById('fish-time').value;
-    fishData.details = document.getElementById('fish-details').value.trim();
-
+    const fishData = {
+        // Start with existing data if editing, otherwise create new
+        ...(currentEditingFishData || {}),
+        userId: currentUser.uid,
+        tripId: currentEditingTripId,
+        species: document.getElementById('fish-species').value.trim(),
+        gear: finalGear,
+        length: document.getElementById('fish-length').value.trim(),
+        weight: document.getElementById('fish-weight').value.trim(),
+        time: document.getElementById('fish-time').value,
+        details: document.getElementById('fish-details').value.trim(),
+    };
 
     if (!fishData.species) {
         alert("Please enter a species for the fish.");
@@ -2262,74 +2275,68 @@ function saveFish() {
         });
     };
 
-    const commitToDB = (data) => {
-        const transaction = db.transaction(['fish_caught'], 'readwrite');
-        const store = transaction.objectStore('fish_caught');
-        let request;
-
-        if (data.id) { // If it has an ID, it's an update
-            request = store.put(data);
-        } else { // No ID, it's a new entry
-            request = store.add(data);
-        }
-
-        request.onsuccess = () => {
+    const commitToDB = async (data) => {
+        try {
+            if (currentEditingFishId) {
+                await firestoreDb.collection("fish_caught").doc(currentEditingFishId).set(data, { merge: true });
+            } else {
+                await firestoreDb.collection("fish_caught").add(data);
+            }
             displayFishForTrip(currentEditingTripId);
             closeFishModal();
-            // Reset file input
             const photoInput = document.getElementById('fish-photo');
-            if (photoInput) {
-                photoInput.value = '';
-            }
-        };
-        request.onerror = (event) => console.error('Error saving fish data:', event.target.error);
+            if (photoInput) photoInput.value = '';
+        } catch (error) {
+            console.error('Error saving fish data:', error);
+            alert('There was an error saving the fish log.');
+        }
     };
 
     if (photoFile) {
-        readFileAsBase64(photoFile).then(base64 => {
-            fishData.photo = base64; // Set or overwrite the photo
-            commitToDB(fishData);
-        }).catch(error => {
+        try {
+            const base64 = await readFileAsBase64(photoFile);
+            fishData.photo = base64;
+            await commitToDB(fishData);
+        } catch (error) {
             console.error('Error reading file:', error);
-            alert('Could not read the photo file. Please try another file. The fish data was not saved.');
-        });
+            alert('Could not read the photo file. Please try again. The fish data was not saved.');
+        }
     } else {
-        // No new photo was selected.
-        // The fishData.photo property is either the old photo, or null if it was deleted.
-        // So we can just commit the data as is.
-        commitToDB(fishData);
+        await commitToDB(fishData);
     }
 }
 
-function updateFishCountForTrip(tripId) {
+async function updateFishCountForTrip(tripId) {
     const countEl = document.getElementById(`fish-count-${tripId}`);
-    if (!countEl) return;
+    if (!countEl || !currentUser) return;
 
-    const transaction = db.transaction(['fish_caught'], 'readonly');
-    const store = transaction.objectStore('fish_caught');
-    const index = store.index('tripId');
-    const request = index.count(tripId);
-
-    request.onsuccess = () => {
-        countEl.textContent = request.result;
-    };
-    request.onerror = (event) => {
-        console.error('Error counting fish:', event.target.error);
+    try {
+        const querySnapshot = await firestoreDb.collection("fish_caught")
+            .where("userId", "==", currentUser.uid)
+            .where("tripId", "==", tripId)
+            .get();
+        countEl.textContent = querySnapshot.size;
+    } catch (error) {
+        console.error('Error counting fish:', error);
         countEl.textContent = 'N/A';
-    };
+    }
 }
 
-function displayFishForTrip(tripId) {
+async function displayFishForTrip(tripId) {
     const listEl = document.getElementById(`fish-list-${tripId}`);
-    if (!listEl) return;
+    if (!listEl || !currentUser) return;
 
-    const transaction = db.transaction(['fish_caught'], 'readonly');
-    const store = transaction.objectStore('fish_caught');
-    const index = store.index('tripId');
-    const request = index.getAll(tripId);
+    try {
+        const querySnapshot = await firestoreDb.collection("fish_caught")
+            .where("userId", "==", currentUser.uid)
+            .where("tripId", "==", tripId)
+            .get();
 
-    request.onsuccess = () => {
-        const fishLogs = request.result;
+        const fishLogs = [];
+        querySnapshot.forEach(doc => {
+            fishLogs.push({ id: doc.id, ...doc.data() });
+        });
+
         listEl.innerHTML = '';
         if (fishLogs.length > 0) {
             fishLogs.forEach(log => {
@@ -2344,8 +2351,6 @@ function displayFishForTrip(tripId) {
                 }
                 if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
                     content += `<div>Gear: ${log.gear.join(', ')}</div>`;
-                } else if (log.bait) { // Backward compatibility
-                    content += `<div>Gear: ${log.bait}</div>`;
                 }
                 if(log.time) content += `<div>Time: ${log.time}</div>`;
                 if(log.details) content += `<div>Details: ${log.details}</div>`;
@@ -2367,75 +2372,69 @@ function displayFishForTrip(tripId) {
             listEl.innerHTML = '<p class="text-xs text-gray-500">No fish logged for this trip yet.</p>';
         }
         updateFishCountForTrip(tripId);
-    };
+    } catch (error) {
+        console.error("Error displaying fish:", error);
+        listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading fish.</p>';
+    }
 }
 
-function deleteFish(fishId, tripId) {
-    const transaction = db.transaction(['fish_caught'], 'readwrite');
-    const store = transaction.objectStore('fish_caught');
-    const request = store.delete(fishId);
-    request.onsuccess = () => {
+async function deleteFish(fishId, tripId) {
+    try {
+        await firestoreDb.collection("fish_caught").doc(fishId).delete();
         displayFishForTrip(tripId);
-    };
-    request.onerror = (event) => {
-        console.error('Error deleting fish log:', event.target.error);
-    };
+    } catch (error) {
+        console.error('Error deleting fish log:', error);
+        alert('There was an error deleting the fish log.');
+    }
 }
 
-function getLoggedDaysForMonth(startDate, endDate) {
-    return new Promise((resolve, reject) => {
-        if (!db) {
-            console.warn("DB not initialized, resolving with empty set.");
-            resolve(new Set());
-            return;
-        }
-        const transaction = db.transaction(["trips"], "readonly");
-        const objectStore = transaction.objectStore("trips");
-        const index = objectStore.index("date");
-
-        // Timezone-safe method to create YYYY-MM-DD strings
+async function getLoggedDaysForMonth(startDate, endDate) {
+    if (!currentUser) {
+        return new Set();
+    }
+    const loggedDays = new Set();
+    try {
         const startStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}`;
         const endStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
-        const range = IDBKeyRange.bound(startStr, endStr);
 
-        const request = index.getAll(range);
-        const loggedDays = new Set();
+        const querySnapshot = await firestoreDb.collection("trips")
+            .where("userId", "==", currentUser.uid)
+            .where("date", ">=", startStr)
+            .where("date", "<=", endStr)
+            .get();
 
-        request.onsuccess = () => {
-            const expectedMonth = startDate.getMonth();
-            request.result.forEach(log => {
-                if (log && log.date) {
-                    // Defensive check: Ensure the log's month matches the expected month.
-                    // The date is stored as 'YYYY-MM-DD'. Splitting gives [YYYY, MM, DD].
-                    const logMonth = parseInt(log.date.split('-')[1], 10) - 1; // month is 1-indexed in string
-                    if (logMonth === expectedMonth) {
-                        const day = parseInt(log.date.split('-')[2], 10);
-                        loggedDays.add(day);
-                    }
-                }
-            });
-            resolve(loggedDays);
-        };
-
-        request.onerror = (event) => {
-            console.error("Error fetching logged days for month:", event.target.error);
-            reject(event.target.error);
-        };
-    });
+        querySnapshot.forEach(doc => {
+            const log = doc.data();
+            if (log && log.date) {
+                const day = parseInt(log.date.split('-')[2], 10);
+                loggedDays.add(day);
+            }
+        });
+        return loggedDays;
+    } catch (error) {
+        console.error("Error fetching logged days for month:", error);
+        return loggedDays; // Return empty set on error
+    }
 }
 
-function getAllData(storeName) {
-    return new Promise((resolve, reject) => {
-        if (!db) {
-            reject("DB not initialized");
-            return;
-        }
-        const transaction = db.transaction([storeName], "readonly");
-        const store = transaction.objectStore(storeName);
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = (event) => reject(event.target.error);
-    });
+async function getAllData(collectionName) {
+    if (!currentUser) {
+        console.warn(`getAllData called without a user for ${collectionName}.`);
+        return [];
+    }
+    try {
+        const querySnapshot = await firestoreDb.collection(collectionName)
+            .where("userId", "==", currentUser.uid)
+            .get();
+        const data = [];
+        querySnapshot.forEach(doc => {
+            data.push({ id: doc.id, ...doc.data() });
+        });
+        return data;
+    } catch (error) {
+        console.error(`Error getting all data from ${collectionName}:`, error);
+        return []; // Return empty array on error
+    }
 }
 
 let activeCharts = {};
@@ -3093,28 +3092,23 @@ async function loadPhotoGallery() {
 }
 
 async function openCatchDetailModal(fishId) {
+    if (!currentUser) return;
     try {
-        const transaction = db.transaction(['fish_caught', 'trips'], 'readonly');
-        const fishStore = transaction.objectStore('fish_caught');
-        const tripStore = transaction.objectStore('trips');
-
-        const fishRequest = fishStore.get(fishId);
-        const fish = await new Promise((resolve, reject) => {
-            fishRequest.onsuccess = () => resolve(fishRequest.result);
-            fishRequest.onerror = () => reject(fishRequest.error);
-        });
-
-        if (!fish) {
+        const fishDoc = await firestoreDb.collection("fish_caught").doc(fishId).get();
+        if (!fishDoc.exists) {
             console.error("Fish not found for ID:", fishId);
             alert("Could not find the details for this catch.");
             return;
         }
+        const fish = fishDoc.data();
 
-        const tripRequest = tripStore.get(fish.tripId);
-        const trip = await new Promise((resolve, reject) => {
-            tripRequest.onsuccess = () => resolve(tripRequest.result);
-            tripRequest.onerror = () => reject(tripRequest.error);
-        });
+        let trip = null;
+        if (fish.tripId) {
+            const tripDoc = await firestoreDb.collection("trips").doc(fish.tripId).get();
+            if (tripDoc.exists) {
+                trip = tripDoc.data();
+            }
+        }
 
         const modal = document.getElementById('catchDetailModal');
         document.getElementById('catchDetailImage').src = fish.photo || '';
@@ -3182,7 +3176,105 @@ function addSwipeListeners(element, onSwipeLeft, onSwipeRight) {
     }, { passive: true });
 }
 
-document.addEventListener('DOMContentLoaded', initCalendar);
+// --- Data Migration Functions ---
+
+function getAllFromIndexedDB(storeName) {
+    return new Promise((resolve, reject) => {
+        if (!db) {
+            reject("IndexedDB not initialized.");
+            return;
+        }
+        const transaction = db.transaction([storeName], "readonly");
+        const store = transaction.objectStore(storeName);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
+}
+
+async function migrateDataToFirestore() {
+    if (!currentUser || !firestoreDb) {
+        console.log("Migration check: User not logged in or Firestore not ready.");
+        return;
+    }
+
+    const migrationFlag = `firestoreMigrationComplete_${currentUser.uid}`;
+    if (localStorage.getItem(migrationFlag)) {
+        console.log("Firestore migration has already been completed for this user.");
+        return;
+    }
+
+    console.log("Starting one-time data migration from IndexedDB to Firestore...");
+
+    try {
+        const oldTrips = await getAllFromIndexedDB("trips");
+        const oldWeatherLogs = await getAllFromIndexedDB("weather_logs");
+        const oldFishCaught = await getAllFromIndexedDB("fish_caught");
+
+        if (oldTrips.length === 0 && oldWeatherLogs.length === 0 && oldFishCaught.length === 0) {
+            console.log("No data found in IndexedDB. Migration not needed.");
+            localStorage.setItem(migrationFlag, 'true');
+            return;
+        }
+
+        alert("We're moving your saved data to the cloud. This might take a moment.");
+
+        const tripIdMap = new Map();
+        const batch = firestoreDb.batch();
+
+        for (const trip of oldTrips) {
+            const oldId = trip.id;
+            delete trip.id;
+            const newTripData = { ...trip, userId: currentUser.uid };
+            const newTripRef = firestoreDb.collection("trips").doc();
+            batch.set(newTripRef, newTripData);
+            tripIdMap.set(oldId, newTripRef.id);
+        }
+
+        for (const log of oldWeatherLogs) {
+            if (tripIdMap.has(log.tripId)) {
+                const newTripId = tripIdMap.get(log.tripId);
+                delete log.id;
+                const newLogData = { ...log, tripId: newTripId, userId: currentUser.uid };
+                const newLogRef = firestoreDb.collection("weather_logs").doc();
+                batch.set(newLogRef, newLogData);
+            }
+        }
+
+        for (const fish of oldFishCaught) {
+            if (tripIdMap.has(fish.tripId)) {
+                const newTripId = tripIdMap.get(fish.tripId);
+                delete fish.id;
+                const newFishData = { ...fish, tripId: newTripId, userId: currentUser.uid };
+                const newFishRef = firestoreDb.collection("fish_caught").doc();
+                batch.set(newFishRef, newFishData);
+            }
+        }
+
+        await batch.commit();
+
+        console.log("Data migration successful!");
+        alert("Your data has been successfully moved to the cloud!");
+        localStorage.setItem(migrationFlag, 'true');
+        renderCalendar();
+
+    } catch (error) {
+        console.error("Error during data migration:", error);
+        alert("An error occurred while moving your data. Please check the console for details.");
+    }
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initial UI setup before user logs in
+    initDOMElements();
+    setupEventListeners();
+    setupTheme();
+    loadLocation();
+    updateCurrentMoonInfo();
+    updateLocationDisplay();
+    // Content is now hidden by default in the HTML, so no need to hide it here.
+});
 
 // --- NEW CODE (Correct) ---
 if ('serviceWorker' in navigator) {
