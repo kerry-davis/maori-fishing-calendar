@@ -1,4 +1,4 @@
-const CACHE_NAME = 'maori-fishing-calendar-cache-v5';
+const CACHE_NAME = 'maori-fishing-calendar-cache-v6';
 const urlsToCache = [
   '/',
   'index.html',
@@ -40,26 +40,38 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Always try to get a fresh version from the network first.
   event.respondWith(
-    fetch(event.request)
+    caches.match(event.request)
       .then(response => {
-        // If we get a valid response, we clone it and cache it for offline use.
-        // We only cache GET requests.
-        if (response && response.status === 200 && event.request.method === 'GET') {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
+        // Cache hit - return response
+        if (response) {
+          return response;
         }
-        return response;
+
+        // Not in cache - go to network and cache the response for next time
+        return fetch(event.request).then(
+          (response) => {
+            // Check if we received a valid response
+            if(!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            // IMPORTANT: Clone the response. A response is a stream
+            // and because we want the browser to consume the response
+            // as well as the cache consuming the response, we need
+            // to clone it so we have two streams.
+            var responseToCache = response.clone();
+
+            caches.open(CACHE_NAME)
+              .then((cache) => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          }
+        );
       })
-      .catch(() => {
-        // If the network request fails (e.g., offline), return the cached version.
-        return caches.match(event.request);
-      })
-  );
+    );
 });
 
 self.addEventListener('activate', event => {
