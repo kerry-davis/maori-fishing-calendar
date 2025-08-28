@@ -36,7 +36,7 @@ let storage; // For Firebase Storage
 
 // Enable Firestore offline persistence.
 // This must be done before any other Firestore operations.
-firebase.firestore().enablePersistence({ synchronizeTabs: true })
+const persistencePromise = firebase.firestore().enablePersistence({ synchronizeTabs: true })
   .catch((err) => {
     if (err.code == 'failed-precondition') {
       // Multiple tabs open, persistence can only be enabled
@@ -51,6 +51,7 @@ firebase.firestore().enablePersistence({ synchronizeTabs: true })
 
 // Listen for authentication state changes
 firebase.auth().onAuthStateChanged(async (user) => {
+    await persistencePromise; // Wait for persistence to be enabled before proceeding.
     currentUser = user; // Set the current user
 
     const signInButton = document.getElementById('signInButton');
