@@ -32,6 +32,29 @@ firebase.auth()
 let db; // For IndexedDB (used for migration)
 let firestoreDb; // For Firestore
 let currentUser = null;
+let storage; // For Firebase Storage
+let unsubscribeListeners = [];
+
+function detachAllListeners() {
+    console.log(`Detaching ${unsubscribeListeners.length} listeners.`);
+    unsubscribeListeners.forEach(unsubscribe => unsubscribe());
+    unsubscribeListeners = [];
+}
+
+// Enable Firestore offline persistence.
+// This must be done before any other Firestore operations.
+firebase.firestore().enablePersistence({ synchronizeTabs: true })
+  .catch((err) => {
+    if (err.code == 'failed-precondition') {
+      // Multiple tabs open, persistence can only be enabled
+      // in one tab at a time.
+      console.warn("Firestore offline persistence failed: multiple tabs open.");
+    } else if (err.code == 'unimplemented') {
+      // The current browser does not support all of the
+      // features required to enable persistence.
+      console.warn("Firestore offline persistence not supported in this browser.");
+    }
+  });
 
 // Listen for authentication state changes
 firebase.auth().onAuthStateChanged(async (user) => {
@@ -46,7 +69,8 @@ firebase.auth().onAuthStateChanged(async (user) => {
     if (user) {
         // User is signed in
         firestoreDb = firebase.firestore(); // Initialize Firestore
-        console.log("Firestore initialized for user:", user.uid);
+        storage = firebase.storage(); // Initialize Storage
+        console.log("Firestore and Storage initialized for user:", user.uid);
 
         if (signInButton) signInButton.style.display = 'none';
         if (signOutButton) signOutButton.style.display = 'block';
@@ -67,6 +91,7 @@ firebase.auth().onAuthStateChanged(async (user) => {
         initCalendar(); // Re-render calendar with user's data
     } else {
         // User is signed out
+        detachAllListeners(); // Detach all listeners on sign out
         firestoreDb = null; // Clear firestore instance
         if (signInButton) signInButton.style.display = 'block';
         if (signOutButton) signOutButton.style.display = 'none';
@@ -543,7 +568,7 @@ async function saveTrip() {
 
     const date = `${modalCurrentYear}-${(modalCurrentMonth + 1).toString().padStart(2, '0')}-${modalCurrentDay.toString().padStart(2, '0')}`;
     const tripData = {
-        userId: currentUser.uid,
+        // userId is no longer needed in the document itself, as it's part of the path.
         date: date,
         water: document.getElementById('trip-water').value.trim(),
         location: document.getElementById('trip-location').value.trim(),
@@ -552,18 +577,20 @@ async function saveTrip() {
         notes: document.getElementById('trip-best-times').value.trim(),
     };
 
+    const userTripsRef = firestoreDb.collection("users").doc(currentUser.uid).collection("trips");
+
     try {
         if (currentTripId) {
-            await firestoreDb.collection("trips").doc(currentTripId).set(tripData, { merge: true });
+            await userTripsRef.doc(currentTripId).set(tripData, { merge: true });
             console.log("Trip updated successfully:", currentTripId);
         } else {
-            const docRef = await firestoreDb.collection("trips").add(tripData);
+            const docRef = await userTripsRef.add(tripData);
             console.log("Trip saved successfully with ID:", docRef.id);
         }
 
         closeModalWithAnimation(document.getElementById('tripDetailsModal'));
         displayTrips(date);
-        renderCalendar();
+        listenForLoggedDays();
         updateOpenTripLogButton(date);
     } catch (error) {
         console.error("Error saving trip:", error);
@@ -571,77 +598,77 @@ async function saveTrip() {
     }
 }
 
-async function displayTrips(date) {
+function displayTrips(date) { // No longer async
     if (!currentUser) return;
 
     const tripLogList = document.getElementById('trip-log-list');
     tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">Loading trips...</p>';
 
-    try {
-        const querySnapshot = await firestoreDb.collection("trips")
-            .where("userId", "==", currentUser.uid)
-            .where("date", "==", date)
-            .get();
+    const unsubscribe = firestoreDb.collection("users").doc(currentUser.uid).collection("trips")
+        .where("date", "==", date)
+        .onSnapshot(querySnapshot => {
+            tripLogList.innerHTML = '';
+            const trips = [];
+            querySnapshot.forEach(doc => {
+                trips.push({ id: doc.id, ...doc.data() });
+            });
 
-        tripLogList.innerHTML = '';
-        const trips = [];
-        querySnapshot.forEach(doc => {
-            trips.push({ id: doc.id, ...doc.data() });
+            if (trips.length > 0) {
+                trips.forEach(trip => {
+                    const tripEl = document.createElement('div');
+                    tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
+
+                    let title = trip.water || 'Unnamed Trip';
+                    if (trip.location) {
+                        title += ` - ${trip.location}`;
+                    }
+                    let content = `<div class="font-bold text-base mb-2">${title}</div>`;
+                    if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
+                    content += `<p><strong># Fish Caught:</strong> <span id="fish-count-${trip.id}">0</span></p>`;
+                    if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
+                    if(trip.notes) content += `<p><strong>Notes:</strong> ${trip.notes}</p>`;
+
+                    content += `
+                        <div class="mt-3 pt-3">
+                            <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
+                            <button data-action="delete-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
+                        </div>
+                        <div class="border-t dark:border-gray-700 mt-3 pt-3">
+                            <h6 class="font-semibold mb-2">Weather Conditions</h6>
+                            <div id="weather-list-${trip.id}" class="space-y-2">
+                                <!-- Weather logs will be displayed here -->
+                            </div>
+                            <button data-action="add-weather" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-main-500 text-white rounded">Add Weather</button>
+                        </div>
+                        <div class="border-t dark:border-gray-700 mt-3 pt-3">
+                            <h6 class="font-semibold mb-2">Catch</h6>
+                            <div id="fish-list-${trip.id}" class="space-y-2">
+                                <!-- Fish logs will be displayed here -->
+                            </div>
+                            <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-main-500 text-white rounded">Add Fish</button>
+                        </div>
+                    `;
+                    tripEl.innerHTML = content;
+                    tripLogList.appendChild(tripEl);
+                    displayWeatherForTrip(trip.id);
+                    displayFishForTrip(trip.id);
+                    updateFishCountForTrip(trip.id);
+                });
+            } else {
+                tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
+            }
+        }, error => {
+            console.error("Error listening for trip updates:", error);
+            tripLogList.innerHTML = '<p class="text-red-500">Error loading trips.</p>';
         });
 
-        if (trips.length > 0) {
-            trips.forEach(trip => {
-                const tripEl = document.createElement('div');
-                tripEl.className = 'p-3 bg-white dark:bg-gray-800 rounded shadow text-sm';
-
-                let title = trip.water || 'Unnamed Trip';
-                if (trip.location) {
-                    title += ` - ${trip.location}`;
-                }
-                let content = `<div class="font-bold text-base mb-2">${title}</div>`;
-                if(trip.hours) content += `<p><strong>Hours Fished:</strong> ${trip.hours}</p>`;
-                content += `<p><strong># Fish Caught:</strong> <span id="fish-count-${trip.id}">0</span></p>`;
-                if(trip.companions) content += `<p><strong>Fished With:</strong> ${trip.companions}</p>`;
-                if(trip.notes) content += `<p><strong>Notes:</strong> ${trip.notes}</p>`;
-
-                content += `
-                    <div class="mt-3 pt-3">
-                        <button data-action="edit-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit Trip</button>
-                        <button data-action="delete-trip" data-trip-id="${trip.id}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete Trip</button>
-                    </div>
-                    <div class="border-t dark:border-gray-700 mt-3 pt-3">
-                        <h6 class="font-semibold mb-2">Weather Conditions</h6>
-                        <div id="weather-list-${trip.id}" class="space-y-2">
-                            <!-- Weather logs will be displayed here -->
-                        </div>
-                        <button data-action="add-weather" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-main-500 text-white rounded">Add Weather</button>
-                    </div>
-                    <div class="border-t dark:border-gray-700 mt-3 pt-3">
-                        <h6 class="font-semibold mb-2">Catch</h6>
-                        <div id="fish-list-${trip.id}" class="space-y-2">
-                            <!-- Fish logs will be displayed here -->
-                        </div>
-                        <button data-action="add-fish" data-trip-id="${trip.id}" class="mt-2 text-xs px-2 py-1 bg-main-500 text-white rounded">Add Fish</button>
-                    </div>
-                `;
-                tripEl.innerHTML = content;
-                tripLogList.appendChild(tripEl);
-                displayWeatherForTrip(trip.id);
-                displayFishForTrip(trip.id);
-                updateFishCountForTrip(trip.id);
-            });
-        } else {
-            tripLogList.innerHTML = '<p class="text-sm text-gray-500 dark:text-gray-400">No trips logged for this day.</p>';
-        }
-    } catch (error) {
-        console.error("Error displaying trips:", error);
-        tripLogList.innerHTML = '<p class="text-red-500">Error loading trips.</p>';
-    }
+    unsubscribeListeners.push(unsubscribe);
 }
 
 async function editTrip(id) {
+    if (!currentUser) return;
     try {
-        const doc = await firestoreDb.collection("trips").doc(id).get();
+        const doc = await firestoreDb.collection("users").doc(currentUser.uid).collection("trips").doc(id).get();
         if (!doc.exists) {
             console.error("No such trip!");
             alert("Could not find the trip to edit.");
@@ -672,10 +699,12 @@ async function deleteTrip(id) {
     if (!confirm('Are you sure you want to delete this trip and all its associated data?')) {
         return;
     }
+    if (!currentUser) return;
 
     try {
+        const userDocRef = firestoreDb.collection("users").doc(currentUser.uid);
         // First, get the trip document to find its date for UI refresh
-        const tripDoc = await firestoreDb.collection("trips").doc(id).get();
+        const tripDoc = await userDocRef.collection("trips").doc(id).get();
         if (!tripDoc.exists) {
             console.error("Trip to delete not found:", id);
             return;
@@ -685,21 +714,35 @@ async function deleteTrip(id) {
         const batch = firestoreDb.batch();
 
         // Delete associated weather logs
-        const weatherSnapshot = await firestoreDb.collection("weather_logs").where("tripId", "==", id).get();
+        const weatherSnapshot = await userDocRef.collection("weather_logs").where("tripId", "==", id).get();
         weatherSnapshot.forEach(doc => batch.delete(doc.ref));
 
-        // Delete associated fish
-        const fishSnapshot = await firestoreDb.collection("fish_caught").where("tripId", "==", id).get();
-        fishSnapshot.forEach(doc => batch.delete(doc.ref));
+        // Delete associated fish and their photos
+        const fishSnapshot = await userDocRef.collection("fish_caught").where("tripId", "==", id).get();
+        const photoDeletePromises = [];
+        fishSnapshot.forEach(doc => {
+            if (doc.data().photoUrl) {
+                try {
+                    const photoRef = storage.refFromURL(doc.data().photoUrl);
+                    photoDeletePromises.push(photoRef.delete());
+                } catch (error) {
+                    // This can happen if the URL is malformed or not a storage URL.
+                    // Log it but don't block the deletion process.
+                    console.error("Could not create storage reference from URL, skipping deletion:", doc.data().photoUrl, error);
+                }
+            }
+            batch.delete(doc.ref);
+        });
 
         // Delete the trip itself
-        batch.delete(firestoreDb.collection("trips").doc(id));
+        batch.delete(userDocRef.collection("trips").doc(id));
 
-        await batch.commit();
+        // Wait for both the batch write and all photo deletions to complete
+        await Promise.all([batch.commit(), ...photoDeletePromises]);
 
         console.log("Trip and all associated data deleted successfully.");
         displayTrips(dateToDelete);
-        renderCalendar();
+        listenForLoggedDays();
         updateOpenTripLogButton(dateToDelete);
 
     } catch (error) {
@@ -750,7 +793,7 @@ function initCalendar() {
     setupTheme();
     // initDB() is now called from onAuthStateChanged before this function
     if (currentUser) {
-        renderCalendar();
+        listenForLoggedDays();
         updateCurrentMoonInfo();
         updateLocationDisplay();
     }
@@ -872,12 +915,12 @@ function setupEventListeners() {
     prevMonthButton.addEventListener('click', () => {
         currentMonth--;
         if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-        renderCalendar();
+        listenForLoggedDays();
     });
     nextMonthButton.addEventListener('click', () => {
         currentMonth++;
         if (currentMonth > 11) { currentMonth = 0; currentYear++; }
-        renderCalendar();
+        listenForLoggedDays();
     });
     closeModal.addEventListener('click', hideModal);
 
@@ -1037,7 +1080,7 @@ function setupEventListeners() {
             if (deleteBtn) {
                 if (confirm('Are you sure you want to delete this photo?')) {
                     if (currentEditingFishData) {
-                        currentEditingFishData.photo = null;
+                        currentEditingFishData.photoUrl = null; // Mark for deletion
                     }
                     // Hide the UI elements
                     document.getElementById('edit-photo-container').classList.add('hidden');
@@ -1201,7 +1244,11 @@ function setupEventListeners() {
     const closeTripLogModal = document.getElementById('closeTripLogModal');
 
     if (tripLogModal && closeTripLogModal) {
-        closeTripLogModal.addEventListener('click', () => closeModalWithAnimation(tripLogModal));
+        const closeAndCleanup = () => {
+            detachAllListeners();
+            closeModalWithAnimation(tripLogModal);
+        };
+        closeTripLogModal.addEventListener('click', closeAndCleanup);
 
         tripLogModal.addEventListener('click', (e) => {
             if (e.target.id === 'add-trip-btn') {
@@ -1299,8 +1346,7 @@ async function checkIfTripsExist(date, callback) {
         return;
     }
     try {
-        const querySnapshot = await firestoreDb.collection("trips")
-            .where("userId", "==", currentUser.uid)
+        const querySnapshot = await firestoreDb.collection("users").doc(currentUser.uid).collection("trips")
             .where("date", "==", date)
             .limit(1)
             .get();
@@ -1480,7 +1526,7 @@ function hideModal() {
     modalCurrentYear = null;
 }
 
-async function renderCalendar() {
+async function renderCalendar(loggedDays) { // Now accepts loggedDays
     const render = async () => {
         currentMonthElement.textContent = `${monthNames[currentMonth]} ${currentYear}`;
         calendarDays.innerHTML = '';
@@ -1488,7 +1534,7 @@ async function renderCalendar() {
         const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
         const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-        const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth);
+        // const loggedDays = await getLoggedDaysForMonth(firstDayOfMonth, lastDayOfMonth); // This is now passed in
 
         let firstDay = firstDayOfMonth.getDay();
         firstDay = (firstDay === 0) ? 6 : firstDay - 1; // Adjust to Monday start
@@ -1954,8 +2000,9 @@ async function openWeatherModal(tripId, weatherId = null) {
 
     if (weatherId) {
         modalTitle.textContent = 'Edit Weather Log';
+        if (!currentUser) return;
         try {
-            const doc = await firestoreDb.collection("weather_logs").doc(weatherId).get();
+            const doc = await firestoreDb.collection("users").doc(currentUser.uid).collection("weather_logs").doc(weatherId).get();
             if (doc.exists) {
                 const data = doc.data();
                 document.getElementById('weather-time-of-day').value = data.timeOfDay;
@@ -1987,7 +2034,7 @@ async function saveWeather() {
     if (!currentEditingTripId || !currentUser) return;
 
     const weatherData = {
-        userId: currentUser.uid,
+        // userId is no longer needed in the document itself
         tripId: currentEditingTripId,
         timeOfDay: document.getElementById('weather-time-of-day').value,
         sky: document.getElementById('weather-sky').value,
@@ -2005,10 +2052,11 @@ async function saveWeather() {
     }
 
     try {
+        const userWeatherRef = firestoreDb.collection("users").doc(currentUser.uid).collection("weather_logs");
         if (currentEditingWeatherId) {
-            await firestoreDb.collection("weather_logs").doc(currentEditingWeatherId).set(weatherData, { merge: true });
+            await userWeatherRef.doc(currentEditingWeatherId).set(weatherData, { merge: true });
         } else {
-            await firestoreDb.collection("weather_logs").add(weatherData);
+            await userWeatherRef.add(weatherData);
         }
         displayWeatherForTrip(currentEditingTripId);
         closeWeatherModal();
@@ -2018,56 +2066,56 @@ async function saveWeather() {
     }
 }
 
-async function displayWeatherForTrip(tripId) {
+function displayWeatherForTrip(tripId) { // No longer async
     const listEl = document.getElementById(`weather-list-${tripId}`);
     if (!listEl || !currentUser) return;
 
-    try {
-        const querySnapshot = await firestoreDb.collection("weather_logs")
-            .where("userId", "==", currentUser.uid)
-            .where("tripId", "==", tripId)
-            .get();
+    const unsubscribe = firestoreDb.collection("users").doc(currentUser.uid).collection("weather_logs")
+        .where("tripId", "==", tripId)
+        .onSnapshot(querySnapshot => {
+            const weatherLogs = [];
+            querySnapshot.forEach(doc => {
+                weatherLogs.push({ id: doc.id, ...doc.data() });
+            });
 
-        const weatherLogs = [];
-        querySnapshot.forEach(doc => {
-            weatherLogs.push({ id: doc.id, ...doc.data() });
+            listEl.innerHTML = '';
+            const addWeatherBtn = listEl.nextElementSibling;
+
+            if (weatherLogs.length > 0) {
+                if(addWeatherBtn) addWeatherBtn.classList.add('hidden');
+                weatherLogs.forEach(log => {
+                    const weatherEl = document.createElement('div');
+                    weatherEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                    let content = `<div class="font-semibold">${log.timeOfDay}</div>`;
+                    if(log.sky) content += `<div>Sky: ${log.sky}</div>`;
+                    if(log.windCondition) content += `<div>Wind: ${log.windCondition} ${log.windDirection || ''}</div>`;
+                    if(log.waterTemp) content += `<div>Water Temp: ${log.waterTemp}</div>`;
+                    if(log.airTemp) content += `<div>Air Temp: ${log.airTemp}</div>`;
+                    content += `
+                        <div class="mt-2">
+                            <button data-action="edit-weather" data-trip-id="${tripId}" data-weather-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                            <button data-action="delete-weather" data-weather-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                        </div>
+                    `;
+                    weatherEl.innerHTML = content;
+                    listEl.appendChild(weatherEl);
+                });
+            } else {
+                if(addWeatherBtn) addWeatherBtn.classList.remove('hidden');
+                listEl.innerHTML = '<p class="text-xs text-gray-500">No weather logs for this trip yet.</p>';
+            }
+        }, error => {
+            console.error("Error listening to weather updates:", error);
+            listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading weather.</p>';
         });
 
-        listEl.innerHTML = '';
-        const addWeatherBtn = listEl.nextElementSibling;
-
-        if (weatherLogs.length > 0) {
-            if(addWeatherBtn) addWeatherBtn.classList.add('hidden');
-            weatherLogs.forEach(log => {
-                const weatherEl = document.createElement('div');
-                weatherEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
-                let content = `<div class="font-semibold">${log.timeOfDay}</div>`;
-                if(log.sky) content += `<div>Sky: ${log.sky}</div>`;
-                if(log.windCondition) content += `<div>Wind: ${log.windCondition} ${log.windDirection || ''}</div>`;
-                if(log.waterTemp) content += `<div>Water Temp: ${log.waterTemp}</div>`;
-                if(log.airTemp) content += `<div>Air Temp: ${log.airTemp}</div>`;
-                content += `
-                    <div class="mt-2">
-                        <button data-action="edit-weather" data-trip-id="${tripId}" data-weather-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                        <button data-action="delete-weather" data-weather-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
-                    </div>
-                `;
-                weatherEl.innerHTML = content;
-                listEl.appendChild(weatherEl);
-            });
-        } else {
-            if(addWeatherBtn) addWeatherBtn.classList.remove('hidden');
-            listEl.innerHTML = '<p class="text-xs text-gray-500">No weather logs for this trip yet.</p>';
-        }
-    } catch (error) {
-        console.error("Error displaying weather:", error);
-        listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading weather.</p>';
-    }
+    unsubscribeListeners.push(unsubscribe);
 }
 
 async function deleteWeather(weatherId, tripId) {
+    if (!currentUser) return;
     try {
-        await firestoreDb.collection("weather_logs").doc(weatherId).delete();
+        await firestoreDb.collection("users").doc(currentUser.uid).collection("weather_logs").doc(weatherId).delete();
         displayWeatherForTrip(tripId);
     } catch (error) {
         console.error('Error deleting weather log:', error);
@@ -2135,8 +2183,9 @@ async function openFishModal(tripId, fishId = null) {
 
     if (fishId) {
         modalTitle.textContent = 'Edit Fish';
+        if (!currentUser) return;
         try {
-            const doc = await firestoreDb.collection("fish_caught").doc(fishId).get();
+            const doc = await firestoreDb.collection("users").doc(currentUser.uid).collection("fish_caught").doc(fishId).get();
             if (doc.exists) {
                 const data = doc.data();
                 currentEditingFishData = data;
@@ -2147,8 +2196,8 @@ async function openFishModal(tripId, fishId = null) {
                 document.getElementById('fish-time').value = data.time || '';
                 document.getElementById('fish-details').value = data.details || '';
 
-                if (data.photo) {
-                    photoThumbnail.src = data.photo;
+                if (data.photoUrl) {
+                    photoThumbnail.src = data.photoUrl;
                     photoContainer.classList.remove('hidden');
                 }
 
@@ -2237,6 +2286,43 @@ function openGearSelectionModal() {
     openModalWithAnimation(gearModal);
 }
 
+function compressImage(file, maxWidth = 1080) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+
+                let width = img.width;
+                let height = img.height;
+
+                if (width > maxWidth) {
+                    height *= maxWidth / width;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                ctx.drawImage(img, 0, 0, width, height);
+
+                canvas.toBlob((blob) => {
+                    if (blob) {
+                        resolve(blob);
+                    } else {
+                        reject(new Error('Canvas to Blob conversion failed'));
+                    }
+                }, 'image/jpeg', 0.8); // 80% quality JPEG
+            };
+            img.onerror = reject;
+            img.src = event.target.result;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
 async function saveFish() {
     if (!currentEditingTripId || !currentUser) return;
 
@@ -2248,10 +2334,14 @@ async function saveFish() {
         finalGear.push(otherBaitValue);
     }
 
+    const userFishRef = firestoreDb.collection("users").doc(currentUser.uid).collection("fish_caught");
+
+    // Determine the fish ID upfront. Use existing if editing, or generate a new one.
+    const fishId = currentEditingFishId || userFishRef.doc().id;
+
     const fishData = {
         // Start with existing data if editing, otherwise create new
         ...(currentEditingFishData || {}),
-        userId: currentUser.uid,
         tripId: currentEditingTripId,
         species: document.getElementById('fish-species').value.trim(),
         gear: finalGear,
@@ -2259,6 +2349,7 @@ async function saveFish() {
         weight: document.getElementById('fish-weight').value.trim(),
         time: document.getElementById('fish-time').value,
         details: document.getElementById('fish-details').value.trim(),
+        photoUrl: currentEditingFishData?.photoUrl || null, // Preserve existing URL unless a new file is uploaded
     };
 
     if (!fishData.species) {
@@ -2266,43 +2357,55 @@ async function saveFish() {
         return;
     }
 
-    const readFileAsBase64 = (file) => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = reject;
-            reader.readAsDataURL(file);
-        });
-    };
+    try {
+        if (photoFile) {
+            // Show a loading indicator to the user
+            const saveBtn = document.getElementById('save-fish-btn');
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Uploading...';
 
-    const commitToDB = async (data) => {
-        try {
-            if (currentEditingFishId) {
-                await firestoreDb.collection("fish_caught").doc(currentEditingFishId).set(data, { merge: true });
-            } else {
-                await firestoreDb.collection("fish_caught").add(data);
+            const compressedBlob = await compressImage(photoFile);
+            const storagePath = `users/${currentUser.uid}/catches/${fishId}.jpg`;
+            const storageRef = storage.ref(storagePath);
+            const uploadTask = await storageRef.put(compressedBlob);
+            fishData.photoUrl = await uploadTask.ref.getDownloadURL();
+
+            // Restore button state
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Fish';
+        }
+
+        // If the user deleted the photo during the edit, the old URL will exist but the new one won't.
+        const oldPhotoUrl = currentEditingFishData?.photoUrl;
+        if (oldPhotoUrl && !fishData.photoUrl) {
+            try {
+                const photoRef = storage.refFromURL(oldPhotoUrl);
+                await photoRef.delete();
+                console.log("Old photo deleted successfully by user action.");
+            } catch (error) {
+                console.error("Error deleting old photo during edit:", error);
+                // Don't block the save, just log it.
             }
-            displayFishForTrip(currentEditingTripId);
-            closeFishModal();
-            const photoInput = document.getElementById('fish-photo');
-            if (photoInput) photoInput.value = '';
-        } catch (error) {
-            console.error('Error saving fish data:', error);
-            alert('There was an error saving the fish log.');
         }
-    };
 
-    if (photoFile) {
-        try {
-            const base64 = await readFileAsBase64(photoFile);
-            fishData.photo = base64;
-            await commitToDB(fishData);
-        } catch (error) {
-            console.error('Error reading file:', error);
-            alert('Could not read the photo file. Please try again. The fish data was not saved.');
-        }
-    } else {
-        await commitToDB(fishData);
+        // Now, commit the final data to Firestore
+        await userFishRef.doc(fishId).set(fishData, { merge: true });
+
+        console.log("Fish saved successfully with ID:", fishId);
+
+        // UI cleanup
+        displayFishForTrip(currentEditingTripId);
+        closeFishModal();
+        const photoInput = document.getElementById('fish-photo');
+        if (photoInput) photoInput.value = '';
+
+    } catch (error) {
+        console.error('Error saving fish:', error);
+        alert('There was an error saving your catch. Please check the console for details.');
+        // Restore button state in case of error
+        const saveBtn = document.getElementById('save-fish-btn');
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Fish';
     }
 }
 
@@ -2311,8 +2414,7 @@ async function updateFishCountForTrip(tripId) {
     if (!countEl || !currentUser) return;
 
     try {
-        const querySnapshot = await firestoreDb.collection("fish_caught")
-            .where("userId", "==", currentUser.uid)
+        const querySnapshot = await firestoreDb.collection("users").doc(currentUser.uid).collection("fish_caught")
             .where("tripId", "==", tripId)
             .get();
         countEl.textContent = querySnapshot.size;
@@ -2322,87 +2424,108 @@ async function updateFishCountForTrip(tripId) {
     }
 }
 
-async function displayFishForTrip(tripId) {
+function displayFishForTrip(tripId) { // No longer async
     const listEl = document.getElementById(`fish-list-${tripId}`);
     if (!listEl || !currentUser) return;
 
-    try {
-        const querySnapshot = await firestoreDb.collection("fish_caught")
-            .where("userId", "==", currentUser.uid)
-            .where("tripId", "==", tripId)
-            .get();
+    const unsubscribe = firestoreDb.collection("users").doc(currentUser.uid).collection("fish_caught")
+        .where("tripId", "==", tripId)
+        .onSnapshot(querySnapshot => {
+            const fishLogs = [];
+            querySnapshot.forEach(doc => {
+                fishLogs.push({ id: doc.id, ...doc.data() });
+            });
 
-        const fishLogs = [];
-        querySnapshot.forEach(doc => {
-            fishLogs.push({ id: doc.id, ...doc.data() });
+            listEl.innerHTML = '';
+            if (fishLogs.length > 0) {
+                fishLogs.forEach(log => {
+                    const fishEl = document.createElement('div');
+                    fishEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                    let content = `<div class="font-semibold">${log.species}</div>`;
+                    let sizeParts = [];
+                    if (log.length) sizeParts.push(log.length);
+                    if (log.weight) sizeParts.push(log.weight);
+                    if (sizeParts.length > 0) {
+                        content += `<div>${sizeParts.join(' / ')}</div>`;
+                    }
+                    if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
+                        content += `<div>Gear: ${log.gear.join(', ')}</div>`;
+                    }
+                    if(log.time) content += `<div>Time: ${log.time}</div>`;
+                    if(log.details) content += `<div>Details: ${log.details}</div>`;
+
+                if (log.photoUrl) {
+                    content += `<img src="${log.photoUrl}" alt="${log.species}" class="mt-2 rounded-lg w-full">`;
+                    }
+
+                    content += `
+                        <div class="mt-2">
+                            <button data-action="edit-fish" data-trip-id="${tripId}" data-fish-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
+                            <button data-action="delete-fish" data-fish-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
+                        </div>
+                    `;
+                    fishEl.innerHTML = content;
+                    listEl.appendChild(fishEl);
+                });
+            } else {
+                listEl.innerHTML = '<p class="text-xs text-gray-500">No fish logged for this trip yet.</p>';
+            }
+            updateFishCountForTrip(tripId);
+        }, error => {
+            console.error("Error listening to fish updates:", error);
+            listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading fish.</p>';
         });
 
-        listEl.innerHTML = '';
-        if (fishLogs.length > 0) {
-            fishLogs.forEach(log => {
-                const fishEl = document.createElement('div');
-                fishEl.className = 'text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded';
-                let content = `<div class="font-semibold">${log.species}</div>`;
-                let sizeParts = [];
-                if (log.length) sizeParts.push(log.length);
-                if (log.weight) sizeParts.push(log.weight);
-                if (sizeParts.length > 0) {
-                    content += `<div>${sizeParts.join(' / ')}</div>`;
-                }
-                if (log.gear && Array.isArray(log.gear) && log.gear.length > 0) {
-                    content += `<div>Gear: ${log.gear.join(', ')}</div>`;
-                }
-                if(log.time) content += `<div>Time: ${log.time}</div>`;
-                if(log.details) content += `<div>Details: ${log.details}</div>`;
-
-                if (log.photo) {
-                    content += `<img src="${log.photo}" alt="${log.species}" class="mt-2 rounded-lg w-full">`;
-                }
-
-                content += `
-                    <div class="mt-2">
-                        <button data-action="edit-fish" data-trip-id="${tripId}" data-fish-id="${log.id}" class="text-xs px-2 py-1 bg-yellow-500 text-white rounded">Edit</button>
-                        <button data-action="delete-fish" data-fish-id="${log.id}" data-trip-id="${tripId}" class="text-xs px-2 py-1 bg-red-500 text-white rounded">Delete</button>
-                    </div>
-                `;
-                fishEl.innerHTML = content;
-                listEl.appendChild(fishEl);
-            });
-        } else {
-            listEl.innerHTML = '<p class="text-xs text-gray-500">No fish logged for this trip yet.</p>';
-        }
-        updateFishCountForTrip(tripId);
-    } catch (error) {
-        console.error("Error displaying fish:", error);
-        listEl.innerHTML = '<p class="text-red-500 text-xs">Error loading fish.</p>';
-    }
+    unsubscribeListeners.push(unsubscribe);
 }
 
 async function deleteFish(fishId, tripId) {
+    if (!currentUser) return;
+    if (!confirm('Are you sure you want to delete this fish?')) return;
+
     try {
-        await firestoreDb.collection("fish_caught").doc(fishId).delete();
-        displayFishForTrip(tripId);
+        const fishRef = firestoreDb.collection("users").doc(currentUser.uid).collection("fish_caught").doc(fishId);
+        const fishDoc = await fishRef.get();
+
+        if (fishDoc.exists && fishDoc.data().photoUrl) {
+            const photoRef = storage.refFromURL(fishDoc.data().photoUrl);
+            await photoRef.delete();
+            console.log("Photo deleted from storage successfully.");
+        }
+
+        await fishRef.delete();
+        console.log("Fish document deleted successfully.");
+        // The real-time listener on displayFishForTrip will handle the UI update automatically.
+        // So, no need to call displayFishForTrip(tripId) here.
     } catch (error) {
-        console.error('Error deleting fish log:', error);
-        alert('There was an error deleting the fish log.');
+        console.error('Error deleting fish and photo:', error);
+        alert('There was an error deleting the fish.');
     }
 }
 
-async function getLoggedDaysForMonth(startDate, endDate) {
-    if (!currentUser) {
-        return new Set();
+let loggedDaysUnsubscribe = null;
+
+function listenForLoggedDays() {
+    if (loggedDaysUnsubscribe) {
+        loggedDaysUnsubscribe();
     }
-    const loggedDays = new Set();
-    try {
-        const startStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}`;
-        const endStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
+    if (!currentUser) {
+        renderCalendar(new Set());
+        return;
+    }
 
-        const querySnapshot = await firestoreDb.collection("trips")
-            .where("userId", "==", currentUser.uid)
-            .where("date", ">=", startStr)
-            .where("date", "<=", endStr)
-            .get();
+    const startDate = new Date(currentYear, currentMonth, 1);
+    const endDate = new Date(currentYear, currentMonth + 1, 0);
 
+    const startStr = `${startDate.getFullYear()}-${(startDate.getMonth() + 1).toString().padStart(2, '0')}-${startDate.getDate().toString().padStart(2, '0')}`;
+    const endStr = `${endDate.getFullYear()}-${(endDate.getMonth() + 1).toString().padStart(2, '0')}-${endDate.getDate().toString().padStart(2, '0')}`;
+
+    const query = firestoreDb.collection("users").doc(currentUser.uid).collection("trips")
+        .where("date", ">=", startStr)
+        .where("date", "<=", endStr);
+
+    loggedDaysUnsubscribe = query.onSnapshot(querySnapshot => {
+        const loggedDays = new Set();
         querySnapshot.forEach(doc => {
             const log = doc.data();
             if (log && log.date) {
@@ -2410,11 +2533,11 @@ async function getLoggedDaysForMonth(startDate, endDate) {
                 loggedDays.add(day);
             }
         });
-        return loggedDays;
-    } catch (error) {
-        console.error("Error fetching logged days for month:", error);
-        return loggedDays; // Return empty set on error
-    }
+        renderCalendar(loggedDays); // Pass the days to renderCalendar
+    }, error => {
+        console.error("Error listening for logged days:", error);
+        renderCalendar(new Set()); // Render empty calendar on error
+    });
 }
 
 async function getAllData(collectionName) {
@@ -2423,8 +2546,7 @@ async function getAllData(collectionName) {
         return [];
     }
     try {
-        const querySnapshot = await firestoreDb.collection(collectionName)
-            .where("userId", "==", currentUser.uid)
+        const querySnapshot = await firestoreDb.collection("users").doc(currentUser.uid).collection(collectionName)
             .get();
         const data = [];
         querySnapshot.forEach(doc => {
@@ -2990,7 +3112,7 @@ async function loadPhotoGallery() {
 
         // 2. Filter for fish with photos and add a proper Date object
         const fishWithPhotos = allFish
-            .filter(fish => fish.photo && tripsMap.has(fish.tripId))
+            .filter(fish => fish.photoUrl && tripsMap.has(fish.tripId))
             .map(fish => {
                 const dateStr = tripsMap.get(fish.tripId).date;
                 const [year, month, day] = dateStr.split('-').map(Number);
@@ -3062,7 +3184,7 @@ async function loadPhotoGallery() {
                 photoEl.dataset.fishId = fish.id;
 
                 const img = document.createElement('img');
-                img.src = fish.photo;
+                img.src = fish.photoUrl;
                 img.alt = fish.species;
                 img.className = 'w-full h-full object-cover transition-transform duration-300 group-hover:scale-110';
 
@@ -3094,7 +3216,8 @@ async function loadPhotoGallery() {
 async function openCatchDetailModal(fishId) {
     if (!currentUser) return;
     try {
-        const fishDoc = await firestoreDb.collection("fish_caught").doc(fishId).get();
+        const userDocRef = firestoreDb.collection("users").doc(currentUser.uid);
+        const fishDoc = await userDocRef.collection("fish_caught").doc(fishId).get();
         if (!fishDoc.exists) {
             console.error("Fish not found for ID:", fishId);
             alert("Could not find the details for this catch.");
@@ -3104,14 +3227,14 @@ async function openCatchDetailModal(fishId) {
 
         let trip = null;
         if (fish.tripId) {
-            const tripDoc = await firestoreDb.collection("trips").doc(fish.tripId).get();
+            const tripDoc = await userDocRef.collection("trips").doc(fish.tripId).get();
             if (tripDoc.exists) {
                 trip = tripDoc.data();
             }
         }
 
         const modal = document.getElementById('catchDetailModal');
-        document.getElementById('catchDetailImage').src = fish.photo || '';
+        document.getElementById('catchDetailImage').src = fish.photoUrl || '';
         document.getElementById('catchDetailSpecies').textContent = fish.species || 'Unknown Species';
 
         const contentEl = document.getElementById('catchDetailContent');
@@ -3221,12 +3344,14 @@ async function migrateDataToFirestore() {
 
         const tripIdMap = new Map();
         const batch = firestoreDb.batch();
+        const userDocRef = firestoreDb.collection("users").doc(currentUser.uid);
 
         for (const trip of oldTrips) {
             const oldId = trip.id;
             delete trip.id;
-            const newTripData = { ...trip, userId: currentUser.uid };
-            const newTripRef = firestoreDb.collection("trips").doc();
+            // No longer need to add userId to the doc data
+            const newTripData = { ...trip };
+            const newTripRef = userDocRef.collection("trips").doc();
             batch.set(newTripRef, newTripData);
             tripIdMap.set(oldId, newTripRef.id);
         }
@@ -3235,8 +3360,8 @@ async function migrateDataToFirestore() {
             if (tripIdMap.has(log.tripId)) {
                 const newTripId = tripIdMap.get(log.tripId);
                 delete log.id;
-                const newLogData = { ...log, tripId: newTripId, userId: currentUser.uid };
-                const newLogRef = firestoreDb.collection("weather_logs").doc();
+                const newLogData = { ...log, tripId: newTripId };
+                const newLogRef = userDocRef.collection("weather_logs").doc();
                 batch.set(newLogRef, newLogData);
             }
         }
@@ -3245,8 +3370,8 @@ async function migrateDataToFirestore() {
             if (tripIdMap.has(fish.tripId)) {
                 const newTripId = tripIdMap.get(fish.tripId);
                 delete fish.id;
-                const newFishData = { ...fish, tripId: newTripId, userId: currentUser.uid };
-                const newFishRef = firestoreDb.collection("fish_caught").doc();
+                const newFishData = { ...fish, tripId: newTripId };
+                const newFishRef = userDocRef.collection("fish_caught").doc();
                 batch.set(newFishRef, newFishData);
             }
         }
@@ -3256,7 +3381,7 @@ async function migrateDataToFirestore() {
         console.log("Data migration successful!");
         alert("Your data has been successfully moved to the cloud!");
         localStorage.setItem(migrationFlag, 'true');
-        renderCalendar();
+        listenForLoggedDays();
 
     } catch (error) {
         console.error("Error during data migration:", error);
