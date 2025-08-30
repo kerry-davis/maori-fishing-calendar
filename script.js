@@ -1529,9 +1529,17 @@ function exportData() {
         zip.file("data.json", JSON.stringify(exportDataContainer, null, 2));
 
         zip.generateAsync({ type: "blob" }).then(content => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timestamp = `${year}-${month}-${day}_${hours}${minutes}`;
+
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.href = URL.createObjectURL(content);
-            downloadAnchorNode.download = "fishing_log_export.zip";
+            downloadAnchorNode.download = `fishing_log_export_${timestamp}.zip`;
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             document.body.removeChild(downloadAnchorNode);
@@ -1615,9 +1623,17 @@ function exportDataAsCSV() {
         }
 
         zip.generateAsync({type:"blob"}).then(content => {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = (now.getMonth() + 1).toString().padStart(2, '0');
+            const day = now.getDate().toString().padStart(2, '0');
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const timestamp = `${year}-${month}-${day}_${hours}${minutes}`;
+
             const downloadAnchorNode = document.createElement('a');
             downloadAnchorNode.href = URL.createObjectURL(content);
-            downloadAnchorNode.download = "fishing_log_csv_export.zip";
+            downloadAnchorNode.download = `fishing_log_csv_export_${timestamp}.zip`;
             document.body.appendChild(downloadAnchorNode);
             downloadAnchorNode.click();
             document.body.removeChild(downloadAnchorNode);
