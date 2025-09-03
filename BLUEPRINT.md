@@ -16,26 +16,34 @@ The system can be broken down into four main parts:
 
 ```mermaid
 graph TD
-    User -- Interacts with --> PWA[Progressive Web App]
+    User --> PWA[Progressive Web App]
 
-    subgraph "Application Components"
-        PWA -- Runs on --> AppLogic[Application Logic (JS)]
-        AppLogic -- Manipulates --> UILayer[UI Layer (HTML/CSS)]
-        AppLogic -- Reads/Writes --> StorageLayer{Browser Storage}
+    PWA --> AppLogic[Application Logic JS]
+    AppLogic --> UILayer[UI Layer HTML/CSS]
+    AppLogic --> StorageLayer[Browser Storage]
+
+    StorageLayer --> IndexedDB[IndexedDB: Trips, Catches, Weather]
+    StorageLayer --> LocalStorage[localStorage: Settings, Tackle Box]
+
+    AppLogic --> WeatherAPI[Open-Meteo API]
+    AppLogic --> GeoAPI[Nominatim API]
+
+    subgraph Application
+        PWA
+        AppLogic
+        UILayer
     end
 
-    subgraph "Browser Storage"
-        StorageLayer -- Contains --> IndexedDB[(IndexedDB: Trips, Catches, Weather)]
-        StorageLayer -- Contains --> LocalStorage[(localStorage: Settings, Tackle Box)]
+    subgraph Storage
+        StorageLayer
+        IndexedDB
+        LocalStorage
     end
 
     subgraph "External APIs"
-        AppLogic -- Fetches data --> WeatherAPI[Open-Meteo API]
-        AppLogic -- Fetches data --> GeoAPI[Nominatim API]
+        WeatherAPI
+        GeoAPI
     end
-
-    style PWA fill:#0AA689,stroke:#333,stroke-width:2px,color:#fff
-    style StorageLayer fill:#f9f,stroke:#333,stroke-width:2px
 ```
 
 ### 1.3. Core Principles
