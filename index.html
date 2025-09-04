@@ -164,6 +164,7 @@
                 <div class="border-t dark:border-gray-700 pt-4 mb-4">
                     <h4 class="font-semibold text-lg mb-3 dark:text-gray-100">Bite Times</h4>
                     <div class="flex items-center space-x-1 mb-4 relative">
+                        <label for="location-input" class="sr-only">Enter a location</label>
                         <input type="text" id="location-input" placeholder="Enter a location" class="w-full px-3 py-2 border border-gray-300 rounded-l-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                         <button id="search-location-btn" class="px-3 py-2 bg-gray-500 text-white hover:bg-gray-600">
                             <i class="fas fa-search"></i>
@@ -247,6 +248,7 @@
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">Select Gear</h3>
             </div>
             <div class="p-6">
+                <label for="gear-search-input" class="sr-only">Search gear...</label>
                 <input type="text" id="gear-search-input" placeholder="Search gear..." class="w-full p-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 dark:placeholder-gray-400">
             </div>
             <div id="gear-checklist-container" class="p-6 pt-0 overflow-y-auto">
@@ -294,10 +296,15 @@
                     </button>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <label for="trip-water" class="sr-only">Water Body</label>
                     <input type="text" id="trip-water" placeholder="Water Body (e.g., Lake Taupo)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                    <label for="trip-location" class="sr-only">Specific Location</label>
                     <input type="text" id="trip-location" placeholder="Specific Location (e.g., Stump Bay)" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                    <label for="trip-hours" class="sr-only">Hours Fished</label>
                     <input type="number" id="trip-hours" placeholder="Hours Fished" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    <label for="trip-companions" class="sr-only">Fished with</label>
                     <input type="text" id="trip-companions" placeholder="Fished with" class="p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2">
+                    <label for="trip-best-times" class="sr-only">Best Times / Notes</label>
                     <textarea id="trip-best-times" placeholder="Best Times / Notes" rows="3" class="md:col-span-2 p-2 border rounded dark:bg-gray-600 dark:border-gray-500"></textarea>
                 </div>
                 <div class="flex space-x-2 mt-4">
@@ -348,9 +355,13 @@
                             <h4 id="gear-form-title" class="text-xl font-semibold mb-3"></h4>
                             <input type="hidden" id="gear-id">
                             <div class="space-y-3">
+                                <label for="gear-name" class="sr-only">Name</label>
                                 <input type="text" id="gear-name" placeholder="Name" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400" required>
+                                <label for="gear-brand" class="sr-only">Brand</label>
                                 <input type="text" id="gear-brand" placeholder="Brand" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
+                                <label for="gear-form-type-select" class="sr-only">Gear Type</label>
                                 <select id="gear-form-type-select" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100"></select>
+                                <label for="gear-colour" class="sr-only">Colour</label>
                                 <input type="text" id="gear-colour" placeholder="Colour" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400">
                             </div>
                             <div class="flex space-x-2 mt-4">
@@ -363,6 +374,7 @@
                             <h4 id="gear-type-form-title" class="text-xl font-semibold mb-3"></h4>
                             <input type="hidden" id="editing-gear-type-name">
                             <div class="space-y-3">
+                                <label for="gear-type-name" class="sr-only">Gear type name</label>
                                 <input type="text" id="gear-type-name" placeholder="Gear type name" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 dark:text-gray-100 dark:placeholder-gray-400" required>
                             </div>
                             <div class="flex space-x-2 mt-4">
@@ -390,6 +402,7 @@
                     </button>
                 </div>
                 <div class="mt-4 flex space-x-2">
+                    <label for="search-input" class="sr-only">Search</label>
                     <input type="text" id="search-input" placeholder="e.g., 'Snapper' or 'January'" class="w-full px-3 py-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     <button id="search-button" class="px-4 py-2 bg-main-500 text-white rounded transition">Search</button>
                 </div>
@@ -433,11 +446,13 @@
             <div class="p-6">
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="weather-modal-title">Add Weather Log</h3>
                 <div class="space-y-3 text-sm">
+                    <label for="weather-time-of-day" class="sr-only">Time of Day</label>
                     <select id="weather-time-of-day" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <option value="">Select Time of Day</option>
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
                     </select>
+                    <label for="weather-sky" class="sr-only">Sky Conditions</label>
                     <select id="weather-sky" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <option value="">Select Sky Conditions</option>
                         <option value="Sunny">Sunny</option>
@@ -445,6 +460,7 @@
                         <option value="Overcast">Overcast</option>
                         <option value="Rain">Rain</option>
                     </select>
+                    <label for="weather-wind-condition" class="sr-only">Wind Conditions</label>
                     <select id="weather-wind-condition" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <option value="">Select Wind Conditions</option>
                         <option value="Calm">Calm</option>
@@ -452,8 +468,11 @@
                         <option value="Mod Winds">Mod Winds</option>
                         <option value="Strong Winds">Strong Winds</option>
                     </select>
+                    <label for="weather-wind-direction" class="sr-only">Wind Direction</label>
                     <input type="text" id="weather-wind-direction" placeholder="Wind Direction" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    <label for="weather-water-temp" class="sr-only">Water Temp</label>
                     <input type="number" id="weather-water-temp" placeholder="Water Temp" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                    <label for="weather-air-temp" class="sr-only">Air Temp</label>
                     <input type="number" id="weather-air-temp" placeholder="Air Temp" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                 </div>
                 <div class="flex space-x-2 mt-4">
@@ -471,16 +490,20 @@
                 <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100 mb-4" id="fish-modal-title">Add Fish</h3>
                 <form id="fish-form">
                     <div class="space-y-3 text-sm">
+                        <label for="fish-species" class="sr-only">Species</label>
                         <input type="text" id="fish-species" placeholder="Species" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <div id="fish-gear-container">
                             <!-- Populated by script -->
                         </div>
+                        <label for="fish-length" class="sr-only">Length</label>
                         <input type="text" id="fish-length" placeholder="Length" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
+                        <label for="fish-weight" class="sr-only">Weight</label>
                         <input type="text" id="fish-weight" placeholder="Weight" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         <div class="flex items-center">
                             <label for="fish-time" class="mr-2 dark:text-gray-300">Time:</label>
                             <input type="time" id="fish-time" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500">
                         </div>
+                        <label for="fish-details" class="sr-only">Other Details</label>
                         <textarea id="fish-details" placeholder="Other Details..." rows="3" class="w-full p-2 border rounded dark:bg-gray-600 dark:border-gray-500 md:col-span-2"></textarea>
                         <div id="edit-photo-container" class="hidden">
                             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Current Photo</label>
